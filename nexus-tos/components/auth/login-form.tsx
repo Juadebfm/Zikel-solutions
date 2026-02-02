@@ -3,13 +3,13 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { User, Lock, LogIn, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   Form,
   FormControl,
@@ -18,23 +18,14 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useAuth } from "@/contexts/auth-context"
-
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Username is required")
-    .email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().optional(),
-})
-
-type LoginFormData = z.infer<typeof loginSchema>
+import { loginSchema, type LoginFormValues } from "@/lib/validators"
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading } = useAuth()
 
-  const form = useForm<LoginFormData>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -43,7 +34,7 @@ export function LoginForm() {
     },
   })
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormValues) => {
     setError(null)
     const result = await login(data.email, data.password)
     if (!result.success) {
@@ -52,107 +43,133 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md">
-      {/* Header */}
-      <div className="mb-8">
-        <p className="text-primary font-medium mb-1">Welcome Back</p>
-        <h1 className="text-4xl font-bold text-gray-900">Log in</h1>
+    <div className="w-full max-w-md mx-auto">
+      {/* Logo - Mobile */}
+      <div className="flex justify-center mb-8 lg:hidden">
+        <Image
+          src="/favicon.png"
+          alt="Zikel Solutions"
+          width={48}
+          height={48}
+          className="rounded-xl"
+          priority
+        />
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
+      {/* Form Card */}
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Log in</h1>
+          <p className="text-gray-500 mt-2">Welcome back to Nexus TOS</p>
         </div>
-      )}
 
-      {/* Form */}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      placeholder="Username"
-                      className="pl-10 h-12 bg-white border-gray-300 focus:border-primary focus:ring-primary"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      type="password"
-                      placeholder="Password"
-                      className="pl-10 h-12 bg-white border-gray-300 focus:border-primary focus:ring-primary"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="submit"
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <LogIn className="h-5 w-5 mr-2" />
-                LOG IN
-              </>
-            )}
-          </Button>
-
-          <div className="flex items-center justify-between pt-2">
+        {/* Form */}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email Field */}
             <FormField
               control={form.control}
-              name="rememberMe"
+              name="email"
               render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormItem>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Email address
+                  </Label>
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <div className="relative mt-1.5">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        className="pl-10 h-12 bg-white border-gray-200 rounded-lg focus:border-primary focus:ring-primary"
+                        {...field}
+                      />
+                    </div>
                   </FormControl>
-                  <label className="text-sm text-gray-600 cursor-pointer">
-                    Remember me
-                  </label>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Link
-              href="/forgot-password"
-              className="text-sm text-primary hover:text-primary/80 font-medium"
+            {/* Password Field */}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Password
+                  </Label>
+                  <FormControl>
+                    <div className="relative mt-1.5">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        className="h-12 bg-white border-gray-200 rounded-lg focus:border-primary focus:ring-primary pr-10"
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Forgot Password Link */}
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary hover:text-primary/80 font-medium"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
+              disabled={isLoading}
             >
-              Forgot your password?
-            </Link>
-          </div>
-        </form>
-      </Form>
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Log into your account"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </div>
+
+      {/* Sign Up Link */}
+      <p className="text-center mt-6 text-gray-600">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/register"
+          className="text-primary hover:text-primary/80 font-medium"
+        >
+          Sign up
+        </Link>
+      </p>
     </div>
   )
 }

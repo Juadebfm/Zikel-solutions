@@ -1,4 +1,11 @@
-import type { AuthUser, User, AuthResponse, UserRole } from "@/types"
+import type {
+  AuthUser,
+  User,
+  AuthResponse,
+  UserRole,
+  SignupFormData,
+  OTPVerificationResponse,
+} from "@/types"
 
 /**
  * Mock Authentication Data
@@ -56,11 +63,28 @@ const mockAuthUsers: AuthUser[] = [
   },
 ]
 
+// In-memory OTP storage (for mock purposes)
+interface OTPEntry {
+  code: string
+  email: string
+  expiresAt: number
+  signupData?: SignupFormData
+}
+
+const otpStore = new Map<string, OTPEntry>()
+
 /**
  * Simulate API delay for realistic behavior
  */
 const simulateApiDelay = (ms: number = 800): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Generate a 6-digit OTP code
+ */
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
 /**
@@ -104,6 +128,141 @@ export async function authenticateUser(
     user,
     token: `mock-jwt-token-${user.id}-${Date.now()}`, // Mock JWT token
     message: "Login successful",
+  }
+}
+
+/**
+ * Initiate signup process
+ * Creates pending registration and sends OTP
+ */
+export async function initiateSignup(data: SignupFormData): Promise<AuthResponse> {
+  await simulateApiDelay()
+
+  // Check if email already exists
+  const emailExists = mockAuthUsers.some(
+    (u) => u.email.toLowerCase() === data.email.toLowerCase()
+  )
+
+  if (emailExists) {
+    return {
+      success: false,
+      message: "An account with this email already exists.",
+    }
+  }
+
+  // Generate OTP and store with signup data
+  const otp = generateOTP()
+  const expiresAt = Date.now() + 10 * 60 * 1000 // 10 minutes
+
+  otpStore.set(data.email.toLowerCase(), {
+    code: otp,
+    email: data.email,
+    expiresAt,
+    signupData: data,
+  })
+
+  // In production, this would send an email
+  console.log(`[MOCK] OTP for ${data.email}: ${otp}`)
+
+  return {
+    success: true,
+    message: "Verification code sent to your email.",
+  }
+}
+
+/**
+ * Verify OTP code and complete registration
+ */
+export async function verifyOTP(
+  email: string,
+  code: string
+): Promise<OTPVerificationResponse> {
+  await simulateApiDelay()
+
+  const entry = otpStore.get(email.toLowerCase())
+
+  if (!entry) {
+    return {
+      success: false,
+      message: "No verification code found. Please request a new one.",
+    }
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(email.toLowerCase())
+    return {
+      success: false,
+      message: "Verification code has expired. Please request a new one.",
+    }
+  }
+
+  if (entry.code !== code) {
+    return {
+      success: false,
+      message: "Invalid verification code. Please try again.",
+    }
+  }
+
+  // OTP is valid - create the user account
+  if (entry.signupData) {
+    const newUser: AuthUser = {
+      id: `user-${Date.now()}`,
+      email: entry.signupData.email,
+      password: entry.signupData.password,
+      firstName: entry.signupData.firstName,
+      lastName: entry.signupData.surname,
+      role: "staff" as UserRole, // New users start as staff
+      phone: `${entry.signupData.phoneCountryCode}${entry.signupData.phone}`,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    }
+
+    mockAuthUsers.push(newUser)
+    console.log(`[MOCK] User created: ${newUser.email}`)
+  }
+
+  // Clear the OTP
+  otpStore.delete(email.toLowerCase())
+
+  return {
+    success: true,
+    message: "Email verified successfully. You can now log in.",
+  }
+}
+
+/**
+ * Resend OTP code
+ */
+export async function resendOTP(
+  email: string
+): Promise<{ success: boolean; message?: string }> {
+  await simulateApiDelay()
+
+  const existingEntry = otpStore.get(email.toLowerCase())
+
+  if (!existingEntry) {
+    return {
+      success: false,
+      message: "No pending verification found. Please start registration again.",
+    }
+  }
+
+  // Generate new OTP
+  const newOtp = generateOTP()
+  const expiresAt = Date.now() + 10 * 60 * 1000 // 10 minutes
+
+  otpStore.set(email.toLowerCase(), {
+    ...existingEntry,
+    code: newOtp,
+    expiresAt,
+  })
+
+  // In production, this would send an email
+  console.log(`[MOCK] New OTP for ${email}: ${newOtp}`)
+
+  return {
+    success: true,
+    message: "A new verification code has been sent to your email.",
   }
 }
 
@@ -173,4 +332,12 @@ export function getRoleDisplayName(role: UserRole): string {
  */
 export function getAllMockUsers(): Omit<AuthUser, "password">[] {
   return mockAuthUsers.map(({ password: _, ...user }) => user)
+}
+
+/**
+ * Get pending OTP for testing (DEV ONLY)
+ */
+export function getOTPForTesting(email: string): string | null {
+  const entry = otpStore.get(email.toLowerCase())
+  return entry?.code ?? null
 }

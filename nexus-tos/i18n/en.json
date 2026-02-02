@@ -1,0 +1,108 @@
+{
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "subtitle": "Welcome Back",
+      "email": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot your password?",
+      "loginButton": "Log into your account",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "signup": {
+      "title": "Create account",
+      "step1": {
+        "title": "Country of residence",
+        "question": "What country do you live in?",
+        "countryLabel": "Country",
+        "countryPlaceholder": "Select country",
+        "note": "Kindly note",
+        "noteText": "The documents you can use for verification depend only on your selected country of residence. Please double-check your choice."
+      },
+      "step2": {
+        "title": "Basic information",
+        "heading": "Set up your account",
+        "firstName": "First name (as it is on your ID)",
+        "middleName": "Middle name (Optional)",
+        "surname": "Surname (as it is on your ID)",
+        "gender": "Gender",
+        "genderPlaceholder": "Select gender",
+        "email": "Email address",
+        "phone": "Phone number",
+        "referralCode": "Referral code (Optional)",
+        "referralPlaceholder": "Referral code of user that referred you"
+      },
+      "step3": {
+        "title": "Create password",
+        "heading": "Create password",
+        "password": "Password",
+        "passwordPlaceholder": "Enter password (min. of 8 characters)",
+        "confirmPassword": "Confirm password",
+        "confirmPlaceholder": "Enter password (min. of 8 characters)",
+        "requirements": "AT LEAST:",
+        "acceptMarketing": "I agree to receive product updates, announcements, and exclusive offers via email",
+        "acceptTerms": "I accept the",
+        "termsOfUse": "Terms of Use",
+        "and": "and",
+        "privacyPolicy": "Privacy Policy"
+      },
+      "step4": {
+        "title": "Verify email",
+        "heading": "Verify your email address",
+        "description": "Please enter the OTP sent to the email address you provided to verify your email address",
+        "verifyButton": "Verify your account",
+        "resendCode": "Resend code",
+        "pasteClipboard": "Paste from clipboard"
+      },
+      "hasAccount": "Got an account?",
+      "signIn": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email to reset your password",
+      "email": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "sendLink": "Send reset link",
+      "backToLogin": "Back to login",
+      "successTitle": "Check your email",
+      "successMessage": "We've sent you a link to reset your password"
+    }
+  },
+  "validation": {
+    "emailRequired": "Email is required",
+    "emailInvalid": "Please enter a valid email",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordLowercase": "A lowercase letter",
+    "passwordUppercase": "An uppercase letter",
+    "passwordNumber": "A number",
+    "passwordSpecial": "A special character",
+    "passwordMinChars": "At least 8 characters",
+    "passwordsNoMatch": "Passwords do not match",
+    "countryRequired": "Please select a country",
+    "firstNameRequired": "First name is required",
+    "surnameRequired": "Surname is required",
+    "genderRequired": "Please select a gender",
+    "phoneRequired": "Phone number is required",
+    "termsRequired": "You must accept the Terms of Use and Privacy Policy"
+  },
+  "footer": {
+    "copyright": "Zikel Solutions",
+    "helpCenter": "Help Center",
+    "termsOfService": "Terms of Service",
+    "needHelp": "Need help?"
+  }
+}

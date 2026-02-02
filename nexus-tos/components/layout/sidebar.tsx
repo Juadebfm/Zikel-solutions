@@ -17,9 +17,16 @@ import {
   Clock,
   PieChart,
   Upload,
+  Shield,
+  ClipboardList,
+  FolderOpen,
+  MapPin,
+  UserCog,
+  Layers,
+  Download,
+  Settings,
   HelpCircle,
   LogOut,
-  Settings,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react"
@@ -40,90 +47,149 @@ interface NavItem {
   href: string
   icon: LucideIcon
   badge?: number
+  adminOnly?: boolean
 }
 
-const mainNavItems: (NavItem | "divider")[] = [
-  { label: "My Summary", href: "/my-summary", icon: LayoutDashboard },
-  { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
-  { label: "Task Explorer", href: "/tasks", icon: Search },
-  "divider",
-  { label: "Care Groups", href: "/care-groups", icon: Users },
-  { label: "Homes", href: "/homes", icon: Home },
-  { label: "Young People", href: "/young-people", icon: UserCircle },
-  { label: "Employees", href: "/employees", icon: Briefcase },
-  { label: "Vehicles", href: "/vehicles", icon: Car },
-  "divider",
-  { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Daily Logs", href: "/daily-logs", icon: FileText },
-  { label: "Rotas", href: "/rotas", icon: Clock },
-  "divider",
-  { label: "Bespoke Reporting", href: "/reports", icon: PieChart },
-  { label: "Uploads", href: "/uploads", icon: Upload },
-]
+interface NavSection {
+  title?: string
+  items: NavItem[]
+}
 
-const bottomNavItems: NavItem[] = [
-  { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Help Centre", href: "/help", icon: HelpCircle },
+const navigationSections: NavSection[] = [
+  {
+    title: "WORKSPACE",
+    items: [
+      { label: "My Summary", href: "/my-summary", icon: LayoutDashboard },
+      { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
+      { label: "Task Explorer", href: "/tasks", icon: Search },
+    ],
+  },
+  {
+    title: "DIRECTORY",
+    items: [
+      { label: "Care Groups", href: "/care-groups", icon: Users },
+      { label: "Homes", href: "/homes", icon: Home },
+      { label: "Young People", href: "/young-people", icon: UserCircle },
+      { label: "Employees", href: "/employees", icon: Briefcase },
+      { label: "Vehicles", href: "/vehicles", icon: Car },
+    ],
+  },
+  {
+    title: "SCHEDULING",
+    items: [
+      { label: "Calendar", href: "/calendar", icon: Calendar },
+      { label: "Daily Logs", href: "/daily-logs", icon: FileText },
+      { label: "Rotas", href: "/rotas", icon: Clock },
+    ],
+  },
+  {
+    title: "REPORTS",
+    items: [
+      { label: "Bespoke Reporting", href: "/reports", icon: PieChart },
+      { label: "Uploads", href: "/uploads", icon: Upload },
+    ],
+  },
+  {
+    title: "LIBRARY",
+    items: [
+      { label: "Sensitive Data", href: "/sensitive-data", icon: Shield },
+      { label: "Forms & Procedures", href: "/forms", icon: ClipboardList },
+      { label: "Documents", href: "/documents", icon: FolderOpen },
+    ],
+  },
+  {
+    title: "ADMINISTRATION",
+    items: [
+      { label: "Regions", href: "/regions", icon: MapPin, adminOnly: true },
+      { label: "Users", href: "/users", icon: UserCog, adminOnly: true },
+      { label: "Groupings", href: "/groupings", icon: Layers, adminOnly: true },
+      { label: "Bulk Exports", href: "/bulk-exports", icon: Download, adminOnly: true },
+      { label: "System Settings", href: "/system-settings", icon: Settings, adminOnly: true },
+    ],
+  },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
+  }
+
+  // Filter admin-only items based on permissions
+  const filterNavItems = (items: NavItem[]) => {
+    return items.filter((item) => {
+      if (item.adminOnly) {
+        return hasPermission("canManageSettings")
+      }
+      return true
+    })
   }
 
   return (
     <aside className="w-64 h-screen bg-sidebar flex flex-col fixed left-0 top-0">
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
-        <Link href="/my-summary" className="block">
+        <Link href="/my-summary" className="flex items-center gap-3">
           <Image
-            src="/logo.svg"
-            alt="Nexus TOS"
-            width={160}
-            height={42}
+            src="/favicon.png"
+            alt="Zikel Solutions"
+            width={36}
+            height={36}
+            className="rounded-lg"
             priority
           />
+          <span className="text-xl font-bold text-sidebar-foreground">
+            Zikel Solutions
+          </span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-4">
-        <nav className="px-3 space-y-1">
-          {mainNavItems.map((item, index) => {
-            if (item === "divider") {
-              return (
-                <div
-                  key={`divider-${index}`}
-                  className="my-3 border-t border-sidebar-border"
-                />
-              )
-            }
-
-            const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+      <ScrollArea className="flex-1">
+        <nav className="p-3">
+          {navigationSections.map((section, sectionIndex) => {
+            const filteredItems = filterNavItems(section.items)
+            if (filteredItems.length === 0) return null
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              <div key={sectionIndex} className="mb-6">
+                {section.title && (
+                  <h3 className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                    {section.title}
+                  </h3>
                 )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="ml-auto bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
+                <div className="space-y-1">
+                  {filteredItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`)
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        )}
+                      >
+                        <Icon className="h-5 w-5 flex-shrink-0" />
+                        <span>{item.label}</span>
+                        {item.badge && (
+                          <span className="ml-auto bg-white/20 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
             )
           })}
         </nav>
@@ -131,37 +197,38 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-sidebar-border">
-        {/* Bottom Nav Items */}
-        <nav className="px-3 py-2 space-y-1">
-          {bottomNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        {/* Help Link */}
+        <nav className="px-3 py-2">
+          <Link
+            href="/help"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              pathname === "/help"
+                ? "bg-primary text-primary-foreground"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            )}
+          >
+            <HelpCircle className="h-5 w-5 flex-shrink-0" />
+            <span>Help Centre</span>
+          </Link>
         </nav>
+
+        {/* System Status */}
+        <div className="px-6 py-2 text-xs text-sidebar-foreground/50">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+            <span>System status</span>
+          </div>
+          <p className="mt-1 font-medium text-sidebar-foreground/70">v1.0.0 Stable</p>
+        </div>
 
         {/* User Profile */}
         <div className="p-3 border-t border-sidebar-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
-                <Avatar className="h-8 w-8 bg-sidebar-accent">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {user ? getInitials(user.firstName, user.lastName) : "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -173,18 +240,14 @@ export function Sidebar() {
                     {user?.role === "admin"
                       ? "Administrator"
                       : user?.role === "manager"
-                      ? "Manager"
-                      : "Staff"}
+                        ? "Manager"
+                        : "Staff"}
                   </p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56"
-              sideOffset={8}
-            >
+            <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium">
                   {user ? `${user.firstName} ${user.lastName}` : "User"}
@@ -193,7 +256,7 @@ export function Sidebar() {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/system-settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Link>

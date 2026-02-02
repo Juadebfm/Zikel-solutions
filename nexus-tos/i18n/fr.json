@@ -1,0 +1,108 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Bon retour",
+      "email": "Adresse e-mail",
+      "emailPlaceholder": "Entrez votre e-mail",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Entrez votre mot de passe",
+      "rememberMe": "Se souvenir de moi",
+      "forgotPassword": "Mot de passe oublié ?",
+      "loginButton": "Se connecter à votre compte",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signUp": "S'inscrire"
+    },
+    "signup": {
+      "title": "Créer un compte",
+      "step1": {
+        "title": "Pays de résidence",
+        "question": "Dans quel pays habitez-vous ?",
+        "countryLabel": "Pays",
+        "countryPlaceholder": "Sélectionnez un pays",
+        "note": "Veuillez noter",
+        "noteText": "Les documents que vous pouvez utiliser pour la vérification dépendent uniquement de votre pays de résidence sélectionné. Veuillez vérifier votre choix."
+      },
+      "step2": {
+        "title": "Informations de base",
+        "heading": "Configurez votre compte",
+        "firstName": "Prénom (tel qu'il apparaît sur votre pièce d'identité)",
+        "middleName": "Deuxième prénom (Facultatif)",
+        "surname": "Nom de famille (tel qu'il apparaît sur votre pièce d'identité)",
+        "gender": "Genre",
+        "genderPlaceholder": "Sélectionnez le genre",
+        "email": "Adresse e-mail",
+        "phone": "Numéro de téléphone",
+        "referralCode": "Code de parrainage (Facultatif)",
+        "referralPlaceholder": "Code de parrainage de l'utilisateur qui vous a référé"
+      },
+      "step3": {
+        "title": "Créer un mot de passe",
+        "heading": "Créer un mot de passe",
+        "password": "Mot de passe",
+        "passwordPlaceholder": "Entrez le mot de passe (min. 8 caractères)",
+        "confirmPassword": "Confirmer le mot de passe",
+        "confirmPlaceholder": "Entrez le mot de passe (min. 8 caractères)",
+        "requirements": "AU MOINS :",
+        "acceptMarketing": "J'accepte de recevoir des mises à jour de produits, des annonces et des offres exclusives par e-mail",
+        "acceptTerms": "J'accepte les",
+        "termsOfUse": "Conditions d'utilisation",
+        "and": "et la",
+        "privacyPolicy": "Politique de confidentialité"
+      },
+      "step4": {
+        "title": "Vérifier l'e-mail",
+        "heading": "Vérifiez votre adresse e-mail",
+        "description": "Veuillez entrer l'OTP envoyé à l'adresse e-mail que vous avez fournie pour vérifier votre adresse e-mail",
+        "verifyButton": "Vérifier votre compte",
+        "resendCode": "Renvoyer le code",
+        "pasteClipboard": "Coller depuis le presse-papiers"
+      },
+      "hasAccount": "Vous avez un compte ?",
+      "signIn": "Se connecter"
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entrez votre e-mail pour réinitialiser votre mot de passe",
+      "email": "Adresse e-mail",
+      "emailPlaceholder": "Entrez votre e-mail",
+      "sendLink": "Envoyer le lien de réinitialisation",
+      "backToLogin": "Retour à la connexion",
+      "successTitle": "Vérifiez votre e-mail",
+      "successMessage": "Nous vous avons envoyé un lien pour réinitialiser votre mot de passe"
+    }
+  },
+  "validation": {
+    "emailRequired": "L'e-mail est requis",
+    "emailInvalid": "Veuillez entrer un e-mail valide",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordLowercase": "Une lettre minuscule",
+    "passwordUppercase": "Une lettre majuscule",
+    "passwordNumber": "Un chiffre",
+    "passwordSpecial": "Un caractère spécial",
+    "passwordMinChars": "Au moins 8 caractères",
+    "passwordsNoMatch": "Les mots de passe ne correspondent pas",
+    "countryRequired": "Veuillez sélectionner un pays",
+    "firstNameRequired": "Le prénom est requis",
+    "surnameRequired": "Le nom de famille est requis",
+    "genderRequired": "Veuillez sélectionner un genre",
+    "phoneRequired": "Le numéro de téléphone est requis",
+    "termsRequired": "Vous devez accepter les Conditions d'utilisation et la Politique de confidentialité"
+  },
+  "footer": {
+    "copyright": "Zikel Solutions",
+    "helpCenter": "Centre d'aide",
+    "termsOfService": "Conditions de service",
+    "needHelp": "Besoin d'aide ?"
+  }
+}
