@@ -76,7 +76,8 @@ const otpStore = new Map<string, OTPEntry>()
 /**
  * Simulate API delay for realistic behavior
  */
-const simulateApiDelay = (ms: number = 800): Promise<void> => {
+const simulateApiDelay = (ms: number = 0): Promise<void> => {
+  if (ms <= 0) return Promise.resolve()
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
