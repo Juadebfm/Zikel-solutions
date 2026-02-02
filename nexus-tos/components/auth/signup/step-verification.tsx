@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { OTPInput } from "@/components/auth/otp-input"
+import { useLanguage } from "@/contexts/language-context"
 
 interface StepVerificationProps {
   email: string
@@ -21,6 +22,7 @@ export function StepVerification({
   onResend,
   onBack,
 }: StepVerificationProps) {
+  const { t } = useLanguage()
   const [code, setCode] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
@@ -97,12 +99,11 @@ export function StepVerification({
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
-            Verify your email address
+            {t("auth.signup.step4.heading")}
           </h1>
           <p className="text-gray-500 mt-2">
-            Please enter the OTP sent to{" "}
-            <span className="font-medium text-gray-700">{email}</span> to verify
-            your email address
+            {t("auth.signup.step4.description")}{" "}
+            <span className="font-medium text-gray-700">{email}</span>
           </p>
         </div>
 
@@ -133,7 +134,7 @@ export function StepVerification({
           {isVerifying ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            "Verify your account"
+            t("auth.signup.step4.verifyButton")
           )}
         </Button>
 
@@ -151,9 +152,9 @@ export function StepVerification({
               <RefreshCw className="h-4 w-4" />
             )}
             {cooldown > 0 ? (
-              <span>Resend code in {cooldown}s</span>
+              <span>{t("auth.signup.step4.resendCode")} in {cooldown}s</span>
             ) : (
-              <span>Resend code</span>
+              <span>{t("auth.signup.step4.resendCode")}</span>
             )}
           </button>
         </div>
@@ -163,10 +164,10 @@ export function StepVerification({
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mt-4 mx-auto"
+        className="flex items-center justify-center gap-2 w-full max-w-md mx-auto mt-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span className="text-sm">Back</span>
+        <span className="text-sm font-medium">{t("common.back")}</span>
       </button>
     </div>
   )

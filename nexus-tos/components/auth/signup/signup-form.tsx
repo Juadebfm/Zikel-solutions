@@ -11,6 +11,7 @@ import { StepBasicInfo } from "./step-basic-info"
 import { StepPassword } from "./step-password"
 import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
+import { useAuth } from "@/contexts/auth-context"
 import { authService } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry, Gender } from "@/types"
 
@@ -49,6 +50,7 @@ interface SignupFormProps {
 
 export function SignupForm({ onStepChange }: SignupFormProps) {
   const router = useRouter()
+  const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
   const {
@@ -116,8 +118,14 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     try {
       const result = await authService.verifyOTP(data.step2.email, code)
       if (result.success) {
-        // Redirect to login on success
-        router.push("/login?verified=true")
+        // Auto-login after successful verification
+        const loginResult = await login(data.step2.email, data.step3.password)
+        if (loginResult.success) {
+          router.push("/my-summary")
+        } else {
+          // Fallback to login page if auto-login fails
+          router.push("/login?verified=true")
+        }
         return true
       }
       return false

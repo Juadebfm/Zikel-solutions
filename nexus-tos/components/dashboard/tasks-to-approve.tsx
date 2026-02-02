@@ -64,10 +64,10 @@ export function TasksToApprove({
           items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+              className="relative flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors min-w-0"
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 min-w-0 pr-16 sm:pr-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <Badge
                     variant="outline"
                     className={statusStyles[item.status]}
@@ -81,7 +81,7 @@ export function TasksToApprove({
                   Caregiver: {item.caregiver}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 absolute top-3 right-3 sm:static sm:self-auto">
                 <Button
                   variant="ghost"
                   size="icon"

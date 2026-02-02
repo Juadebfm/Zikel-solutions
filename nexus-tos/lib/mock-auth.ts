@@ -82,9 +82,12 @@ const simulateApiDelay = (ms: number = 800): Promise<void> => {
 
 /**
  * Generate a 6-digit OTP code
+ * In development, always returns "123456" for easy testing
+ * In production, this would generate a random code
  */
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  // Fixed OTP for development/testing - always "123456"
+  return "123456"
 }
 
 /**

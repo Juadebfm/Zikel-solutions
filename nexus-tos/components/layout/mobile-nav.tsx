@@ -17,6 +17,13 @@ import {
   Clock,
   PieChart,
   Upload,
+  Shield,
+  ClipboardList,
+  FolderOpen,
+  MapPin,
+  UserCog,
+  Layers,
+  Download,
   HelpCircle,
   LogOut,
   Settings,
@@ -39,6 +46,7 @@ interface NavItem {
   label: string
   href: string
   icon: LucideIcon
+  adminOnly?: boolean
 }
 
 const mainNavItems: (NavItem | "divider")[] = [
@@ -58,6 +66,16 @@ const mainNavItems: (NavItem | "divider")[] = [
   "divider",
   { label: "Bespoke Reporting", href: "/reports", icon: PieChart },
   { label: "Uploads", href: "/uploads", icon: Upload },
+  "divider",
+  { label: "Sensitive Data", href: "/sensitive-data", icon: Shield },
+  { label: "Forms & Procedures", href: "/forms", icon: ClipboardList },
+  { label: "Documents", href: "/documents", icon: FolderOpen },
+  "divider",
+  { label: "Regions", href: "/regions", icon: MapPin, adminOnly: true },
+  { label: "Users", href: "/users", icon: UserCog, adminOnly: true },
+  { label: "Groupings", href: "/groupings", icon: Layers, adminOnly: true },
+  { label: "Bulk Exports", href: "/bulk-exports", icon: Download, adminOnly: true },
+  { label: "System Settings", href: "/system-settings", icon: Settings, adminOnly: true },
 ]
 
 interface MobileNavProps {
@@ -67,7 +85,7 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -81,6 +99,21 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
     onOpenChange(false)
     logout()
   }
+
+  const visibleNavItems = mainNavItems
+    .filter((item) => {
+      if (item === "divider") return true
+      if (item.adminOnly) return hasPermission("canManageSettings")
+      return true
+    })
+    .filter((item, index, items) => {
+      if (item !== "divider") return true
+      const prev = items[index - 1]
+      const next = items[index + 1]
+      if (!prev || prev === "divider") return false
+      if (!next || next === "divider") return false
+      return true
+    })
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -108,7 +141,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
           <nav className="px-3 py-4 space-y-1">
-            {mainNavItems.map((item, index) => {
+            {visibleNavItems.map((item, index) => {
               if (item === "divider") {
                 return (
                   <div

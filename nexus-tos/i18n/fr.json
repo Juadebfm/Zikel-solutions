@@ -35,13 +35,18 @@
       "step2": {
         "title": "Informations de base",
         "heading": "Configurez votre compte",
-        "firstName": "Prénom (tel qu'il apparaît sur votre pièce d'identité)",
-        "middleName": "Deuxième prénom (Facultatif)",
-        "surname": "Nom de famille (tel qu'il apparaît sur votre pièce d'identité)",
+        "firstName": "Prénom",
+        "firstNamePlaceholder": "Entrez votre prénom",
+        "middleName": "Deuxième prénom",
+        "middleNamePlaceholder": "Entrez votre deuxième prénom",
+        "surname": "Nom de famille",
+        "surnamePlaceholder": "Entrez votre nom de famille",
         "gender": "Genre",
         "genderPlaceholder": "Sélectionnez le genre",
         "email": "Adresse e-mail",
+        "emailPlaceholder": "Entrez votre e-mail",
         "phone": "Numéro de téléphone",
+        "phonePlaceholder": "Entrez votre numéro de téléphone",
         "referralCode": "Code de parrainage (Facultatif)",
         "referralPlaceholder": "Code de parrainage de l'utilisateur qui vous a référé"
       },
@@ -62,7 +67,7 @@
       "step4": {
         "title": "Vérifier l'e-mail",
         "heading": "Vérifiez votre adresse e-mail",
-        "description": "Veuillez entrer l'OTP envoyé à l'adresse e-mail que vous avez fournie pour vérifier votre adresse e-mail",
+        "description": "Veuillez entrer l'OTP envoyé à",
         "verifyButton": "Vérifier votre compte",
         "resendCode": "Renvoyer le code",
         "pasteClipboard": "Coller depuis le presse-papiers"

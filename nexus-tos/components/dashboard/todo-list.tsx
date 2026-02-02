@@ -73,7 +73,7 @@ export function TodoList({ items }: TodoListProps) {
             return (
               <div
                 key={item.id}
-                className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-start sm:flex-row sm:items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors min-w-0"
               >
                 <div className={cn("p-2 rounded-lg", typeColors[item.type])}>
                   <TypeIcon className="h-4 w-4" />
@@ -89,7 +89,7 @@ export function TodoList({ items }: TodoListProps) {
                     {item.description}
                   </p>
                 </div>
-                <div className="text-right flex-shrink-0">
+                <div className="text-left sm:text-right sm:flex-shrink-0">
                   <p className={cn("text-xs font-medium", statusStyles[item.status])}>
                     {statusLabels[item.status]}
                   </p>

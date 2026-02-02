@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { passwordSchema, type PasswordFormValues } from "@/lib/validators"
+import { useLanguage } from "@/contexts/language-context"
 
 interface PasswordData {
   password: string
@@ -34,6 +35,7 @@ interface StepPasswordProps {
 }
 
 export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
@@ -65,7 +67,7 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create password</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("auth.signup.step3.heading")}</h1>
         </div>
 
         {/* Form */}
@@ -78,13 +80,13 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Password
+                    {t("auth.signup.step3.password")}
                   </Label>
                   <FormControl>
                     <div className="relative mt-1.5">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter password (min. of 8 characters)"
+                        placeholder={t("auth.signup.step3.passwordPlaceholder")}
                         className="h-12 border-gray-200 rounded-lg pr-10"
                         {...field}
                       />
@@ -116,13 +118,13 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Confirm password
+                    {t("auth.signup.step3.confirmPassword")}
                   </Label>
                   <FormControl>
                     <div className="relative mt-1.5">
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Enter password (min. of 8 characters)"
+                        placeholder={t("auth.signup.step3.confirmPlaceholder")}
                         className="h-12 border-gray-200 rounded-lg pr-10"
                         {...field}
                       />
@@ -157,8 +159,7 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
                     />
                   </FormControl>
                   <label className="text-sm text-gray-600 leading-tight cursor-pointer">
-                    I agree to receive product updates, announcements, and
-                    exclusive offers via email
+                    {t("auth.signup.step3.acceptMarketing")}
                   </label>
                 </FormItem>
               )}
@@ -177,19 +178,19 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
                     />
                   </FormControl>
                   <div className="text-sm text-gray-600 leading-tight">
-                    I accept the{" "}
+                    {t("auth.signup.step3.acceptTerms")}{" "}
                     <Link
                       href="/terms"
                       className="text-primary hover:text-primary/80 underline"
                     >
-                      Terms of Use
+                      {t("auth.signup.step3.termsOfUse")}
                     </Link>{" "}
-                    and{" "}
+                    {t("auth.signup.step3.and")}{" "}
                     <Link
                       href="/privacy"
                       className="text-primary hover:text-primary/80 underline"
                     >
-                      Privacy Policy
+                      {t("auth.signup.step3.privacyPolicy")}
                     </Link>
                     .
                   </div>
@@ -203,7 +204,7 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
             >
-              Continue
+              {t("common.continue")}
             </Button>
           </form>
         </Form>
@@ -213,10 +214,10 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mt-4 mx-auto"
+        className="flex items-center justify-center gap-2 w-full max-w-md mx-auto mt-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span className="text-sm">Back</span>
+        <span className="text-sm font-medium">{t("common.back")}</span>
       </button>
     </div>
   )

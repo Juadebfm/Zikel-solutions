@@ -65,14 +65,16 @@ export function LanguageSelector({
           )}
         >
           <span className="flex items-center gap-2">
-            <Image
-              src={getFlagUrl(currentLanguage.countryCode)}
-              alt={currentLanguage.label}
-              width={20}
-              height={20}
-              className="rounded-full object-cover"
-              unoptimized
-            />
+            <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
+              <Image
+                src={getFlagUrl(currentLanguage.countryCode)}
+                alt={currentLanguage.label}
+                width={20}
+                height={15}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
+            </span>
             <span>{currentLanguage.label}</span>
           </span>
           <ChevronDown className="h-4 w-4 opacity-50" />
@@ -84,18 +86,20 @@ export function LanguageSelector({
             key={lang.code}
             onSelect={() => setLanguage(lang.code)}
             className={cn(
-              "cursor-pointer gap-2",
-              language === lang.code && "bg-accent"
+              "cursor-pointer gap-2 focus:bg-gray-100",
+              language === lang.code && "bg-gray-100"
             )}
           >
-            <Image
-              src={getFlagUrl(lang.countryCode)}
-              alt={lang.label}
-              width={20}
-              height={20}
-              className="rounded-full object-cover"
-              unoptimized
-            />
+            <span className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
+              <Image
+                src={getFlagUrl(lang.countryCode)}
+                alt={lang.label}
+                width={20}
+                height={15}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
+            </span>
             <span>{lang.label}</span>
           </DropdownMenuItem>
         ))}

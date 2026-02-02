@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Info, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { basicInfoSchema, type BasicInfoFormValues } from "@/lib/validators"
+import { useLanguage } from "@/contexts/language-context"
 import type { SupportedCountry, Gender } from "@/types"
 
 // Flag CDN URL helper
@@ -59,6 +60,7 @@ const phoneCodes: Record<SupportedCountry, { code: string; flagCode: string }> =
 }
 
 export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoProps) {
+  const { t } = useLanguage()
   const phoneCode = phoneCodes[country]
 
   const form = useForm<BasicInfoFormValues>({
@@ -92,7 +94,7 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Set up your account</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("auth.signup.step2.heading")}</h1>
         </div>
 
         {/* Form */}
@@ -104,15 +106,12 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm font-medium text-gray-700">
-                      First name (as it is on your ID)
-                    </Label>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Label className="text-sm font-medium text-gray-700">
+                    {t("auth.signup.step2.firstName")}
+                  </Label>
                   <FormControl>
                     <Input
-                      placeholder="Enter your first name"
+                      placeholder={t("auth.signup.step2.firstNamePlaceholder")}
                       className="h-12 mt-1.5 border-gray-200 rounded-lg"
                       {...field}
                     />
@@ -128,15 +127,12 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               name="middleName"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Middle name (Optional)
-                    </Label>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Label className="text-sm font-medium text-gray-700">
+                    {t("auth.signup.step2.middleName")}
+                  </Label>
                   <FormControl>
                     <Input
-                      placeholder="Enter your middle name"
+                      placeholder={t("auth.signup.step2.middleNamePlaceholder")}
                       className="h-12 mt-1.5 border-gray-200 rounded-lg"
                       {...field}
                     />
@@ -152,15 +148,12 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               name="surname"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center gap-1">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Surname (as it is on your ID)
-                    </Label>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </div>
+                  <Label className="text-sm font-medium text-gray-700">
+                    {t("auth.signup.step2.surname")}
+                  </Label>
                   <FormControl>
                     <Input
-                      placeholder="Enter your surname"
+                      placeholder={t("auth.signup.step2.surnamePlaceholder")}
                       className="h-12 mt-1.5 border-gray-200 rounded-lg"
                       {...field}
                     />
@@ -177,7 +170,7 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Gender
+                    {t("auth.signup.step2.gender")}
                   </Label>
                   <Select
                     onValueChange={field.onChange}
@@ -185,12 +178,16 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
                   >
                     <FormControl>
                       <SelectTrigger className="h-12 mt-1.5 border-gray-200 rounded-lg">
-                        <SelectValue placeholder="Select gender" />
+                        <SelectValue placeholder={t("auth.signup.step2.genderPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {genderOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className="focus:bg-gray-100"
+                        >
                           {option.label}
                         </SelectItem>
                       ))}
@@ -208,12 +205,12 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Email address
+                    {t("auth.signup.step2.email")}
                   </Label>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="Enter your email"
+                      placeholder={t("auth.signup.step2.emailPlaceholder")}
                       className="h-12 mt-1.5 border-gray-200 rounded-lg"
                       {...field}
                     />
@@ -230,26 +227,28 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Phone number
+                    {t("auth.signup.step2.phone")}
                   </Label>
                   <FormControl>
                     <div className="flex mt-1.5">
                       <div className="flex items-center gap-2 px-3 h-12 border border-r-0 border-gray-200 rounded-l-lg bg-gray-50">
-                        <Image
-                          src={getFlagUrl(phoneCode.flagCode)}
-                          alt={country}
-                          width={24}
-                          height={24}
-                          className="rounded-full object-cover"
-                          unoptimized
-                        />
+                        <span className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+                          <Image
+                            src={getFlagUrl(phoneCode.flagCode)}
+                            alt={country}
+                            width={24}
+                            height={18}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        </span>
                         <span className="text-sm text-gray-600">
                           {phoneCode.code}
                         </span>
                       </div>
                       <Input
                         type="tel"
-                        placeholder="Enter your phone number"
+                        placeholder={t("auth.signup.step2.phonePlaceholder")}
                         className="h-12 border-gray-200 rounded-l-none rounded-r-lg flex-1"
                         {...field}
                       />
@@ -272,20 +271,20 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg mt-6"
             >
-              Continue
+              {t("common.continue")}
             </Button>
           </form>
         </Form>
       </div>
 
-      {/* Back Button - Outside card for cleaner look */}
+      {/* Back Button */}
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mt-4 mx-auto"
+        className="flex items-center justify-center gap-2 w-full max-w-md mx-auto mt-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span className="text-sm">Back</span>
+        <span className="text-sm font-medium">{t("common.back")}</span>
       </button>
     </div>
   )

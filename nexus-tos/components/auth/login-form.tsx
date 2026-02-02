@@ -18,12 +18,14 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useAuth } from "@/contexts/auth-context"
+import { useLanguage } from "@/contexts/language-context"
 import { loginSchema, type LoginFormValues } from "@/lib/validators"
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading } = useAuth()
+  const { t } = useLanguage()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -60,8 +62,8 @@ export function LoginForm() {
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Log in</h1>
-          <p className="text-gray-500 mt-2">Welcome back to Nexus TOS</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("auth.login.title")}</h1>
+          <p className="text-gray-500 mt-2">{t("auth.login.subtitle")}</p>
         </div>
 
         {/* Error Message */}
@@ -81,14 +83,14 @@ export function LoginForm() {
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Email address
+                    {t("auth.login.email")}
                   </Label>
                   <FormControl>
                     <div className="relative mt-1.5">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       <Input
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder={t("auth.login.emailPlaceholder")}
                         className="pl-10 h-12 bg-white border-gray-200 rounded-lg focus:border-primary focus:ring-primary"
                         {...field}
                       />
@@ -106,13 +108,13 @@ export function LoginForm() {
               render={({ field }) => (
                 <FormItem>
                   <Label className="text-sm font-medium text-gray-700">
-                    Password
+                    {t("auth.login.password")}
                   </Label>
                   <FormControl>
                     <div className="relative mt-1.5">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
+                        placeholder={t("auth.login.passwordPlaceholder")}
                         className="h-12 bg-white border-gray-200 rounded-lg focus:border-primary focus:ring-primary pr-10"
                         {...field}
                       />
@@ -140,7 +142,7 @@ export function LoginForm() {
                 href="/forgot-password"
                 className="text-sm text-primary hover:text-primary/80 font-medium"
               >
-                Forgot your password?
+                {t("auth.login.forgotPassword")}
               </Link>
             </div>
 
@@ -153,7 +155,7 @@ export function LoginForm() {
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                "Log into your account"
+                t("auth.login.loginButton")
               )}
             </Button>
           </form>
@@ -162,12 +164,12 @@ export function LoginForm() {
 
       {/* Sign Up Link */}
       <p className="text-center mt-6 text-gray-600">
-        Don&apos;t have an account?{" "}
+        {t("auth.login.noAccount")}{" "}
         <Link
           href="/register"
           className="text-primary hover:text-primary/80 font-medium"
         >
-          Sign up
+          {t("auth.login.signUp")}
         </Link>
       </p>
     </div>

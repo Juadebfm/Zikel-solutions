@@ -35,13 +35,18 @@
       "step2": {
         "title": "Basic information",
         "heading": "Set up your account",
-        "firstName": "First name (as it is on your ID)",
-        "middleName": "Middle name (Optional)",
-        "surname": "Surname (as it is on your ID)",
+        "firstName": "First name",
+        "firstNamePlaceholder": "Enter your first name",
+        "middleName": "Middle name",
+        "middleNamePlaceholder": "Enter your middle name",
+        "surname": "Surname",
+        "surnamePlaceholder": "Enter your surname",
         "gender": "Gender",
         "genderPlaceholder": "Select gender",
         "email": "Email address",
+        "emailPlaceholder": "Enter your email",
         "phone": "Phone number",
+        "phonePlaceholder": "Enter your phone number",
         "referralCode": "Referral code (Optional)",
         "referralPlaceholder": "Referral code of user that referred you"
       },
@@ -62,7 +67,7 @@
       "step4": {
         "title": "Verify email",
         "heading": "Verify your email address",
-        "description": "Please enter the OTP sent to the email address you provided to verify your email address",
+        "description": "Please enter the OTP sent to",
         "verifyButton": "Verify your account",
         "resendCode": "Resend code",
         "pasteClipboard": "Paste from clipboard"
