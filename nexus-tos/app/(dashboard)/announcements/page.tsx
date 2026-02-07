@@ -166,7 +166,7 @@ export default function AnnouncementsPage() {
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
-            className={`px-8 py-2.5 text-sm font-medium border transition-colors ${
+            className={`px-4 sm:px-8 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
               activeTab === tab
                 ? "bg-primary text-white border-primary"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
@@ -178,7 +178,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {/* Toolbar: reset grid + columns on left, export on right */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={resetGrid} className="gap-1.5">
             <RefreshCw className="size-3.5" />
@@ -242,8 +242,8 @@ export default function AnnouncementsPage() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-white overflow-hidden">
-        <Table>
+      <div className="border rounded-lg bg-white overflow-x-auto">
+        <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12 pl-4">
@@ -357,7 +357,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(0) }}>
             <SelectTrigger className="w-16 h-8 text-sm">
@@ -370,8 +370,8 @@ export default function AnnouncementsPage() {
               <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-sm text-gray-500">
-            Showing {pageSizeNum} records per page
+          <span className="text-xs sm:text-sm text-gray-500">
+            <span className="hidden sm:inline">Showing </span>{pageSizeNum} per page
           </span>
         </div>
         <div className="flex items-center gap-2">

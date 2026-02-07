@@ -58,28 +58,38 @@ export function TodoList({ items }: TodoListProps) {
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                className="flex items-start sm:items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <Avatar className="h-9 w-9 shrink-0">
-                  <AvatarFallback className={cn("text-white text-xs font-medium", item.assignee.color)}>
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-0.5 sm:mt-0">
+                  <AvatarFallback className={cn("text-white text-[10px] sm:text-xs font-medium", item.assignee.color)}>
                     {item.assignee.initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                       {item.title}
                     </p>
-                    <span className="text-xs text-gray-400 shrink-0">
+                    <span className="text-[10px] sm:text-xs text-gray-400 shrink-0 hidden sm:inline">
                       #{item.taskId}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-[10px] sm:text-xs text-gray-500 truncate">
                     {item.relatedTo}
                   </p>
+                  <div className="flex items-center gap-2 mt-1.5 sm:hidden">
+                    <Badge variant="outline" className={cn("text-[10px] shrink-0", status.className)}>
+                      {status.label}
+                    </Badge>
+                    <Link href={`/tasks/${item.taskId}`}>
+                      <Button variant="ghost" size="sm" className="text-primary h-6 px-1.5 text-[10px]">
+                        View
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-right hidden sm:block">
+                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                  <div className="text-right hidden md:block">
                     <p className="text-xs text-gray-400">{item.dueDate}</p>
                   </div>
                   <Badge variant="outline" className={cn("text-[10px] shrink-0", status.className)}>

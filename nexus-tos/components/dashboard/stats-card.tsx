@@ -49,15 +49,15 @@ export function StatsCard({
   return (
     <Link href={href}>
       <div className={cn(
-        "rounded-lg border-2 bg-white p-4 hover:shadow-md transition-shadow cursor-pointer",
+        "rounded-lg border-2 bg-white p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer",
         styles.border
       )}>
-        <p className={cn("text-xs font-semibold mb-3", styles.label)}>
+        <p className={cn("text-[10px] sm:text-xs font-semibold mb-2 sm:mb-3 truncate", styles.label)}>
           {label}
         </p>
-        <div className="flex items-center gap-2">
-          <Icon className={cn("h-5 w-5", styles.icon)} />
-          <span className={cn("text-2xl font-bold", styles.value)}>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 shrink-0", styles.icon)} />
+          <span className={cn("text-xl sm:text-2xl font-bold", styles.value)}>
             {value}
           </span>
         </div>

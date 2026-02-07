@@ -53,17 +53,17 @@ export function Provisions({ homes }: ProvisionsProps) {
       {homes.map((home) => (
         <Card key={home.id}>
           {/* Home Header */}
-          <div className="flex items-center gap-3 px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-            <div className="p-2 bg-white rounded-lg border border-gray-200">
-              <Home className="h-5 w-5 text-gray-600" />
+          <div className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+            <div className="p-1.5 sm:p-2 bg-white rounded-lg border border-gray-200">
+              <Home className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900">{home.name}</h3>
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">{home.name}</h3>
           </div>
 
           <CardContent className="p-0">
             <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
               {/* Events for Today */}
-              <div className="p-5">
+              <div className="p-4 sm:p-5">
                 <h4 className="text-sm font-semibold text-gray-700 mb-4">
                   Events for Today
                 </h4>
@@ -124,7 +124,7 @@ export function Provisions({ homes }: ProvisionsProps) {
               </div>
 
               {/* Shifts For Today */}
-              <div className="p-5">
+              <div className="p-4 sm:p-5">
                 <h4 className="text-sm font-semibold text-gray-700 mb-4">
                   Shifts For Today
                 </h4>

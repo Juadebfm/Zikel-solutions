@@ -71,10 +71,10 @@ export default function MyDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
             View your personal performance metrics and activity overview.
           </p>
         </div>
@@ -137,8 +137,8 @@ export default function MyDashboardPage() {
               return (
                 <Card key={widget.id}>
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-semibold">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-sm sm:text-base font-semibold">
                         {widget.title}
                       </CardTitle>
                       <Button
@@ -159,11 +159,11 @@ export default function MyDashboardPage() {
                   <CardContent>
                     {widget.type === "data-card" ? (
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Icon className="h-6 w-6 text-primary" />
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                         </div>
                         <div>
-                          <p className="text-3xl font-bold text-gray-900">
+                          <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                             {widget.data.value}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -172,8 +172,8 @@ export default function MyDashboardPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="h-48 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2">
-                        <Icon className="h-8 w-8 text-gray-300" />
+                      <div className="h-36 sm:h-48 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 px-3">
+                        <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300" />
                         <p className="text-xs text-gray-400">
                           {widgetTypeLabels[widget.type]} visualization
                         </p>

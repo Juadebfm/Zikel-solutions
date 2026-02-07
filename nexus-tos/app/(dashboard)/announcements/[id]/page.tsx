@@ -58,23 +58,23 @@ export default function ViewAnnouncementPage({ params }: ViewAnnouncementPagePro
       {/* Announcement Content */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {/* Title bar */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
             {announcement.title}
           </h2>
           <Badge
-            className={
+            className={`shrink-0 w-fit ${
               announcement.status === "read"
                 ? "bg-green-500 text-white"
                 : "bg-blue-500 text-white"
-            }
+            }`}
           >
             {announcement.status}
           </Badge>
         </div>
 
         {/* Meta */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap gap-6 text-sm text-gray-500">
+        <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm text-gray-500">
           <div>
             <span className="font-medium text-gray-700">ID:</span> {announcement.id}
           </div>
@@ -88,7 +88,7 @@ export default function ViewAnnouncementPage({ params }: ViewAnnouncementPagePro
 
         {/* Images */}
         {announcement.images.length > 0 && (
-          <div className="px-6 py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
             {announcement.images.map((img, idx) => (
               <div
                 key={idx}
@@ -109,7 +109,7 @@ export default function ViewAnnouncementPage({ params }: ViewAnnouncementPagePro
         )}
 
         {/* Description */}
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-line">
             {announcement.description}
           </div>

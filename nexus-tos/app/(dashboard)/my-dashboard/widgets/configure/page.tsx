@@ -80,8 +80,8 @@ function ConfigureWidgetForm() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configure Widget</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Configure Widget</h1>
+        <p className="text-sm text-gray-500 mt-1">
           Set up your {typeName.toLowerCase()} widget.
         </p>
       </div>
@@ -165,11 +165,11 @@ function ConfigureWidgetForm() {
       </Card>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
         <Link href="/my-dashboard">
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
         </Link>
-        <Button onClick={handleSave} disabled={!isValid} className="gap-2">
+        <Button onClick={handleSave} disabled={!isValid} className="gap-2 w-full sm:w-auto">
           <Save className="size-3.5" />
           Save Widget
         </Button>
