@@ -1,6 +1,7 @@
 "use client"
 
-import { Bell, Search, Menu, Plus, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { Bell, Search, Menu, Plus, Sparkles, Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -47,18 +48,18 @@ export function Header({
         </Button>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-2 sm:gap-3 ml-auto order-2 lg:order-3">
+        <div className="flex items-center gap-1 sm:gap-2 ml-auto order-2 lg:order-3">
           {/* Mobile search */}
-          <Button variant="ghost" size="icon" className="sm:hidden">
+          <Button variant="ghost" size="icon" className="sm:hidden h-10 w-10">
             <Search className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center text-[10px] font-bold bg-primary text-white rounded-full">
+              <Button variant="ghost" size="icon-lg" className="relative">
+                <Bell className="size-6 text-gray-700" />
+                <span className="absolute top-0.5 right-0.5 h-4.5 w-4.5 flex items-center justify-center text-[10px] font-bold bg-primary text-white rounded-full">
                   3
                 </span>
               </Button>
@@ -98,6 +99,13 @@ export function Header({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Announcements */}
+          <Link href="/announcements">
+            <Button variant="ghost" size="icon-lg" className="relative">
+              <Megaphone className="size-6 text-gray-700" />
+            </Button>
+          </Link>
 
           {/* User Profile */}
           <div className="flex items-center gap-3 pl-3 border-l border-gray-200">

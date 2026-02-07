@@ -1,18 +1,8 @@
 "use client"
 
-import {
-  Clock,
-  CalendarCheck,
-  ClipboardCheck,
-  XCircle,
-  FileEdit,
-  CalendarDays,
-  MessageSquare,
-  Gift,
-} from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { PageHeader } from "@/components/layout/header"
-import { StatsCard } from "@/components/dashboard/stats-card"
+import { StatsOverview } from "@/components/dashboard/stats-overview"
 import { TodoList } from "@/components/dashboard/todo-list"
 import type { TodoItem } from "@/components/dashboard/todo-list"
 import { TasksToApprove } from "@/components/dashboard/tasks-to-approve"
@@ -22,66 +12,6 @@ import type { HomeProvision } from "@/components/dashboard/provisions"
 import { AccessBanner } from "@/components/permission/access-banner"
 import { NoPermissionModal } from "@/components/permission/no-permission-modal"
 import { usePermissionGuard } from "@/components/permission/use-permission-guard"
-
-// Mock data — 8 stat cards matching ClearCare layout
-const statsData = [
-  {
-    label: "Overdue Tasks",
-    value: 4,
-    icon: Clock,
-    color: "red" as const,
-    href: "/tasks?filter=overdue",
-  },
-  {
-    label: "Tasks Due Today",
-    value: 12,
-    icon: CalendarCheck,
-    color: "amber" as const,
-    href: "/tasks?filter=today",
-  },
-  {
-    label: "Pending Approval",
-    value: 7,
-    icon: ClipboardCheck,
-    color: "blue" as const,
-    href: "/tasks?filter=approval",
-  },
-  {
-    label: "Rejected Tasks",
-    value: 2,
-    icon: XCircle,
-    color: "orange" as const,
-    href: "/tasks?filter=rejected",
-  },
-  {
-    label: "Draft Tasks",
-    value: 5,
-    icon: FileEdit,
-    color: "gray" as const,
-    href: "/tasks?filter=draft",
-  },
-  {
-    label: "Future Tasks",
-    value: 18,
-    icon: CalendarDays,
-    color: "purple" as const,
-    href: "/tasks?filter=future",
-  },
-  {
-    label: "Comments",
-    value: 9,
-    icon: MessageSquare,
-    color: "teal" as const,
-    href: "/tasks?filter=comments",
-  },
-  {
-    label: "Pending Rewards",
-    value: 3,
-    icon: Gift,
-    color: "green" as const,
-    href: "/tasks?filter=rewards",
-  },
-]
 
 // Mock data — To Do List items
 const todoItems: TodoItem[] = [
@@ -314,19 +244,8 @@ export default function MySummaryPage() {
         />
       </div>
 
-      {/* Stats Grid — 8 cards, 4 per row on desktop */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        {statsData.map((stat) => (
-          <StatsCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            href={stat.href}
-          />
-        ))}
-      </div>
+      {/* Stats Grid — 10 cards */}
+      <StatsOverview />
 
       <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
 
