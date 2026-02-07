@@ -1,164 +1,300 @@
 "use client"
 
-import { Clock, AlertTriangle, FileText, ClipboardList, UserCheck } from "lucide-react"
+import {
+  Clock,
+  CalendarCheck,
+  ClipboardCheck,
+  XCircle,
+  FileEdit,
+  CalendarDays,
+  MessageSquare,
+  Gift,
+} from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { PageHeader } from "@/components/layout/header"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { TodoList } from "@/components/dashboard/todo-list"
+import type { TodoItem } from "@/components/dashboard/todo-list"
 import { TasksToApprove } from "@/components/dashboard/tasks-to-approve"
-import { LinkedOrgs } from "@/components/dashboard/linked-orgs"
-import { NeedHelpCard } from "@/components/dashboard/need-help-card"
+import type { ApprovalTask } from "@/components/dashboard/tasks-to-approve"
+import { Provisions } from "@/components/dashboard/provisions"
+import type { HomeProvision } from "@/components/dashboard/provisions"
+import { AccessBanner } from "@/components/permission/access-banner"
+import { NoPermissionModal } from "@/components/permission/no-permission-modal"
+import { usePermissionGuard } from "@/components/permission/use-permission-guard"
 
-// Mock data for stats
+// Mock data — 8 stat cards matching ClearCare layout
 const statsData = [
   {
     label: "Overdue Tasks",
     value: 4,
     icon: Clock,
-    badge: "High Priority",
-    badgeColor: "red" as const,
+    color: "red" as const,
     href: "/tasks?filter=overdue",
   },
   {
-    label: "Due Today",
+    label: "Tasks Due Today",
     value: 12,
-    icon: AlertTriangle,
-    badge: "Due Today",
-    badgeColor: "amber" as const,
+    icon: CalendarCheck,
+    color: "amber" as const,
     href: "/tasks?filter=today",
   },
   {
-    label: "IOI Logs",
-    value: 8,
-    icon: FileText,
-    badge: "Pending",
-    badgeColor: "blue" as const,
-    href: "/daily-logs",
+    label: "Pending Approval",
+    value: 7,
+    icon: ClipboardCheck,
+    color: "blue" as const,
+    href: "/tasks?filter=approval",
   },
   {
-    label: "Forms Due",
-    value: 3,
-    icon: ClipboardList,
-    badge: "This Week",
-    badgeColor: "purple" as const,
-    href: "/forms",
+    label: "Rejected Tasks",
+    value: 2,
+    icon: XCircle,
+    color: "orange" as const,
+    href: "/tasks?filter=rejected",
   },
   {
-    label: "Approvals",
+    label: "Draft Tasks",
     value: 5,
-    icon: UserCheck,
-    badge: "Pending",
-    badgeColor: "green" as const,
-    href: "/tasks?filter=approvals",
+    icon: FileEdit,
+    color: "gray" as const,
+    href: "/tasks?filter=draft",
+  },
+  {
+    label: "Future Tasks",
+    value: 18,
+    icon: CalendarDays,
+    color: "purple" as const,
+    href: "/tasks?filter=future",
+  },
+  {
+    label: "Comments",
+    value: 9,
+    icon: MessageSquare,
+    color: "teal" as const,
+    href: "/tasks?filter=comments",
+  },
+  {
+    label: "Pending Rewards",
+    value: 3,
+    icon: Gift,
+    color: "green" as const,
+    href: "/tasks?filter=rewards",
   },
 ]
 
-// Mock data for todo list
-const todoItems = [
+// Mock data — To Do List items
+const todoItems: TodoItem[] = [
   {
     id: "1",
     taskId: "2841",
     title: "Monthly Medication Review",
-    description: "Complete medication review for James Wilson",
-    status: "due-today" as const,
-    time: "10:00 AM",
-    type: "medication" as const,
+    relatedTo: "James Wilson — Maple House",
+    dueDate: "06 Feb 2026",
+    status: "not-started",
+    assignee: { name: "James Wilson", initials: "JW", color: "bg-blue-600" },
   },
   {
     id: "2",
     taskId: "2839",
     title: "Lab Results Follow-up",
-    description: "Review and document lab results for Sarah Chen",
-    status: "due-tomorrow" as const,
-    time: "2:00 PM",
-    type: "lab" as const,
+    relatedTo: "Sarah Chen — Oak Lodge",
+    dueDate: "06 Feb 2026",
+    status: "draft",
+    assignee: { name: "Sarah Chen", initials: "SC", color: "bg-purple-600" },
   },
   {
     id: "3",
     taskId: "2836",
     title: "Care Plan Update",
-    description: "Update care plan documentation for Maple House",
-    status: "pending" as const,
-    type: "document" as const,
+    relatedTo: "Maple House",
+    dueDate: "07 Feb 2026",
+    status: "in-progress",
+    assignee: { name: "Mark Thompson", initials: "MT", color: "bg-teal-600" },
   },
   {
     id: "4",
     taskId: "2834",
     title: "Incident Report",
-    description: "Complete incident report for Oak Lodge",
-    status: "overdue" as const,
-    type: "general" as const,
+    relatedTo: "Oak Lodge",
+    dueDate: "05 Feb 2026",
+    status: "overdue",
+    assignee: { name: "David Williams", initials: "DW", color: "bg-red-600" },
+  },
+  {
+    id: "5",
+    taskId: "2830",
+    title: "Risk Assessment Review",
+    relatedTo: "Emily Parker — Pine View",
+    dueDate: "08 Feb 2026",
+    status: "not-started",
+    assignee: { name: "Emily Parker", initials: "EP", color: "bg-amber-600" },
   },
 ]
 
-// Mock data for approval tasks
-const approvalTasks = [
+// Mock data — Tasks to Approve (more items to test pagination)
+const approvalTasks: ApprovalTask[] = [
   {
     id: "1",
-    requestId: "REQ-0892",
-    title: "IOI Log - James Wilson",
-    caregiver: "Mark Thompson",
-    status: "needs-review" as const,
+    taskId: "REQ-0892",
+    title: "IOI Log — James Wilson",
+    relatedTo: "Mark Thompson — Maple House",
+    dueDate: "06 Feb 2026",
+    status: "sent-for-approval",
+    submitter: { name: "Mark Thompson", initials: "MT", color: "bg-teal-600" },
   },
   {
     id: "2",
-    requestId: "REQ-0891",
+    taskId: "REQ-0891",
     title: "Medication Change Request",
-    caregiver: "Sarah Johnson",
-    status: "urgent" as const,
+    relatedTo: "Sarah Johnson — Oak Lodge",
+    dueDate: "06 Feb 2026",
+    status: "needs-review",
+    submitter: { name: "Sarah Johnson", initials: "SJ", color: "bg-pink-600" },
   },
   {
     id: "3",
-    requestId: "REQ-0890",
+    taskId: "REQ-0890",
     title: "Shift Handover Notes",
-    caregiver: "David Williams",
-    status: "pending" as const,
+    relatedTo: "David Williams — Pine View",
+    dueDate: "06 Feb 2026",
+    status: "sent-for-approval",
+    submitter: { name: "David Williams", initials: "DW", color: "bg-red-600" },
+  },
+  {
+    id: "4",
+    taskId: "REQ-0889",
+    title: "Weekly Progress Report",
+    relatedTo: "Emily Parker — Maple House",
+    dueDate: "07 Feb 2026",
+    status: "sent-for-approval",
+    submitter: { name: "Emily Parker", initials: "EP", color: "bg-amber-600" },
+  },
+  {
+    id: "5",
+    taskId: "REQ-0888",
+    title: "Incident Report Submission",
+    relatedTo: "Tom Richards — Oak Lodge",
+    dueDate: "05 Feb 2026",
+    status: "urgent",
+    submitter: { name: "Tom Richards", initials: "TR", color: "bg-indigo-600" },
+  },
+  {
+    id: "6",
+    taskId: "REQ-0887",
+    title: "Care Plan Amendment",
+    relatedTo: "Lisa Anderson — Pine View",
+    dueDate: "08 Feb 2026",
+    status: "sent-for-approval",
+    submitter: { name: "Lisa Anderson", initials: "LA", color: "bg-green-600" },
   },
 ]
 
-// Mock data for linked organizations
-const linkedOrgs = [
+// Mock data — Provisions grouped by home
+const homeProvisions: HomeProvision[] = [
   {
     id: "1",
     name: "Maple House",
-    type: "Children's Home",
+    events: [
+      {
+        id: "e1",
+        title: "Peniel's, Appointments...",
+        time: "12:30PM - 1:30PM",
+        type: "appointment",
+        typeLabel: "Young Person",
+        assignedTo: "Peniel Essouma",
+        assignees: "Any",
+        initials: "PE",
+        avatarColor: "bg-blue-600",
+      },
+      {
+        id: "e2",
+        title: "Health, appointment",
+        time: "4:00PM - 6:30PM",
+        type: "appointment",
+        typeLabel: "Young Person",
+        assignedTo: "Caitlin Smith",
+        assignees: "Any",
+        initials: "CS",
+        avatarColor: "bg-purple-600",
+      },
+    ],
+    shifts: [
+      {
+        id: "s1",
+        name: "Mark Thompson",
+        role: "Senior Care Worker",
+        shift: "07:00 — 19:00",
+        initials: "MT",
+        avatarColor: "bg-teal-600",
+      },
+      {
+        id: "s2",
+        name: "Emily Parker",
+        role: "Care Worker",
+        shift: "19:00 — 07:00",
+        initials: "EP",
+        avatarColor: "bg-amber-600",
+      },
+    ],
   },
   {
     id: "2",
     name: "Oak Lodge",
-    type: "Children's Home",
+    events: [
+      {
+        id: "e3",
+        title: "GP Appointment — Sarah Chen",
+        time: "10:30AM - 11:00AM",
+        type: "appointment",
+        typeLabel: "Young Person",
+        assignedTo: "Sarah Chen",
+        assignees: "Any",
+        initials: "SC",
+        avatarColor: "bg-green-600",
+      },
+    ],
+    shifts: [],
   },
   {
     id: "3",
     name: "Pine View",
-    type: "Supported Living",
+    events: [],
+    shifts: [
+      {
+        id: "s3",
+        name: "David Williams",
+        role: "Team Leader",
+        shift: "08:00 — 20:00",
+        initials: "DW",
+        avatarColor: "bg-red-600",
+      },
+    ],
   },
 ]
 
 export default function MySummaryPage() {
-  const { user, hasPermission } = useAuth()
-  const canApprove = hasPermission("canApproveIOILogs")
+  const { user } = useAuth()
+  const { guard, allowed, showModal, setShowModal } = usePermissionGuard("canApproveIOILogs")
 
   const handleNewTask = () => {
-    // TODO: Open new task modal
     console.log("New task clicked")
   }
 
   const handleAskAI = () => {
-    // TODO: Open AI assistant
     console.log("Ask AI clicked")
   }
 
-  const handleViewTask = (id: string) => {
-    console.log("View task:", id)
+  const handleViewApproval = (id: string) => {
+    console.log("View approval:", id)
   }
 
   const handleApproveTask = (id: string) => {
-    console.log("Approve task:", id)
+    guard(() => console.log("Approve task:", id))
   }
 
   const handleProcessBatch = () => {
-    console.log("Process batch clicked")
+    guard(() => console.log("Process batch clicked"))
   }
 
   return (
@@ -178,48 +314,37 @@ export default function MySummaryPage() {
         />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Stats Grid — 8 cards, 4 per row on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {statsData.map((stat) => (
           <StatsCard
             key={stat.label}
             label={stat.label}
             value={stat.value}
             icon={stat.icon}
-            badge={stat.badge}
-            badgeColor={stat.badgeColor}
+            color={stat.color}
             href={stat.href}
           />
         ))}
       </div>
 
-      {/* Main Content Grid */}
+      <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
+
+      {/* Main Content Grid — To Do + Tasks to Approve */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* To Do List */}
         <TodoList items={todoItems} />
-
-        {/* Tasks to Approve - only show if user has permission */}
-        {canApprove ? (
-          <TasksToApprove
-            items={approvalTasks}
-            onView={handleViewTask}
-            onApprove={handleApproveTask}
-            onProcessBatch={handleProcessBatch}
-          />
-        ) : (
-          <div className="hidden lg:block" />
-        )}
+        <TasksToApprove
+          items={approvalTasks}
+          onView={handleViewApproval}
+          onApprove={handleApproveTask}
+          onProcessBatch={handleProcessBatch}
+        />
       </div>
 
-      {/* Bottom Section */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <LinkedOrgs orgs={linkedOrgs} />
-        </div>
-        <div>
-          <NeedHelpCard />
-        </div>
-      </div>
+      {/* Bottom Section — Provisions per home */}
+      <Provisions homes={homeProvisions} />
+
+      <NoPermissionModal open={showModal} onOpenChange={setShowModal} />
     </div>
   )
 }

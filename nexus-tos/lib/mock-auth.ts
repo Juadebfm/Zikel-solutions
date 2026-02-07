@@ -14,16 +14,16 @@ import type {
  * In production, this will be replaced with actual backend API calls.
  *
  * Test Accounts:
- * 1. Admin:   izuObani@zekel.com / superadmin
+ * 1. Admin:   izuObani@zikel.com / superadmin
  * 2. Manager: juadebgabriel@gmail.com / manageracc
- * 3. Staff:   zekelstaff@zekel.com / teststaff
+ * 3. Staff:   zikelstaff@zikel.com / teststaff
  */
 
 // Mock users database (passwords stored here for mock purposes only)
 const mockAuthUsers: AuthUser[] = [
   {
     id: "user-admin-001",
-    email: "izuObani@zekel.com",
+    email: "izuObani@zikel.com",
     password: "superadmin",
     firstName: "Izu",
     lastName: "Obani",
@@ -49,7 +49,7 @@ const mockAuthUsers: AuthUser[] = [
   },
   {
     id: "user-staff-001",
-    email: "zekelstaff@zekel.com",
+    email: "zikelstaff@zikel.com",
     password: "teststaff",
     firstName: "Test",
     lastName: "Staff",

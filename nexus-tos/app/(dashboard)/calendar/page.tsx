@@ -1,3 +1,6 @@
+"use client"
+
+import { Calendar } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function CalendarPage() {
@@ -6,14 +9,15 @@ export default function CalendarPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
         <p className="text-gray-500 mt-1">
-          This section is a placeholder and will be updated soon.
+          View scheduled shifts, appointments, and upcoming events.
         </p>
       </div>
       <Card>
         <CardContent className="py-10">
           <div className="text-center">
+            <Calendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
-              Content for Calendar will appear here.
+              Your calendar and schedule will appear here.
             </p>
           </div>
         </CardContent>
