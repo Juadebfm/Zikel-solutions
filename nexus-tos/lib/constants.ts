@@ -230,6 +230,95 @@ export const priorityOptions = [
   { value: "high", label: "High", color: "text-red-600" },
 ] as const
 
+// Task Explorer Options
+export const taskExplorerPeriodOptions = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last-7-days", label: "Last 7 Days" },
+  { value: "this-week", label: "This Week" },
+  { value: "this-month", label: "This Month" },
+  { value: "this-year", label: "This Year" },
+  { value: "last-month", label: "Last Month" },
+  { value: "all", label: "All" },
+  { value: "custom", label: "Custom Range" },
+] as const
+
+export const taskExplorerTypeOptions = [
+  { value: "home", label: "Home" },
+  { value: "young-person", label: "Young Person" },
+  { value: "vehicle", label: "Vehicle" },
+] as const
+
+export const taskExplorerProjectOptions = [
+  { value: "all", label: "All" },
+  { value: "maple-house", label: "Maple House" },
+  { value: "oak-lodge", label: "Oak Lodge" },
+  { value: "willow-court", label: "Willow Court" },
+  { value: "pine-view", label: "Pine View" },
+] as const
+
+export const taskExplorerFormOptions = [
+  { value: "building-and-care-procedures-audit", label: "Building And Care Procedures Audit" },
+  { value: "cc-regulation-44-visit-report", label: "CC Regulation 44 Visit Report" },
+  { value: "complaint-resolution", label: "Complaint Resolution" },
+  { value: "complaints", label: "Complaints" },
+  { value: "compliments-log", label: "Compliments Log" },
+  { value: "daily-am-sharps-check", label: "Daily AM Sharps Check" },
+  { value: "daily-cleaning-schedule", label: "Daily Cleaning Schedule" },
+  { value: "daily-handover", label: "Daily Handover" },
+  { value: "daily-ligature-check", label: "Daily Ligature Check" },
+  { value: "daily-window-restrictor-checks", label: "Daily Window Restrictor Checks" },
+  { value: "fridge-freezer-temps", label: "Fridge/Freezer Temps" },
+  { value: "house-evacuation", label: "House Evacuation" },
+  { value: "house-information", label: "House Information" },
+  { value: "house-team-meeting", label: "House Team Meeting" },
+  { value: "kpi-home-extended-data", label: "KPI Home Extended Data" },
+  { value: "location-of-premises-risk-assessment", label: "Location Of Premises Risk Assessment" },
+  { value: "maintenance-request", label: "Maintenance Request" },
+  { value: "managers-weekly-medication-audit", label: "Manager's Weekly Medication Audit" },
+  { value: "managers-response-to-reg-44-actions", label: "Managers Response To Reg 44 Actions" },
+  { value: "notification-to-ofsted", label: "Notification To Ofsted" },
+  { value: "petty-cash", label: "Petty Cash" },
+  { value: "placement-impact-evaluation", label: "Placement Impact Evaluation" },
+  { value: "pool-car-checks", label: "Pool Car Checks" },
+  { value: "property-damage", label: "Property Damage" },
+  { value: "reg-44-or-ofsted-actions", label: "REG 44 OR OFSTED ACTIONS" },
+  { value: "reg-44-visit-report-form", label: "REG 44 VISIT REPORT FORM" },
+  { value: "reg-45-review-summary-form", label: "REG 45 Review Summary Form" },
+  { value: "regulation-40", label: "Regulation 40" },
+  { value: "regulation-45", label: "Regulation 45" },
+  { value: "waking-night-summary", label: "Waking Night Summary" },
+  { value: "weekly-cossh-check", label: "Weekly Cossh Check" },
+  { value: "weekly-deep-cleaning", label: "Weekly Deep Cleaning" },
+  { value: "weekly-fire-alarm-and-equipment-checks", label: "Weekly Fire Alarm And Equipment Checks" },
+  { value: "weekly-water-temp-checks", label: "Weekly Water Temp Checks" },
+] as const
+
+export const taskExplorerFieldOptions = [
+  { value: "title", label: "Title" },
+  { value: "assigned-to", label: "Assigned To" },
+  { value: "related-to", label: "Related To" },
+  { value: "created-by", label: "Created By" },
+  { value: "due-date", label: "Due Date" },
+] as const
+
+export const taskExplorerSearchByOtherOptions = [
+  { value: "task-summary", label: "Task Summary" },
+  { value: "field-value", label: "Field Value" },
+] as const
+
+export const taskExplorerStatusOptions = [
+  { value: "submitted", label: "Submitted" },
+  { value: "draft", label: "Draft" },
+  { value: "sent-for-approval", label: "Sent For Approval" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "sent-for-deletion", label: "Sent For Deletion" },
+  { value: "deleted", label: "Deleted" },
+  { value: "deleted-draft", label: "Deleted Draft" },
+  { value: "hidden", label: "Hidden" },
+] as const
+
 // Task Categories
 export const taskCategories = [
   "Daily Care",

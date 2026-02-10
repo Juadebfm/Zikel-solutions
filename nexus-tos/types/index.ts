@@ -47,6 +47,13 @@ export type {
   DashboardStat,
   CalendarEvent,
   Vehicle,
+  TaskExplorerPeriod,
+  TaskExplorerType,
+  TaskExplorerStatusOption,
+  TaskExplorerFilters,
+  TaskExplorerForm,
+  TaskExplorerFormField,
+  TaskExplorerLogEntry,
 } from "./dashboard"
 
 // Legacy type alias for backward compatibility

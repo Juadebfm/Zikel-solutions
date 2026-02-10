@@ -1,27 +1,81 @@
 "use client"
 
-import { Search } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { PageHeader } from "@/components/layout/header"
+import { TaskExplorerStepper } from "@/components/task-explorer/task-explorer-stepper"
+import { TaskExplorerConfig } from "@/components/task-explorer/task-explorer-config"
+import { TaskExplorerForms } from "@/components/task-explorer/task-explorer-forms"
+import { TaskExplorerLogs } from "@/components/task-explorer/task-explorer-logs"
+import { ErrorBanner } from "@/components/shared/error-banner"
+import { ValidationErrorModal } from "@/components/shared/validation-error-modal"
+import { useTaskExplorerStore } from "@/stores/task-explorer-store"
 
 export default function TasksPage() {
+  const {
+    currentStep,
+    setCurrentStep,
+    filters,
+    updateFilter,
+    errors,
+    showErrorModal,
+    setShowErrorModal,
+    goToNextStep,
+    goToPrevStep,
+    validateStep,
+  } = useTaskExplorerStore()
+
+  const handleStepClick = (step: number) => {
+    // Going forward requires validation; going backward is always allowed
+    if (step > currentStep) {
+      // Validate all steps up to current before advancing
+      if (validateStep(currentStep)) {
+        setCurrentStep(step)
+      }
+    } else {
+      setCurrentStep(step)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Task Explorer</h1>
-        <p className="text-gray-500 mt-1">
-          Browse and search all tasks across your assigned homes.
-        </p>
-      </div>
+      <PageHeader
+        title="Task Explorer"
+        showNewTask={false}
+        showAskAI={false}
+      />
+
+      <TaskExplorerStepper
+        currentStep={currentStep}
+        onStepClick={handleStepClick}
+        onNextClick={goToNextStep}
+        onBackClick={goToPrevStep}
+      />
+
+      {/* Inline error banner (matches screenshot) */}
+      {errors.length > 0 && currentStep === 1 && (
+        <ErrorBanner errors={errors} />
+      )}
+
       <Card>
-        <CardContent className="py-10">
-          <div className="text-center">
-            <Search className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">
-              Task search and filtering tools will appear here.
-            </p>
-          </div>
+        <CardContent className="p-0">
+          {currentStep === 1 && (
+            <TaskExplorerConfig
+              filters={filters}
+              onFiltersChange={(key, value) => updateFilter(key, value)}
+            />
+          )}
+
+          {currentStep === 2 && <TaskExplorerForms filters={filters} />}
+
+          {currentStep === 3 && <TaskExplorerLogs filters={filters} />}
         </CardContent>
       </Card>
+
+      <ValidationErrorModal
+        open={showErrorModal}
+        onOpenChange={setShowErrorModal}
+        errors={errors}
+      />
     </div>
   )
 }

@@ -149,6 +149,76 @@ export interface CalendarEvent {
   participants?: string[]
 }
 
+// Task Explorer Types
+export type TaskExplorerPeriod =
+  | "today"
+  | "yesterday"
+  | "last-7-days"
+  | "this-week"
+  | "this-month"
+  | "this-year"
+  | "last-month"
+  | "all"
+  | "custom"
+
+export type TaskExplorerType =
+  | "home"
+  | "young-person"
+  | "vehicle"
+
+export type TaskExplorerStatusOption =
+  | "submitted"
+  | "draft"
+  | "sent-for-approval"
+  | "approved"
+  | "rejected"
+  | "sent-for-deletion"
+  | "deleted"
+  | "deleted-draft"
+  | "hidden"
+
+export interface TaskExplorerFilters {
+  period: TaskExplorerPeriod | ""
+  type: TaskExplorerType | ""
+  project: string
+  forms: string[]
+  field: string
+  keyword: string
+  searchByOther: string[]
+  taskId: string
+  statuses: TaskExplorerStatusOption[]
+  showAuditTrail: boolean
+}
+
+export interface TaskExplorerForm {
+  id: string
+  name: string
+  category: string
+  fields: TaskExplorerFormField[]
+  lastUpdated: string
+}
+
+export interface TaskExplorerFormField {
+  id: string
+  label: string
+  type: "text" | "select" | "date" | "checkbox" | "number"
+  required: boolean
+}
+
+export interface TaskExplorerLogEntry {
+  id: string
+  taskId: number
+  title: string
+  formGroup: string
+  relatesTo: string
+  relatesToIcon: "person" | "home"
+  homeOrSchool: string
+  taskDate: string
+  status: TaskExplorerStatusOption
+  originallyRecordedAt: string
+  originallyRecordedBy: string
+}
+
 // Vehicle Types
 export interface Vehicle {
   id: string
