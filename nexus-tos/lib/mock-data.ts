@@ -12,6 +12,20 @@ import type {
   CalendarEvent,
   TaskExplorerForm,
   TaskExplorerLogEntry,
+  HomeSettingItem,
+  HomeSettingCategory,
+  HomeAuditEntry,
+  HomeAuditCategory,
+  YoungPersonReward,
+  YPSettingItem,
+  YPSettingCategory,
+  YPAuditEntry,
+  YPAuditCategory,
+  OutcomeStarEntry,
+  EmpSettingItem,
+  EmpSettingCategory,
+  EmpAuditEntry,
+  EmpAuditCategory,
 } from "@/types"
 
 // Current logged in user
@@ -41,59 +55,116 @@ export const mockStats = {
 // Young People
 export const mockYoungPeople: YoungPerson[] = [
   {
-    id: "yp-1",
+    id: 1,
     firstName: "James",
     lastName: "Wilson",
-    dateOfBirth: "2010-03-15",
+    dateOfBirth: "15/03/2010",
     homeId: "home-1",
-    homeName: "Maple House",
-    status: "active",
-    admissionDate: "2023-06-01",
+    homeName: "The Homeland",
+    status: "current",
+    youngPersonType: "child",
+    gender: "male",
+    category: "Residential",
+    admissionDate: "01/06/2023",
     keyWorker: "Sarah Johnson",
   },
   {
-    id: "yp-2",
+    id: 2,
     firstName: "Emily",
     lastName: "Brown",
-    dateOfBirth: "2011-07-22",
+    dateOfBirth: "22/07/2011",
     homeId: "home-1",
-    homeName: "Maple House",
-    status: "active",
-    admissionDate: "2023-04-15",
+    homeName: "The Homeland",
+    status: "current",
+    youngPersonType: "child",
+    gender: "female",
+    category: "Residential",
+    admissionDate: "15/04/2023",
     keyWorker: "Mark Thompson",
   },
   {
-    id: "yp-3",
+    id: 3,
     firstName: "Oliver",
     lastName: "Davis",
-    dateOfBirth: "2009-11-08",
+    dateOfBirth: "08/11/2009",
     homeId: "home-2",
-    homeName: "Oak Lodge",
-    status: "active",
-    admissionDate: "2022-09-20",
+    homeName: "Oakwood House",
+    status: "current",
+    youngPersonType: "child",
+    gender: "male",
+    category: "Residential",
+    admissionDate: "20/09/2022",
     keyWorker: "Emma White",
   },
   {
-    id: "yp-4",
+    id: 4,
     firstName: "Sophie",
     lastName: "Taylor",
-    dateOfBirth: "2012-01-30",
+    dateOfBirth: "30/01/2012",
     homeId: "home-1",
-    homeName: "Maple House",
-    status: "active",
-    admissionDate: "2024-01-10",
+    homeName: "The Homeland",
+    status: "current",
+    youngPersonType: "child",
+    gender: "female",
+    category: "Residential",
+    admissionDate: "10/01/2024",
     keyWorker: "Sarah Johnson",
   },
   {
-    id: "yp-5",
+    id: 5,
     firstName: "Daniel",
     lastName: "Moore",
-    dateOfBirth: "2008-05-12",
+    dateOfBirth: "12/05/2008",
     homeId: "home-2",
-    homeName: "Oak Lodge",
-    status: "transferred",
-    admissionDate: "2021-03-05",
+    homeName: "Oakwood House",
+    status: "past",
+    youngPersonType: "young-adult",
+    gender: "male",
+    category: "Semi-Independent",
+    admissionDate: "05/03/2021",
     keyWorker: "James Clark",
+  },
+  {
+    id: 6,
+    firstName: "Amelia",
+    lastName: "Harris",
+    dateOfBirth: "18/09/2010",
+    homeId: "home-2",
+    homeName: "Oakwood House",
+    status: "current",
+    youngPersonType: "child",
+    gender: "female",
+    category: "Residential",
+    admissionDate: "12/07/2024",
+    keyWorker: "Emma White",
+  },
+  {
+    id: 7,
+    firstName: "Noah",
+    lastName: "Patel",
+    dateOfBirth: "03/04/2011",
+    homeId: "home-1",
+    homeName: "The Homeland",
+    status: "planned",
+    youngPersonType: "child",
+    gender: "male",
+    category: "Residential",
+    admissionDate: "01/03/2026",
+    keyWorker: "Sarah Johnson",
+  },
+  {
+    id: 8,
+    firstName: "Chloe",
+    lastName: "Roberts",
+    dateOfBirth: "27/12/2007",
+    homeId: "home-1",
+    homeName: "The Homeland",
+    status: "past",
+    youngPersonType: "young-adult",
+    gender: "female",
+    category: "Semi-Independent",
+    admissionDate: "14/08/2022",
+    keyWorker: "Mark Thompson",
   },
 ]
 
@@ -170,6 +241,51 @@ export const mockCareGroupHomes: CareGroupHome[] = [
     detailsAvailable: true,
     careGroupId: 562133529,
   },
+  {
+    id: 7,
+    name: "Oakwood House",
+    status: "current",
+    category: "Children's Home",
+    responsibleIndividual: "Sarah Johnson",
+    detailsAvailable: true,
+    careGroupId: 562133529,
+  },
+  {
+    id: 12,
+    name: "Riverside Lodge",
+    status: "past",
+    category: "Supported Accommodation",
+    responsibleIndividual: "Michael Roberts",
+    detailsAvailable: true,
+    careGroupId: 562133529,
+  },
+  {
+    id: 15,
+    name: "Willow Gardens",
+    status: "planned",
+    category: "Children's Home",
+    responsibleIndividual: "thrservicesadmin",
+    detailsAvailable: false,
+    careGroupId: 562133529,
+  },
+  {
+    id: 19,
+    name: "Birch Cottage",
+    status: "current",
+    category: "Secure Children's Home",
+    responsibleIndividual: "Lisa Anderson",
+    detailsAvailable: true,
+    careGroupId: 562133529,
+  },
+  {
+    id: 22,
+    name: "Elm Court",
+    status: "past",
+    category: "Children's Home",
+    responsibleIndividual: "James Clark",
+    detailsAvailable: true,
+    careGroupId: 562133529,
+  },
 ]
 
 // Care Group Stakeholders
@@ -183,64 +299,108 @@ export function getCareGroupById(id: number): CareGroup | undefined {
 // Employees
 export const mockEmployees: Employee[] = [
   {
-    id: "emp-1",
+    id: 1,
     firstName: "Sarah",
     lastName: "Johnson",
     email: "sarah.johnson@nexustherapeutic.com",
     role: "manager",
     homeId: "home-1",
-    homeName: "Maple House",
+    homeName: "The Homeland",
     phone: "07700 900001",
-    status: "active",
-    startDate: "2021-03-15",
+    jobTitle: "Registered Manager",
+    status: "current",
+    startDate: "15/03/2021",
   },
   {
-    id: "emp-2",
+    id: 2,
     firstName: "Mark",
     lastName: "Thompson",
     email: "mark.thompson@nexustherapeutic.com",
     role: "staff",
     homeId: "home-1",
-    homeName: "Maple House",
+    homeName: "The Homeland",
     phone: "07700 900002",
-    status: "active",
-    startDate: "2022-06-01",
+    jobTitle: "Senior Support Worker",
+    status: "current",
+    startDate: "01/06/2022",
   },
   {
-    id: "emp-3",
+    id: 3,
     firstName: "Emma",
     lastName: "White",
     email: "emma.white@nexustherapeutic.com",
     role: "staff",
     homeId: "home-2",
-    homeName: "Oak Lodge",
+    homeName: "Oakwood House",
     phone: "07700 900003",
-    status: "active",
-    startDate: "2022-09-15",
+    jobTitle: "Support Worker",
+    status: "current",
+    startDate: "15/09/2022",
   },
   {
-    id: "emp-4",
+    id: 4,
     firstName: "James",
     lastName: "Clark",
     email: "james.clark@nexustherapeutic.com",
     role: "staff",
     homeId: "home-2",
-    homeName: "Oak Lodge",
+    homeName: "Oakwood House",
     phone: "07700 900004",
-    status: "on-leave",
-    startDate: "2021-11-01",
+    jobTitle: "Support Worker",
+    status: "past",
+    startDate: "01/11/2021",
   },
   {
-    id: "emp-5",
+    id: 5,
     firstName: "Lisa",
     lastName: "Anderson",
     email: "lisa.anderson@nexustherapeutic.com",
     role: "manager",
-    homeId: "home-3",
-    homeName: "Willow Court",
+    homeId: "home-1",
+    homeName: "The Homeland",
     phone: "07700 900005",
-    status: "active",
-    startDate: "2020-08-20",
+    jobTitle: "Deputy Manager",
+    status: "current",
+    startDate: "20/08/2020",
+  },
+  {
+    id: 6,
+    firstName: "David",
+    lastName: "Okafor",
+    email: "david.okafor@nexustherapeutic.com",
+    role: "staff",
+    homeId: "home-2",
+    homeName: "Oakwood House",
+    phone: "07700 900006",
+    jobTitle: "Night Support Worker",
+    status: "current",
+    startDate: "10/01/2024",
+  },
+  {
+    id: 7,
+    firstName: "Rachel",
+    lastName: "Green",
+    email: "rachel.green@nexustherapeutic.com",
+    role: "staff",
+    homeId: "home-1",
+    homeName: "The Homeland",
+    phone: "07700 900007",
+    jobTitle: "Waking Night Staff",
+    status: "planned",
+    startDate: "01/03/2026",
+  },
+  {
+    id: 8,
+    firstName: "Thomas",
+    lastName: "Wright",
+    email: "thomas.wright@nexustherapeutic.com",
+    role: "staff",
+    homeId: "home-2",
+    homeName: "Oakwood House",
+    phone: "07700 900008",
+    jobTitle: "Senior Support Worker",
+    status: "past",
+    startDate: "05/04/2020",
   },
 ]
 
@@ -865,13 +1025,293 @@ export const mockFormSubmissions: FormSubmissionData[] = [
   { name: "Daily Ligature Check", count: 1, color: "#5856D6" },
 ]
 
+// ─── Home Settings Mock Data ─────────────────────────────────────────────────
+
+export const mockHomeSettings: HomeSettingItem[] = [
+  // Reg Report Types
+  { id: 5, name: "Annex A - 2024-25", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "08/02/2024 10:19:05 AM", updatedOn: "08/02/2024 12:38:40 PM", updatedBy: "Zikel Admin", category: "reg-report-types", sortOrder: 1 },
+  { id: 2, name: "Reg 44", systemGenerated: true, hidden: false, createdBy: "", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "08/02/2024 12:38:40 PM", updatedBy: "", category: "reg-report-types", sortOrder: 2 },
+  { id: 3, name: "Reg 45", systemGenerated: true, hidden: false, createdBy: "", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "08/02/2024 12:38:40 PM", updatedBy: "", category: "reg-report-types", sortOrder: 3 },
+  { id: 6, name: "Annex A for Supported Accommodation", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "12/05/2025 9:00:41 AM", updatedOn: "12/05/2025 9:00:41 AM", updatedBy: "Zikel Admin", category: "reg-report-types", sortOrder: 4 },
+  { id: 7, name: "Annex A - 2025-26", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "13/05/2025 9:23:05 AM", updatedOn: "13/05/2025 9:23:05 AM", updatedBy: "Zikel Admin", category: "reg-report-types", sortOrder: 5 },
+  { id: 8, name: "Annex A for Secure Children's Homes - 2025-26", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "27/11/2025 12:16:18 AM", updatedOn: "27/11/2025 12:16:18 AM", updatedBy: "Zikel Admin", category: "reg-report-types", sortOrder: 6 },
+  // Medication Stock Types
+  { id: 10, name: "Tablet", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-types", sortOrder: 1 },
+  { id: 11, name: "Capsule", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-types", sortOrder: 2 },
+  { id: 12, name: "Liquid", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-types", sortOrder: 3 },
+  { id: 13, name: "Inhaler", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "20/06/2024 2:30:00 PM", updatedOn: "20/06/2024 2:30:00 PM", updatedBy: "thrservicesadmin", category: "medication-stock-types", sortOrder: 4 },
+  // Medication Stock Categories
+  { id: 20, name: "Controlled Drug", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-categories", sortOrder: 1 },
+  { id: 21, name: "Over The Counter", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-categories", sortOrder: 2 },
+  { id: 22, name: "Prescription Only", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", updatedOn: "15/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "medication-stock-categories", sortOrder: 3 },
+  { id: 23, name: "Homely Remedy", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "01/07/2024 9:15:00 AM", updatedOn: "01/07/2024 9:15:00 AM", updatedBy: "thrservicesadmin", category: "medication-stock-categories", sortOrder: 4 },
+  // Shift Types
+  { id: 30, name: "Day Shift", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "22/12/2021 9:57:16 AM", updatedBy: "Zikel Admin", category: "shift-types", sortOrder: 1 },
+  { id: 31, name: "Night Shift", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "22/12/2021 9:57:16 AM", updatedBy: "Zikel Admin", category: "shift-types", sortOrder: 2 },
+  { id: 32, name: "Waking Night", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "22/12/2021 9:57:16 AM", updatedBy: "Zikel Admin", category: "shift-types", sortOrder: 3 },
+  { id: 33, name: "Sleep-In", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "10/01/2025 11:00:00 AM", updatedOn: "10/01/2025 11:00:00 AM", updatedBy: "thrservicesadmin", category: "shift-types", sortOrder: 4 },
+  // Custom Information Groups
+  { id: 40, name: "Medical Information", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "05/02/2025 3:20:00 PM", updatedOn: "05/02/2025 3:20:00 PM", updatedBy: "thrservicesadmin", category: "custom-information-groups", sortOrder: 1 },
+  { id: 41, name: "Education Details", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "05/02/2025 3:25:00 PM", updatedOn: "05/02/2025 3:25:00 PM", updatedBy: "thrservicesadmin", category: "custom-information-groups", sortOrder: 2 },
+  { id: 42, name: "Contact Preferences", systemGenerated: false, hidden: true, createdBy: "thrservicesadmin", createdAt: "05/02/2025 3:30:00 PM", updatedOn: "10/02/2025 9:00:00 AM", updatedBy: "Sarah Johnson", category: "custom-information-groups", sortOrder: 3 },
+  // Custom Information Fields
+  { id: 50, name: "GP Name", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "06/02/2025 10:00:00 AM", updatedOn: "06/02/2025 10:00:00 AM", updatedBy: "thrservicesadmin", category: "custom-information-fields", sortOrder: 1 },
+  { id: 51, name: "GP Surgery Address", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "06/02/2025 10:05:00 AM", updatedOn: "06/02/2025 10:05:00 AM", updatedBy: "thrservicesadmin", category: "custom-information-fields", sortOrder: 2 },
+  { id: 52, name: "NHS Number", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "06/02/2025 10:10:00 AM", updatedOn: "06/02/2025 10:10:00 AM", updatedBy: "thrservicesadmin", category: "custom-information-fields", sortOrder: 3 },
+  { id: 53, name: "Allergies", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "06/02/2025 10:15:00 AM", updatedOn: "06/02/2025 10:15:00 AM", updatedBy: "thrservicesadmin", category: "custom-information-fields", sortOrder: 4 },
+  // File Categories
+  { id: 60, name: "Care Plans", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "22/12/2021 9:57:16 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 1 },
+  { id: 61, name: "Incident Reports", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", updatedOn: "22/12/2021 9:57:16 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 2 },
+  { id: 62, name: "Staff Documents", systemGenerated: false, hidden: false, createdBy: "thrservicesadmin", createdAt: "15/01/2025 4:00:00 PM", updatedOn: "15/01/2025 4:00:00 PM", updatedBy: "thrservicesadmin", category: "file-categories", sortOrder: 3 },
+]
+
+export function getHomeSettingsByCategory(category: HomeSettingCategory): HomeSettingItem[] {
+  return mockHomeSettings.filter((s) => s.category === category)
+}
+
+// ─── Home Audit Mock Data ────────────────────────────────────────────────────
+
+export const mockHomeAudits: HomeAuditEntry[] = [
+  // Homes
+  { id: 1, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "homes", before: [{ field: "ID", value: "1" }, { field: "Email", value: "" }, { field: "Phone", value: "" }, { field: "Latitude", value: "" }, { field: "Postcode", value: "NN5 5US" }, { field: "Longitude", value: "" }], after: [{ field: "ID", value: "1" }, { field: "Email", value: "Kwadwo.Opoku-Adomako@thresidentialservice.co.uk" }, { field: "Phone", value: "7483103245" }, { field: "Latitude", value: "52.2412199" }, { field: "Postcode", value: "NN5 5ES" }, { field: "Longitude", value: "-0.9129055" }] },
+  { id: 2, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "homes", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "The Homeland" }, { field: "Status", value: "Current" }, { field: "Category", value: "Children's Home" }] },
+  { id: 3, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "homes", before: [{ field: "Updated By", value: "" }], after: [{ field: "Updated By", value: "5" }] },
+  { id: 4, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "homes", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Oakwood House" }, { field: "Status", value: "Current" }] },
+  // Medication Locations
+  { id: 10, event: "Create", createdBy: "thrservicesadmin", createdAt: "20/01/2026 9:00:00 AM", category: "medication-locations", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Kitchen Cabinet" }, { field: "Home", value: "The Homeland" }] },
+  { id: 11, event: "Update", createdBy: "Penn", createdAt: "05/02/2026 2:15:00 PM", category: "medication-locations", before: [{ field: "Name", value: "Kitchen Cabinet" }], after: [{ field: "Name", value: "Kitchen Locked Cabinet" }] },
+  // Medication Stocks
+  { id: 20, event: "Create", createdBy: "Penn", createdAt: "09/02/2026 8:50:00 PM", category: "medication-stocks", before: [], after: [{ field: "ID", value: "1" }, { field: "Medication", value: "Paracetamol 500mg" }, { field: "Quantity", value: "28" }, { field: "Type", value: "Tablet" }] },
+  { id: 21, event: "Update", createdBy: "Penn", createdAt: "10/02/2026 7:30:00 AM", category: "medication-stocks", before: [{ field: "Quantity", value: "28" }], after: [{ field: "Quantity", value: "26" }] },
+  // Medication Stock Audits
+  { id: 30, event: "Create", createdBy: "Penn", createdAt: "10/02/2026 7:30:00 AM", category: "medication-stock-audits", before: [], after: [{ field: "Stock", value: "Paracetamol 500mg" }, { field: "Action", value: "Dispensed" }, { field: "Quantity Change", value: "-2" }] },
+  { id: 31, event: "Create", createdBy: "Masud", createdAt: "10/02/2026 10:00:00 PM", category: "medication-stock-audits", before: [], after: [{ field: "Stock", value: "Ibuprofen 200mg" }, { field: "Action", value: "Received" }, { field: "Quantity Change", value: "+30" }] },
+  // Medication Stock Types
+  { id: 40, event: "Create", createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", category: "medication-stock-types", before: [], after: [{ field: "ID", value: "10" }, { field: "Name", value: "Tablet" }, { field: "System Generated", value: "Yes" }] },
+  { id: 41, event: "Create", createdBy: "thrservicesadmin", createdAt: "20/06/2024 2:30:00 PM", category: "medication-stock-types", before: [], after: [{ field: "ID", value: "13" }, { field: "Name", value: "Inhaler" }, { field: "System Generated", value: "No" }] },
+  // Medication Stock Categories
+  { id: 50, event: "Create", createdBy: "Zikel Admin", createdAt: "15/03/2024 10:00:00 AM", category: "medication-stock-categories", before: [], after: [{ field: "ID", value: "20" }, { field: "Name", value: "Controlled Drug" }] },
+  { id: 51, event: "Create", createdBy: "thrservicesadmin", createdAt: "01/07/2024 9:15:00 AM", category: "medication-stock-categories", before: [], after: [{ field: "ID", value: "23" }, { field: "Name", value: "Homely Remedy" }] },
+  // Regulatory Reports
+  { id: 60, event: "Create", createdBy: "Zikel Admin", createdAt: "08/02/2024 10:19:05 AM", category: "regulatory-reports", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Annex A - 2024-25" }, { field: "Type", value: "Reg Report" }] },
+  { id: 61, event: "Update", createdBy: "Zikel Admin", createdAt: "08/02/2024 12:38:40 PM", category: "regulatory-reports", before: [{ field: "Status", value: "Draft" }], after: [{ field: "Status", value: "Published" }] },
+  // Regulatory Report Types
+  { id: 70, event: "Create", createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", category: "regulatory-report-types", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Reg 44" }] },
+  { id: 71, event: "Create", createdBy: "Zikel Admin", createdAt: "22/12/2021 9:57:16 AM", category: "regulatory-report-types", before: [], after: [{ field: "ID", value: "3" }, { field: "Name", value: "Reg 45" }] },
+  // Regulatory Report Type Sections
+  { id: 80, event: "Create", createdBy: "Zikel Admin", createdAt: "08/02/2024 10:20:00 AM", category: "regulatory-report-type-sections", before: [], after: [{ field: "ID", value: "1" }, { field: "Section", value: "Section A - Basic Details" }, { field: "Report Type", value: "Annex A" }] },
+  { id: 81, event: "Update", createdBy: "Zikel Admin", createdAt: "08/02/2024 12:39:00 PM", category: "regulatory-report-type-sections", before: [{ field: "Order", value: "1" }], after: [{ field: "Order", value: "2" }] },
+  // Regulatory Report Type Sections 2
+  { id: 90, event: "Create", createdBy: "Zikel Admin", createdAt: "13/05/2025 9:25:00 AM", category: "regulatory-report-type-sections-2", before: [], after: [{ field: "ID", value: "10" }, { field: "Section", value: "Part 1 - Registration" }, { field: "Report Type", value: "Annex A - 2025-26" }] },
+  { id: 91, event: "Create", createdBy: "Zikel Admin", createdAt: "13/05/2025 9:26:00 AM", category: "regulatory-report-type-sections-2", before: [], after: [{ field: "ID", value: "11" }, { field: "Section", value: "Part 2 - Staffing" }] },
+  // Regulatory Report Values
+  { id: 100, event: "Update", createdBy: "thrservicesadmin", createdAt: "01/02/2026 3:00:00 PM", category: "regulatory-report-values", before: [{ field: "Value", value: "" }], after: [{ field: "Value", value: "4" }, { field: "Field", value: "Number of Beds" }] },
+  { id: 101, event: "Update", createdBy: "thrservicesadmin", createdAt: "01/02/2026 3:05:00 PM", category: "regulatory-report-values", before: [{ field: "Value", value: "Pending" }], after: [{ field: "Value", value: "Complete" }, { field: "Field", value: "Section Status" }] },
+]
+
+export function getHomeAuditsByCategory(category: HomeAuditCategory): HomeAuditEntry[] {
+  return mockHomeAudits.filter((a) => a.category === category)
+}
+
+// ─── Young People Rewards ─────────────────────────────────────────────────
+
+export const mockYPRewards: YoungPersonReward[] = [
+  { id: 1, youngPersonName: "James Wilson", rewardType: "Good Behaviour", points: 10, awardedBy: "Sarah Johnson", awardedAt: "10/01/2026 2:30:00 PM", status: "awarded" },
+  { id: 2, youngPersonName: "Emily Brown", rewardType: "Helping Others", points: 15, awardedBy: "Mark Thompson", awardedAt: "09/01/2026 10:00:00 AM", status: "awarded" },
+  { id: 3, youngPersonName: "Oliver Davis", rewardType: "Academic Achievement", points: 20, awardedBy: "Emma White", awardedAt: "08/01/2026 3:45:00 PM", status: "redeemed" },
+  { id: 4, youngPersonName: "Sophie Taylor", rewardType: "Room Tidy", points: 5, awardedBy: "Sarah Johnson", awardedAt: "07/01/2026 11:20:00 AM", status: "awarded" },
+  { id: 5, youngPersonName: "James Wilson", rewardType: "Cooking Help", points: 10, awardedBy: "Mark Thompson", awardedAt: "06/01/2026 4:00:00 PM", status: "redeemed" },
+  { id: 6, youngPersonName: "Amelia Harris", rewardType: "Good Behaviour", points: 10, awardedBy: "Emma White", awardedAt: "05/01/2026 9:15:00 AM", status: "awarded" },
+  { id: 7, youngPersonName: "Emily Brown", rewardType: "Academic Achievement", points: 20, awardedBy: "Mark Thompson", awardedAt: "04/01/2026 1:30:00 PM", status: "expired" },
+  { id: 8, youngPersonName: "Oliver Davis", rewardType: "Sports Achievement", points: 15, awardedBy: "Emma White", awardedAt: "03/01/2026 2:00:00 PM", status: "awarded" },
+  { id: 9, youngPersonName: "Sophie Taylor", rewardType: "Helping Others", points: 15, awardedBy: "Sarah Johnson", awardedAt: "02/01/2026 10:45:00 AM", status: "awarded" },
+  { id: 10, youngPersonName: "Daniel Moore", rewardType: "Good Behaviour", points: 10, awardedBy: "James Clark", awardedAt: "15/12/2025 3:00:00 PM", status: "redeemed" },
+]
+
+// ─── Young People Settings ────────────────────────────────────────────────
+
+export const mockYPSettings: YPSettingItem[] = [
+  // Reward Types
+  { id: 1, name: "Good Behaviour", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 1 },
+  { id: 2, name: "Helping Others", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 2 },
+  { id: 3, name: "Academic Achievement", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 10:30:00 AM", updatedOn: "15/03/2024 10:30:00 AM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 3 },
+  { id: 4, name: "Room Tidy", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "20/04/2024 2:00:00 PM", updatedOn: "20/04/2024 2:00:00 PM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 4 },
+  { id: 5, name: "Cooking Help", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "01/05/2024 11:00:00 AM", updatedOn: "01/05/2024 11:00:00 AM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 5 },
+  { id: 6, name: "Sports Achievement", systemGenerated: false, hidden: true, createdBy: "Zikel Admin", createdAt: "10/06/2024 3:00:00 PM", updatedOn: "10/06/2024 3:00:00 PM", updatedBy: "Zikel Admin", category: "reward-types", sortOrder: 6 },
+  // Behaviour Categories
+  { id: 10, name: "Positive Behaviour", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "behaviour-categories", sortOrder: 1 },
+  { id: 11, name: "Negative Behaviour", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "behaviour-categories", sortOrder: 2 },
+  { id: 12, name: "Self-Harm", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "behaviour-categories", sortOrder: 3 },
+  { id: 13, name: "Absconding", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "12/02/2024 10:00:00 AM", updatedOn: "12/02/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "behaviour-categories", sortOrder: 4 },
+  // Outcome Star Factors
+  { id: 20, name: "Accommodation", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "outcome-star-factors", sortOrder: 1 },
+  { id: 21, name: "People and Support", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "outcome-star-factors", sortOrder: 2 },
+  { id: 22, name: "Education and Work", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "outcome-star-factors", sortOrder: 3 },
+  { id: 23, name: "Health and Wellbeing", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "outcome-star-factors", sortOrder: 4 },
+  // Key Worker Types
+  { id: 30, name: "Primary Key Worker", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "key-worker-types", sortOrder: 1 },
+  { id: 31, name: "Secondary Key Worker", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "key-worker-types", sortOrder: 2 },
+  { id: 32, name: "Relief Key Worker", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 11:00:00 AM", updatedOn: "15/03/2024 11:00:00 AM", updatedBy: "Zikel Admin", category: "key-worker-types", sortOrder: 3 },
+  // Placement Types
+  { id: 40, name: "Residential", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "placement-types", sortOrder: 1 },
+  { id: 41, name: "Semi-Independent", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "placement-types", sortOrder: 2 },
+  { id: 42, name: "Emergency", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "20/02/2024 2:30:00 PM", updatedOn: "20/02/2024 2:30:00 PM", updatedBy: "Zikel Admin", category: "placement-types", sortOrder: 3 },
+  { id: 43, name: "Respite", systemGenerated: false, hidden: true, createdBy: "Zikel Admin", createdAt: "01/04/2024 10:00:00 AM", updatedOn: "01/04/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "placement-types", sortOrder: 4 },
+  // File Categories
+  { id: 50, name: "Care Plans", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 1 },
+  { id: 51, name: "Risk Assessments", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 2 },
+  { id: 52, name: "Medical Records", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "10/02/2024 10:00:00 AM", updatedOn: "10/02/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 3 },
+  { id: 53, name: "Education Records", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2024 11:00:00 AM", updatedOn: "15/03/2024 11:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 4 },
+]
+
+export function getYPSettingsByCategory(category: YPSettingCategory): YPSettingItem[] {
+  return mockYPSettings.filter((s) => s.category === category)
+}
+
+// ─── Young People Audits ──────────────────────────────────────────────────
+
+export const mockYPAudits: YPAuditEntry[] = [
+  // Young People
+  { id: 1, event: "Create", createdBy: "Zikel Admin", createdAt: "01/06/2023 9:00:00 AM", category: "young-people", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "James Wilson" }, { field: "Home", value: "The Homeland" }, { field: "Status", value: "Current" }] },
+  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "15/04/2023 10:30:00 AM", category: "young-people", before: [{ field: "Key Worker", value: "Mark Thompson" }], after: [{ field: "Key Worker", value: "Sarah Johnson" }] },
+  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "15/04/2023 9:00:00 AM", category: "young-people", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Emily Brown" }, { field: "Home", value: "The Homeland" }] },
+  // Placements
+  { id: 10, event: "Create", createdBy: "Zikel Admin", createdAt: "01/06/2023 9:05:00 AM", category: "placements", before: [], after: [{ field: "Young Person", value: "James Wilson" }, { field: "Home", value: "The Homeland" }, { field: "Type", value: "Residential" }, { field: "Start Date", value: "01/06/2023" }] },
+  { id: 11, event: "Update", createdBy: "Zikel Admin", createdAt: "05/03/2025 2:00:00 PM", category: "placements", before: [{ field: "Status", value: "Current" }], after: [{ field: "Status", value: "Past" }, { field: "End Date", value: "05/03/2025" }] },
+  // Rewards
+  { id: 20, event: "Create", createdBy: "Sarah Johnson", createdAt: "10/01/2026 2:30:00 PM", category: "rewards", before: [], after: [{ field: "Young Person", value: "James Wilson" }, { field: "Type", value: "Good Behaviour" }, { field: "Points", value: "10" }] },
+  { id: 21, event: "Update", createdBy: "Emma White", createdAt: "08/01/2026 4:00:00 PM", category: "rewards", before: [{ field: "Status", value: "Awarded" }], after: [{ field: "Status", value: "Redeemed" }] },
+  // Behaviours
+  { id: 30, event: "Create", createdBy: "Mark Thompson", createdAt: "12/01/2026 11:00:00 AM", category: "behaviours", before: [], after: [{ field: "Young Person", value: "Emily Brown" }, { field: "Category", value: "Positive Behaviour" }, { field: "Description", value: "Helped with dinner preparation" }] },
+  { id: 31, event: "Create", createdBy: "Emma White", createdAt: "11/01/2026 3:30:00 PM", category: "behaviours", before: [], after: [{ field: "Young Person", value: "Oliver Davis" }, { field: "Category", value: "Negative Behaviour" }, { field: "Description", value: "Refused to attend school" }] },
+  // Outcome Stars
+  { id: 40, event: "Create", createdBy: "Sarah Johnson", createdAt: "01/01/2026 10:00:00 AM", category: "outcome-stars", before: [], after: [{ field: "Young Person", value: "James Wilson" }, { field: "Score", value: "7.5" }, { field: "Status", value: "Completed" }] },
+  { id: 41, event: "Update", createdBy: "Emma White", createdAt: "05/01/2026 2:00:00 PM", category: "outcome-stars", before: [{ field: "Score", value: "6.0" }], after: [{ field: "Score", value: "7.2" }] },
+  // Key Sessions
+  { id: 50, event: "Create", createdBy: "Sarah Johnson", createdAt: "14/01/2026 4:00:00 PM", category: "key-sessions", before: [], after: [{ field: "Young Person", value: "James Wilson" }, { field: "Topic", value: "Weekly Review" }, { field: "Duration", value: "45 mins" }] },
+  { id: 51, event: "Create", createdBy: "Mark Thompson", createdAt: "13/01/2026 3:00:00 PM", category: "key-sessions", before: [], after: [{ field: "Young Person", value: "Emily Brown" }, { field: "Topic", value: "Education Goals" }, { field: "Duration", value: "30 mins" }] },
+  // Incidents
+  { id: 60, event: "Create", createdBy: "Emma White", createdAt: "09/01/2026 8:00:00 PM", category: "incidents", before: [], after: [{ field: "Young Person", value: "Oliver Davis" }, { field: "Type", value: "Missing from Home" }, { field: "Severity", value: "Medium" }] },
+  { id: 61, event: "Update", createdBy: "Emma White", createdAt: "09/01/2026 10:00:00 PM", category: "incidents", before: [{ field: "Status", value: "Open" }], after: [{ field: "Status", value: "Resolved" }, { field: "Resolution", value: "Returned safely" }] },
+  // File Uploads
+  { id: 70, event: "Create", createdBy: "Zikel Admin", createdAt: "07/01/2026 9:00:00 AM", category: "file-uploads", before: [], after: [{ field: "File", value: "care-plan-james-wilson.pdf" }, { field: "Category", value: "Care Plans" }, { field: "Young Person", value: "James Wilson" }] },
+  { id: 71, event: "Delete", createdBy: "Zikel Admin", createdAt: "06/01/2026 2:30:00 PM", category: "file-uploads", before: [{ field: "File", value: "old-risk-assessment.pdf" }, { field: "Category", value: "Risk Assessments" }], after: [] },
+]
+
+export function getYPAuditsByCategory(category: YPAuditCategory): YPAuditEntry[] {
+  return mockYPAudits.filter((a) => a.category === category)
+}
+
+// ─── Outcome Stars ────────────────────────────────────────────────────────
+
+export const mockOutcomeStars: OutcomeStarEntry[] = [
+  { id: 1, youngPersonName: "James Wilson", completedBy: "Sarah Johnson", completedAt: "01/01/2026 10:00:00 AM", score: 7.5, status: "completed" },
+  { id: 2, youngPersonName: "Emily Brown", completedBy: "Mark Thompson", completedAt: "28/12/2025 2:30:00 PM", score: 6.8, status: "completed" },
+  { id: 3, youngPersonName: "Oliver Davis", completedBy: "Emma White", completedAt: "05/01/2026 2:00:00 PM", score: 7.2, status: "completed" },
+  { id: 4, youngPersonName: "Sophie Taylor", completedBy: "Sarah Johnson", completedAt: "10/01/2026 11:00:00 AM", score: 8.1, status: "completed" },
+  { id: 5, youngPersonName: "Amelia Harris", completedBy: "Emma White", completedAt: "12/01/2026 3:00:00 PM", score: 5.9, status: "in-progress" },
+  { id: 6, youngPersonName: "James Wilson", completedBy: "Sarah Johnson", completedAt: "15/01/2026 10:30:00 AM", score: 8.0, status: "pending" },
+  { id: 7, youngPersonName: "Emily Brown", completedBy: "Mark Thompson", completedAt: "20/01/2026 1:00:00 PM", score: 7.0, status: "pending" },
+  { id: 8, youngPersonName: "Oliver Davis", completedBy: "Emma White", completedAt: "22/01/2026 4:00:00 PM", score: 7.8, status: "completed" },
+]
+
+// ─── Employee Settings ────────────────────────────────────────────────────
+
+export const mockEmpSettings: EmpSettingItem[] = [
+  // Job Titles
+  { id: 1, name: "Registered Manager", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 1 },
+  { id: 2, name: "Deputy Manager", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 2 },
+  { id: 3, name: "Senior Support Worker", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/01/2024 10:00:00 AM", updatedOn: "15/01/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 3 },
+  { id: 4, name: "Support Worker", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/01/2024 10:00:00 AM", updatedOn: "15/01/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 4 },
+  { id: 5, name: "Night Support Worker", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "20/01/2024 11:00:00 AM", updatedOn: "20/01/2024 11:00:00 AM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 5 },
+  { id: 6, name: "Waking Night Staff", systemGenerated: false, hidden: true, createdBy: "Zikel Admin", createdAt: "25/01/2024 2:00:00 PM", updatedOn: "25/01/2024 2:00:00 PM", updatedBy: "Zikel Admin", category: "job-titles", sortOrder: 6 },
+  // Reference Ratings
+  { id: 10, name: "Excellent", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reference-ratings", sortOrder: 1 },
+  { id: 11, name: "Good", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reference-ratings", sortOrder: 2 },
+  { id: 12, name: "Satisfactory", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reference-ratings", sortOrder: 3 },
+  { id: 13, name: "Poor", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "reference-ratings", sortOrder: 4 },
+  // Qualification Types
+  { id: 20, name: "NVQ Level 3", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "qualification-types", sortOrder: 1 },
+  { id: 21, name: "NVQ Level 4", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "qualification-types", sortOrder: 2 },
+  { id: 22, name: "First Aid", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "10/02/2024 10:00:00 AM", updatedOn: "10/02/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "qualification-types", sortOrder: 3 },
+  // Qualification Issuing Bodies
+  { id: 30, name: "City & Guilds", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "qualification-issuing-bodies", sortOrder: 1 },
+  { id: 31, name: "Pearson Edexcel", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "qualification-issuing-bodies", sortOrder: 2 },
+  // Evidence Types
+  { id: 40, name: "Certificate", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "evidence-types", sortOrder: 1 },
+  { id: 41, name: "Reference Letter", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "evidence-types", sortOrder: 2 },
+  { id: 42, name: "DBS Check", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/02/2024 3:00:00 PM", updatedOn: "15/02/2024 3:00:00 PM", updatedBy: "Zikel Admin", category: "evidence-types", sortOrder: 3 },
+  // Contract Types
+  { id: 50, name: "Full-Time", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "contract-types", sortOrder: 1 },
+  { id: 51, name: "Part-Time", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "contract-types", sortOrder: 2 },
+  { id: 52, name: "Zero Hours", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "01/03/2024 10:00:00 AM", updatedOn: "01/03/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "contract-types", sortOrder: 3 },
+  // Contract Events
+  { id: 60, name: "Contract Start", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "contract-events", sortOrder: 1 },
+  { id: 61, name: "Contract Renewal", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "contract-events", sortOrder: 2 },
+  { id: 62, name: "Contract End", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "contract-events", sortOrder: 3 },
+  // File Categories
+  { id: 70, name: "Employment Contracts", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 1 },
+  { id: 71, name: "DBS Certificates", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 2 },
+  { id: 72, name: "Training Records", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "20/02/2024 11:00:00 AM", updatedOn: "20/02/2024 11:00:00 AM", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 3 },
+  // Leave Types
+  { id: 80, name: "Annual Leave", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-types", sortOrder: 1 },
+  { id: 81, name: "Sick Leave", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-types", sortOrder: 2 },
+  { id: 82, name: "Maternity Leave", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-types", sortOrder: 3 },
+  // Leave Statuses
+  { id: 90, name: "Pending", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-statuses", sortOrder: 1 },
+  { id: 91, name: "Approved", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-statuses", sortOrder: 2 },
+  { id: 92, name: "Rejected", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "leave-statuses", sortOrder: 3 },
+  // Genders
+  { id: 100, name: "Male", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "genders", sortOrder: 1 },
+  { id: 101, name: "Female", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "genders", sortOrder: 2 },
+  { id: 102, name: "Non-Binary", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "10/03/2024 2:00:00 PM", updatedOn: "10/03/2024 2:00:00 PM", updatedBy: "Zikel Admin", category: "genders", sortOrder: 3 },
+  // Employment Types
+  { id: 110, name: "Permanent", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "employment-types", sortOrder: 1 },
+  { id: 111, name: "Temporary", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "employment-types", sortOrder: 2 },
+  { id: 112, name: "Agency", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/02/2024 10:00:00 AM", updatedOn: "15/02/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "employment-types", sortOrder: 3 },
+  // Custom Personal Group
+  { id: 120, name: "Emergency Contact", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "custom-personal-group", sortOrder: 1 },
+  { id: 121, name: "Next of Kin", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "custom-personal-group", sortOrder: 2 },
+  // Custom Personal Fields
+  { id: 130, name: "National Insurance Number", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "custom-personal-fields", sortOrder: 1 },
+  { id: 131, name: "Driving Licence", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "01/02/2024 10:00:00 AM", updatedOn: "01/02/2024 10:00:00 AM", updatedBy: "Zikel Admin", category: "custom-personal-fields", sortOrder: 2 },
+  // Annual Leave Flexibility Types
+  { id: 140, name: "Standard", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "annual-leave-flexibility-types", sortOrder: 1 },
+  { id: 141, name: "Flexible", systemGenerated: true, hidden: false, createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", updatedOn: "01/01/2024 9:00:00 AM", updatedBy: "Zikel Admin", category: "annual-leave-flexibility-types", sortOrder: 2 },
+]
+
+export function getEmpSettingsByCategory(category: EmpSettingCategory): EmpSettingItem[] {
+  return mockEmpSettings.filter((s) => s.category === category)
+}
+
+// ─── Employee Audits ──────────────────────────────────────────────────────
+
+export const mockEmpAudits: EmpAuditEntry[] = [
+  // Employees
+  { id: 1, event: "Create", createdBy: "Kwadwo Opoku-Adomako", createdAt: "11/01/2026 9:23:54 PM", category: "employees", before: [], after: [{ field: "ID", value: "16" }, { field: "User ID", value: "-" }, { field: "Gender ID", value: "2" }, { field: "NI Number", value: "-" }, { field: "Created At", value: "11/01/2026 9:23:54 PM" }] },
+  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "12/01/2026 10:00:00 AM", category: "employees", before: [{ field: "Job Title", value: "Support Worker" }], after: [{ field: "Job Title", value: "Senior Support Worker" }] },
+  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "10/01/2024 9:00:00 AM", category: "employees", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Sarah Johnson" }, { field: "Job Title", value: "Registered Manager" }, { field: "Home", value: "The Homeland" }] },
+  // Genders
+  { id: 10, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "genders", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Male" }] },
+  { id: 11, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "genders", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Female" }] },
+  { id: 12, event: "Create", createdBy: "Zikel Admin", createdAt: "10/03/2024 2:00:00 PM", category: "genders", before: [], after: [{ field: "ID", value: "3" }, { field: "Name", value: "Non-Binary" }] },
+  // Employment Types
+  { id: 20, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "employment-types", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Permanent" }] },
+  { id: 21, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "employment-types", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Temporary" }] },
+  { id: 22, event: "Create", createdBy: "Zikel Admin", createdAt: "15/02/2024 10:00:00 AM", category: "employment-types", before: [], after: [{ field: "ID", value: "3" }, { field: "Name", value: "Agency" }] },
+]
+
+export function getEmpAuditsByCategory(category: EmpAuditCategory): EmpAuditEntry[] {
+  return mockEmpAudits.filter((a) => a.category === category)
+}
+
 // Helper function to get young person by ID
-export function getYoungPersonById(id: string): YoungPerson | undefined {
+export function getYoungPersonById(id: number): YoungPerson | undefined {
   return mockYoungPeople.find((yp) => yp.id === id)
 }
 
 // Helper function to get employee by ID
-export function getEmployeeById(id: string): Employee | undefined {
+export function getEmployeeById(id: number): Employee | undefined {
   return mockEmployees.find((emp) => emp.id === id)
 }
 

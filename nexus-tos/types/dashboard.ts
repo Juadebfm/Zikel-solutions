@@ -1,14 +1,21 @@
 import type { UserRole } from "./auth"
 
 // Young Person Types
+export type YoungPersonStatus = "current" | "past" | "planned"
+export type YoungPersonType = "child" | "young-adult"
+export type YoungPersonGender = "male" | "female"
+
 export interface YoungPerson {
-  id: string
+  id: number
   firstName: string
   lastName: string
   dateOfBirth: string
   homeId: string
   homeName: string
-  status: "active" | "inactive" | "transferred"
+  status: YoungPersonStatus
+  youngPersonType: YoungPersonType
+  gender: YoungPersonGender
+  category: string
   avatar?: string
   admissionDate: string
   keyWorker?: string
@@ -81,8 +88,10 @@ export interface CareGroupHome {
 }
 
 // Employee Types
+export type EmployeeStatus = "current" | "past" | "planned"
+
 export interface Employee {
-  id: string
+  id: number
   firstName: string
   lastName: string
   email: string
@@ -90,9 +99,59 @@ export interface Employee {
   homeId?: string
   homeName?: string
   phone: string
-  status: "active" | "inactive" | "on-leave"
+  jobTitle: string
+  status: EmployeeStatus
   startDate: string
   avatar?: string
+}
+
+// ─── Employee Settings Types ────────────────────────────────────────────────
+
+export type EmpSettingCategory =
+  | "job-titles"
+  | "reference-ratings"
+  | "qualification-types"
+  | "qualification-issuing-bodies"
+  | "evidence-types"
+  | "contract-types"
+  | "contract-events"
+  | "file-categories"
+  | "leave-types"
+  | "leave-statuses"
+  | "genders"
+  | "employment-types"
+  | "custom-personal-group"
+  | "custom-personal-fields"
+  | "annual-leave-flexibility-types"
+
+export interface EmpSettingItem {
+  id: number
+  name: string
+  systemGenerated: boolean
+  hidden: boolean
+  createdBy: string
+  createdAt: string
+  updatedOn: string
+  updatedBy: string
+  category: EmpSettingCategory
+  sortOrder: number
+}
+
+// ─── Employee Audit Types ───────────────────────────────────────────────────
+
+export type EmpAuditCategory =
+  | "employees"
+  | "genders"
+  | "employment-types"
+
+export interface EmpAuditEntry {
+  id: number
+  event: "Update" | "Create" | "Delete"
+  createdBy: string
+  createdAt: string
+  category: EmpAuditCategory
+  before: AuditDiffField[]
+  after: AuditDiffField[]
 }
 
 // Task Types
@@ -262,6 +321,128 @@ export interface TaskExplorerLogEntry {
   status: TaskExplorerStatusOption
   originallyRecordedAt: string
   originallyRecordedBy: string
+}
+
+// ─── Homes Settings Types ────────────────────────────────────────────────────
+
+export type HomeSettingCategory =
+  | "reg-report-types"
+  | "medication-stock-types"
+  | "medication-stock-categories"
+  | "shift-types"
+  | "custom-information-groups"
+  | "custom-information-fields"
+  | "file-categories"
+
+export interface HomeSettingItem {
+  id: number
+  name: string
+  systemGenerated: boolean
+  hidden: boolean
+  createdBy: string
+  createdAt: string
+  updatedOn: string
+  updatedBy: string
+  category: HomeSettingCategory
+  sortOrder: number
+}
+
+// ─── Homes Audit Types ──────────────────────────────────────────────────────
+
+export type HomeAuditCategory =
+  | "homes"
+  | "medication-locations"
+  | "medication-stocks"
+  | "medication-stock-audits"
+  | "medication-stock-types"
+  | "medication-stock-categories"
+  | "regulatory-reports"
+  | "regulatory-report-types"
+  | "regulatory-report-type-sections"
+  | "regulatory-report-type-sections-2"
+  | "regulatory-report-values"
+
+export interface AuditDiffField {
+  field: string
+  value: string
+}
+
+export interface HomeAuditEntry {
+  id: number
+  event: "Update" | "Create" | "Delete"
+  createdBy: string
+  createdAt: string
+  category: HomeAuditCategory
+  before: AuditDiffField[]
+  after: AuditDiffField[]
+}
+
+// ─── Young People Rewards Types ─────────────────────────────────────────────
+
+export interface YoungPersonReward {
+  id: number
+  youngPersonName: string
+  rewardType: string
+  points: number
+  awardedBy: string
+  awardedAt: string
+  status: "awarded" | "redeemed" | "expired"
+}
+
+// ─── Young People Settings Types ────────────────────────────────────────────
+
+export type YPSettingCategory =
+  | "reward-types"
+  | "behaviour-categories"
+  | "outcome-star-factors"
+  | "key-worker-types"
+  | "placement-types"
+  | "file-categories"
+
+export interface YPSettingItem {
+  id: number
+  name: string
+  systemGenerated: boolean
+  hidden: boolean
+  createdBy: string
+  createdAt: string
+  updatedOn: string
+  updatedBy: string
+  category: YPSettingCategory
+  sortOrder: number
+}
+
+// ─── Young People Audit Types ───────────────────────────────────────────────
+
+export type YPAuditCategory =
+  | "young-people"
+  | "placements"
+  | "rewards"
+  | "behaviours"
+  | "outcome-stars"
+  | "key-sessions"
+  | "incidents"
+  | "file-uploads"
+
+export interface YPAuditEntry {
+  id: number
+  event: "Update" | "Create" | "Delete"
+  createdBy: string
+  createdAt: string
+  category: YPAuditCategory
+  before: AuditDiffField[]
+  after: AuditDiffField[]
+}
+
+// ─── Outcome Star Types ─────────────────────────────────────────────────────
+
+export interface OutcomeStarEntry {
+  id: number
+  youngPersonName: string
+  completedBy: string
+  completedAt: string
+  score: number
+  status: "completed" | "in-progress" | "pending"
 }
 
 // Vehicle Types
