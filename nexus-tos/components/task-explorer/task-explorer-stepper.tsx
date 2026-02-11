@@ -102,7 +102,7 @@ export function TaskExplorerStepper({
           onClick={onNextClick}
           className="ml-4 flex items-center gap-2 bg-primary text-white px-4 sm:px-6 py-2.5 rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors"
         >
-          next
+          Next
           <ChevronRight className="h-4 w-4" />
         </button>
       )}

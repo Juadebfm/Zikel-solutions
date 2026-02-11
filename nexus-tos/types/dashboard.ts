@@ -27,12 +27,57 @@ export interface Home {
 }
 
 // Care Group Types
+export type CareGroupType = "private" | "public" | "charity"
+
 export interface CareGroup {
-  id: string
+  id: number
   name: string
+  type: CareGroupType
+  phoneNumber?: string
+  email?: string
+  faxNumber?: string
   description?: string
+  website?: string
+  defaultUserIpRestriction: boolean
   homes: string[]
   manager: string
+  lastUpdated: string
+  lastUpdatedBy: string
+  // Contact details
+  contact?: string
+  // Address
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  countryRegion?: string
+  postcode?: string
+  // Settings
+  twilioSid?: string
+  twilioToken?: string
+  twilioPhoneNumber?: string
+}
+
+export interface Stakeholder {
+  id: number
+  name: string
+  position: string
+  responsibleIndividual: boolean
+  startDate: string
+  endDate?: string
+  userId?: string
+}
+
+// Care Group Home (home as viewed within a care group context)
+export type CareGroupHomeStatus = "current" | "past" | "planned"
+
+export interface CareGroupHome {
+  id: number
+  name: string
+  status: CareGroupHomeStatus
+  category: string
+  responsibleIndividual: string
+  detailsAvailable: boolean
+  careGroupId: number
 }
 
 // Employee Types

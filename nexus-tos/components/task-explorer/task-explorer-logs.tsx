@@ -185,7 +185,7 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
 
       {/* Table */}
       <div className="border rounded-lg bg-white overflow-x-auto">
-        <Table className="min-w-[900px]">
+        <Table className="min-w-225">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12 pl-4">
@@ -195,7 +195,7 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
                 />
               </TableHead>
               <TableHead className="font-semibold text-gray-700 w-20">Task ID</TableHead>
-              <TableHead className="font-semibold text-gray-700 min-w-[220px]">Title</TableHead>
+              <TableHead className="font-semibold text-gray-700 min-w-55">Title</TableHead>
               <TableHead className="font-semibold text-gray-700">Form Group</TableHead>
               <TableHead className="font-semibold text-gray-700">Relates To</TableHead>
               <TableHead className="font-semibold text-gray-700">Home Or School</TableHead>
@@ -299,7 +299,7 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1 text-sm">
-            <span className="px-2 py-1 border rounded text-center min-w-[2rem]">
+            <span className="px-2 py-1 border rounded text-center min-w-8">
               {page + 1}
             </span>
             <span className="text-gray-500">of {totalPages}</span>

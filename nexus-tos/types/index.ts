@@ -38,7 +38,9 @@ export type {
 export type {
   YoungPerson,
   Home,
+  CareGroupType,
   CareGroup,
+  Stakeholder,
   Employee,
   TaskStatus,
   Task,
@@ -54,6 +56,8 @@ export type {
   TaskExplorerForm,
   TaskExplorerFormField,
   TaskExplorerLogEntry,
+  CareGroupHomeStatus,
+  CareGroupHome,
 } from "./dashboard"
 
 // Legacy type alias for backward compatibility

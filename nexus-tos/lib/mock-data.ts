@@ -3,6 +3,8 @@ import type {
   YoungPerson,
   Home,
   CareGroup,
+  CareGroupHome,
+  Stakeholder,
   Employee,
   Task,
   IOILog,
@@ -132,20 +134,51 @@ export const mockHomes: Home[] = [
 // Care Groups
 export const mockCareGroups: CareGroup[] = [
   {
-    id: "cg-1",
-    name: "North West Region",
-    description: "All homes in the North West area",
-    homes: ["home-1", "home-2"],
+    id: 562133529,
+    name: "THR Services Limited",
+    type: "private",
+    phoneNumber: "",
+    email: "",
+    faxNumber: "",
+    description: "",
+    website: "",
+    defaultUserIpRestriction: false,
+    homes: ["home-1", "home-2", "home-3"],
     manager: "David Williams",
-  },
-  {
-    id: "cg-2",
-    name: "Yorkshire Region",
-    description: "All homes in Yorkshire",
-    homes: ["home-3"],
-    manager: "Jennifer Brown",
+    lastUpdated: "18/11/2025 0:22PM",
+    lastUpdatedBy: "thrservicesadmin",
+    contact: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    countryRegion: "",
+    postcode: "",
+    twilioSid: "••••••••••••••••••••••",
+    twilioToken: "••••••••••••••••••••••••••",
+    twilioPhoneNumber: "",
   },
 ]
+
+// Care Group Homes
+export const mockCareGroupHomes: CareGroupHome[] = [
+  {
+    id: 4,
+    name: "The Homeland",
+    status: "current",
+    category: "Children's Home",
+    responsibleIndividual: "thrservicesadmin",
+    detailsAvailable: true,
+    careGroupId: 562133529,
+  },
+]
+
+// Care Group Stakeholders
+export const mockStakeholders: Stakeholder[] = []
+
+// Helper function to get care group by ID
+export function getCareGroupById(id: number): CareGroup | undefined {
+  return mockCareGroups.find((cg) => cg.id === id)
+}
 
 // Employees
 export const mockEmployees: Employee[] = [

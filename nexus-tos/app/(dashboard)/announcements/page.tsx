@@ -243,7 +243,7 @@ export default function AnnouncementsPage() {
 
       {/* Table */}
       <div className="border rounded-lg bg-white overflow-x-auto">
-        <Table className="min-w-[640px]">
+        <Table className="min-w-160">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12 pl-4">
@@ -274,12 +274,12 @@ export default function AnnouncementsPage() {
                 >
                   {col.filterType === "search" && (
                     <div className={`relative ${col.key === "id" ? "max-w-16" : ""} ${col.key === "status" ? "max-w-24 mx-auto" : ""}`}>
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
                       <Input
                         placeholder=""
                         value={filters[col.key] || ""}
                         onChange={(e) => handleFilterChange(col.key, e.target.value)}
-                        className="pl-7 h-7 text-xs border-gray-200"
+                        className="pl-6 h-6 text-xs border-gray-200"
                       />
                     </div>
                   )}
@@ -289,7 +289,7 @@ export default function AnnouncementsPage() {
                       placeholder="&#x21A4;"
                       value={filters[col.key] || ""}
                       onChange={(e) => handleFilterChange(col.key, e.target.value)}
-                      className="h-7 text-xs border-gray-200 text-center"
+                      className="h-6 text-xs border-gray-200 text-center"
                     />
                   )}
                 </TableHead>
@@ -385,7 +385,7 @@ export default function AnnouncementsPage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1 text-sm">
-            <span className="px-2 py-1 border rounded text-center min-w-[2rem]">
+            <span className="px-2 py-1 border rounded text-center min-w-8">
               {page + 1}
             </span>
             <span className="text-gray-500">of {totalPages}</span>
