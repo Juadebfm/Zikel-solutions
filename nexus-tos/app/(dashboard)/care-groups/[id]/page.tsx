@@ -60,9 +60,9 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "summary", label: "Summary" },
   { key: "contact-details", label: "Contact Details" },
   { key: "addresses", label: "Addresses" },
-  { key: "settings", label: "Settings" },
   { key: "stakeholders", label: "Stakeholders" },
   { key: "homes", label: "Homes" },
+  { key: "settings", label: "Settings" },
 ]
 
 export default function CareGroupDetailPage() {

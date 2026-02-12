@@ -12,9 +12,9 @@ type MainTab = "young-people" | "rewards" | "settings" | "outcome-star" | "audit
 const mainTabs: { key: MainTab; label: string }[] = [
   { key: "young-people", label: "Young People" },
   { key: "rewards", label: "Rewards" },
-  { key: "settings", label: "Settings" },
   { key: "outcome-star", label: "Outcome Star" },
   { key: "audit", label: "Audit" },
+  { key: "settings", label: "Settings" },
 ]
 
 export default function YoungPeoplePage() {

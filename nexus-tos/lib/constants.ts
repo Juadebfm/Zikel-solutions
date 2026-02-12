@@ -332,3 +332,107 @@ export const taskCategories = [
   "Family Contact",
   "Other",
 ] as const
+
+// ─── Create Employee Form Options ──────────────────────────────────────────
+
+export const administratorOptions = [
+  { value: "sarah-johnson", label: "Sarah Johnson" },
+  { value: "mark-thompson", label: "Mark Thompson" },
+  { value: "emma-white", label: "Emma White" },
+  { value: "david-chen", label: "David Chen" },
+  { value: "lisa-patel", label: "Lisa Patel" },
+] as const
+
+export const colourOptions = [
+  { value: "red", label: "Red" },
+  { value: "blue", label: "Blue" },
+  { value: "green", label: "Green" },
+  { value: "orange", label: "Orange" },
+  { value: "purple", label: "Purple" },
+  { value: "teal", label: "Teal" },
+  { value: "pink", label: "Pink" },
+  { value: "yellow", label: "Yellow" },
+] as const
+
+export const nationalityOptions = [
+  { value: "british", label: "British" },
+  { value: "irish", label: "Irish" },
+  { value: "american", label: "American" },
+  { value: "australian", label: "Australian" },
+  { value: "canadian", label: "Canadian" },
+  { value: "indian", label: "Indian" },
+  { value: "pakistani", label: "Pakistani" },
+  { value: "polish", label: "Polish" },
+  { value: "romanian", label: "Romanian" },
+  { value: "other", label: "Other" },
+] as const
+
+export const ethnicityOptions = [
+  { value: "white-british", label: "White British" },
+  { value: "white-irish", label: "White Irish" },
+  { value: "white-other", label: "Any Other White Background" },
+  { value: "mixed-white-caribbean", label: "White and Black Caribbean" },
+  { value: "mixed-white-african", label: "White and Black African" },
+  { value: "mixed-white-asian", label: "White and Asian" },
+  { value: "asian-indian", label: "Indian" },
+  { value: "asian-pakistani", label: "Pakistani" },
+  { value: "asian-bangladeshi", label: "Bangladeshi" },
+  { value: "black-caribbean", label: "Caribbean" },
+  { value: "black-african", label: "African" },
+  { value: "other", label: "Other Ethnic Group" },
+] as const
+
+export const genderOptions = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "non-binary", label: "Non-binary" },
+  { value: "prefer-not-to-say", label: "Prefer Not To Say" },
+] as const
+
+export const jobTitleOptions = [
+  { value: "registered-manager", label: "Registered Manager" },
+  { value: "deputy-manager", label: "Deputy Manager" },
+  { value: "senior-support-worker", label: "Senior Support Worker" },
+  { value: "support-worker", label: "Support Worker" },
+  { value: "night-support-worker", label: "Night Support Worker" },
+  { value: "waking-night-worker", label: "Waking Night Worker" },
+  { value: "team-leader", label: "Team Leader" },
+  { value: "administrator", label: "Administrator" },
+  { value: "cook", label: "Cook" },
+  { value: "maintenance", label: "Maintenance" },
+] as const
+
+export const employmentTypeOptions = [
+  { value: "full-time", label: "Full-Time" },
+  { value: "part-time", label: "Part-Time" },
+  { value: "bank", label: "Bank" },
+  { value: "agency", label: "Agency" },
+  { value: "voluntary", label: "Voluntary" },
+] as const
+
+export const lineManagerOptions = [
+  { value: "sarah-johnson", label: "Sarah Johnson" },
+  { value: "mark-thompson", label: "Mark Thompson" },
+  { value: "emma-white", label: "Emma White" },
+  { value: "david-chen", label: "David Chen" },
+] as const
+
+export const contractTypeOptions = [
+  { value: "permanent", label: "Permanent" },
+  { value: "fixed-term", label: "Fixed Term" },
+  { value: "zero-hours", label: "Zero Hours" },
+  { value: "temporary", label: "Temporary" },
+] as const
+
+export const annualLeaveFlexibilityOptions = [
+  { value: "standard", label: "Standard" },
+  { value: "flexible", label: "Flexible" },
+  { value: "compressed", label: "Compressed" },
+] as const
+
+export const homeSchoolOptions = [
+  { value: "the-homeland", label: "The Homeland" },
+  { value: "oakwood-house", label: "Oakwood House" },
+  { value: "maple-house", label: "Maple House" },
+  { value: "willow-court", label: "Willow Court" },
+] as const

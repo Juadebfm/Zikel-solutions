@@ -9,8 +9,8 @@ type MainTab = "homes" | "settings" | "audit"
 
 const mainTabs: { key: MainTab; label: string }[] = [
   { key: "homes", label: "Homes" },
-  { key: "settings", label: "Settings" },
   { key: "audit", label: "Audit" },
+  { key: "settings", label: "Settings" },
 ]
 
 export default function HomesPage() {
