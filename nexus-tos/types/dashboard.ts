@@ -140,7 +140,6 @@ export interface EmpSettingItem {
 // ─── Employee Audit Types ───────────────────────────────────────────────────
 
 export type EmpAuditCategory =
-  | "employees"
   | "genders"
   | "employment-types"
 
@@ -350,7 +349,6 @@ export interface HomeSettingItem {
 // ─── Homes Audit Types ──────────────────────────────────────────────────────
 
 export type HomeAuditCategory =
-  | "homes"
   | "medication-locations"
   | "medication-stocks"
   | "medication-stock-audits"
@@ -415,7 +413,6 @@ export interface YPSettingItem {
 // ─── Young People Audit Types ───────────────────────────────────────────────
 
 export type YPAuditCategory =
-  | "young-people"
   | "placements"
   | "rewards"
   | "behaviours"
@@ -446,14 +443,81 @@ export interface OutcomeStarEntry {
 }
 
 // Vehicle Types
+export type VehicleStatus = "current" | "past" | "planned"
+
 export interface Vehicle {
-  id: string
+  id: number
+  name: string
   registration: string
   make: string
   model: string
   homeId: string
   homeName: string
-  status: "available" | "in-use" | "maintenance"
+  status: VehicleStatus
   mileage: number
   nextServiceDate: string
+  image?: string
+}
+
+// ─── Vehicle Settings Types ────────────────────────────────────────────────
+
+export type VehicleSettingCategory =
+  | "file-categories"
+  | "custom-information-groups"
+  | "custom-information-fields"
+
+export interface VehicleSettingItem {
+  id: number
+  name: string
+  systemGenerated: boolean
+  hidden: boolean
+  createdBy: string
+  createdAt: string
+  updatedOn: string
+  updatedBy: string
+  category: VehicleSettingCategory
+  sortOrder: number
+}
+
+export type CustomFieldType =
+  | "date-input"
+  | "time-input"
+  | "true-or-false"
+  | "yes-or-no"
+  | "checkbox-list"
+  | "dropdown-select-list"
+  | "radio-buttons"
+  | "numeric-input"
+  | "single-line-text-input"
+  | "multi-line-text-input"
+
+export interface VehicleCustomInfoField {
+  id: number
+  name: string
+  fieldType: CustomFieldType
+  heading: string
+  systemGenerated: boolean
+  hidden: boolean
+  createdBy: string
+  createdAt: string
+  updatedOn: string
+  updatedBy: string
+  sortOrder: number
+}
+
+// ─── Vehicle Audit Types ───────────────────────────────────────────────────
+
+export type VehicleAuditCategory =
+  | "file-categories"
+  | "custom-information-groups"
+  | "custom-information-fields"
+
+export interface VehicleAuditEntry {
+  id: number
+  event: "Update" | "Create" | "Delete"
+  createdBy: string
+  createdAt: string
+  category: VehicleAuditCategory
+  before: AuditDiffField[]
+  after: AuditDiffField[]
 }

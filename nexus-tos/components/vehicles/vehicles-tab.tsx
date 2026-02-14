@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   Search,
@@ -12,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  User as UserIcon,
+  Car,
   Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -45,55 +46,62 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockEmployees } from "@/lib/mock-data"
-import { CreateEmployeeDialog } from "@/components/employees/create-employee-dialog"
-import type { EmployeeStatus } from "@/types"
+import { useVehicleStore } from "@/stores/vehicle-store"
+import { CreateVehicleDialog } from "@/components/vehicles/create-vehicle-dialog"
+import type { VehicleStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
 
-type EmpColumnKey = "id" | "details" | "name" | "jobTitle" | "status" | "reports" | "createTask" | "viewRota"
+type VehColumnKey = "id" | "details" | "name" | "status" | "make" | "model" | "reports" | "createTask"
 
-const empColumns: { key: EmpColumnKey; label: string; filterable: boolean; filterType: "search" | "select" | "none" }[] = [
+const vehColumns: { key: VehColumnKey; label: string; filterable: boolean; filterType: "search" | "select" | "none" }[] = [
   { key: "id", label: "ID", filterable: true, filterType: "search" },
   { key: "details", label: "Details", filterable: false, filterType: "none" },
-  { key: "name", label: "Employee Name", filterable: true, filterType: "search" },
-  { key: "jobTitle", label: "Job Title", filterable: true, filterType: "search" },
+  { key: "name", label: "Vehicle Name", filterable: true, filterType: "search" },
   { key: "status", label: "Status", filterable: true, filterType: "select" },
+  { key: "make", label: "Make", filterable: true, filterType: "search" },
+  { key: "model", label: "Model", filterable: true, filterType: "search" },
   { key: "reports", label: "Reports", filterable: false, filterType: "none" },
   { key: "createTask", label: "Create Task", filterable: false, filterType: "none" },
-  { key: "viewRota", label: "View Rota", filterable: false, filterType: "none" },
 ]
 
-const defaultEmpColumns: EmpColumnKey[] = ["id", "details", "name", "jobTitle", "status", "reports", "createTask", "viewRota"]
+const defaultVehColumns: VehColumnKey[] = ["id", "details", "name", "status", "make", "model", "reports", "createTask"]
 
-const empStatusBadge: Record<EmployeeStatus, { bg: string; text: string }> = {
+const vehStatusBadge: Record<VehicleStatus, { bg: string; text: string }> = {
   current: { bg: "bg-green-600", text: "text-white" },
   past: { bg: "bg-gray-400", text: "text-white" },
   planned: { bg: "bg-blue-500", text: "text-white" },
 }
 
-export function EmployeesTab() {
+export function VehiclesTab() {
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
-  const [visibleColumns, setVisibleColumns] = useState<EmpColumnKey[]>(defaultEmpColumns)
+  const [visibleColumns, setVisibleColumns] = useState<VehColumnKey[]>(defaultVehColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-  const [showCreateEmployee, setShowCreateEmployee] = useState(false)
+  const [showAddVehicle, setShowAddVehicle] = useState(false)
 
-  const allEmployees = mockEmployees
+  const { vehicles, loadVehicles } = useVehicleStore()
 
-  const statusFiltered = statusTab === "all" ? allEmployees : allEmployees.filter((e) => e.status === statusTab)
+  useEffect(() => {
+    loadVehicles()
+  }, [loadVehicles])
 
-  const filtered = statusFiltered.filter((emp) => {
+  const allVehicles = vehicles
+
+  const statusFiltered = statusTab === "all" ? allVehicles : allVehicles.filter((v) => v.status === statusTab)
+
+  const filtered = statusFiltered.filter((veh) => {
     for (const [key, value] of Object.entries(filters)) {
       if (!value) continue
       let cellValue = ""
-      if (key === "id") cellValue = emp.id.toString()
-      else if (key === "name") cellValue = `${emp.firstName} ${emp.lastName}`
-      else if (key === "jobTitle") cellValue = emp.jobTitle
+      if (key === "id") cellValue = veh.id.toString()
+      else if (key === "name") cellValue = veh.name
+      else if (key === "make") cellValue = veh.make
+      else if (key === "model") cellValue = veh.model
       else if (key === "status") {
-        if (value !== "all" && emp.status !== value) return false
+        if (value !== "all" && veh.status !== value) return false
         continue
       }
       if (cellValue && !cellValue.toLowerCase().includes(value.toLowerCase())) return false
@@ -106,18 +114,18 @@ export function EmployeesTab() {
   const paginated = filtered.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
 
   // Group by location (homeName)
-  const grouped = paginated.reduce<Record<string, typeof paginated>>((acc, emp) => {
-    const loc = emp.homeName || "Unassigned"
+  const grouped = paginated.reduce<Record<string, typeof paginated>>((acc, veh) => {
+    const loc = veh.homeName || "Unassigned"
     if (!acc[loc]) acc[loc] = []
-    acc[loc].push(emp)
+    acc[loc].push(veh)
     return acc
   }, {})
 
   const statusTabCounts = {
-    all: allEmployees.length,
-    current: allEmployees.filter((e) => e.status === "current").length,
-    past: allEmployees.filter((e) => e.status === "past").length,
-    planned: allEmployees.filter((e) => e.status === "planned").length,
+    all: allVehicles.length,
+    current: allVehicles.filter((v) => v.status === "current").length,
+    past: allVehicles.filter((v) => v.status === "past").length,
+    planned: allVehicles.filter((v) => v.status === "planned").length,
   }
 
   const handleTabChange = (tab: StatusTab) => {
@@ -131,14 +139,14 @@ export function EmployeesTab() {
     setPage(0)
   }
 
-  const toggleColumn = (col: EmpColumnKey) => {
+  const toggleColumn = (col: VehColumnKey) => {
     setVisibleColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
     )
   }
 
   const resetGrid = () => {
-    setVisibleColumns(defaultEmpColumns)
+    setVisibleColumns(defaultVehColumns)
     setFilters({})
     setSelectedRows(new Set())
     setPage(0)
@@ -158,15 +166,15 @@ export function EmployeesTab() {
     if (selectedRows.size === paginated.length) {
       setSelectedRows(new Set())
     } else {
-      setSelectedRows(new Set(paginated.map((e) => e.id)))
+      setSelectedRows(new Set(paginated.map((v) => v.id)))
     }
   }
 
   const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export employees as ${format}`)
+    console.log(`Export vehicles as ${format}`)
   }
 
-  const visibleColumnDefs = empColumns.filter((col) => visibleColumns.includes(col.key))
+  const visibleColumnDefs = vehColumns.filter((col) => visibleColumns.includes(col.key))
 
   let rowIndex = 0
 
@@ -203,9 +211,9 @@ export function EmployeesTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowCreateEmployee(true)}>
+          <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowAddVehicle(true)}>
             <Plus className="size-3.5" />
-            Add
+            Add Vehicle
           </Button>
 
           <DropdownMenu>
@@ -245,7 +253,7 @@ export function EmployeesTab() {
           <PopoverContent align="end" className="w-56">
             <h4 className="font-medium text-sm mb-3">Columns</h4>
             <div className="space-y-2">
-              {empColumns.map((col) => (
+              {vehColumns.map((col) => (
                 <label key={col.key} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={visibleColumns.includes(col.key)}
@@ -276,7 +284,7 @@ export function EmployeesTab() {
                   className={`font-semibold text-gray-700 ${
                     col.key === "id" ? "w-20" : ""
                   } ${col.key === "details" ? "w-16" : ""
-                  } ${col.key === "status" || col.key === "reports" || col.key === "createTask" || col.key === "viewRota" ? "text-center" : ""}`}
+                  } ${col.key === "status" || col.key === "reports" || col.key === "createTask" ? "text-center" : ""}`}
                 >
                   {col.label}
                 </TableHead>
@@ -321,37 +329,37 @@ export function EmployeesTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              Object.entries(grouped).map(([location, employees]) => (
+              Object.entries(grouped).map(([location, vehicles]) => (
                 <React.Fragment key={`group-${location}`}>
                   {/* Location group header */}
                   <TableRow>
                     <TableCell
                       colSpan={visibleColumnDefs.length + 1}
-                      className="bg-gray-100 py-2 px-4 font-semibold text-sm text-gray-700"
+                      className="bg-green-50 py-2 px-4 font-semibold text-sm text-gray-700"
                     >
                       Location: {location}
                     </TableCell>
                   </TableRow>
-                  {employees.map((emp) => {
+                  {vehicles.map((veh) => {
                     const idx = rowIndex++
                     return (
                       <TableRow
-                        key={emp.id}
+                        key={veh.id}
                         className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/60"}
                       >
                         <TableCell className="pl-4 py-3">
                           <Checkbox
-                            checked={selectedRows.has(emp.id)}
-                            onCheckedChange={() => toggleRow(emp.id)}
+                            checked={selectedRows.has(veh.id)}
+                            onCheckedChange={() => toggleRow(veh.id)}
                           />
                         </TableCell>
                         {visibleColumnDefs.map((col) => (
                           <TableCell
                             key={col.key}
-                            className={`py-3 ${col.key === "status" || col.key === "reports" || col.key === "createTask" || col.key === "viewRota" ? "text-center" : ""}`}
+                            className={`py-3 ${col.key === "status" || col.key === "reports" || col.key === "createTask" ? "text-center" : ""}`}
                           >
                             {col.key === "id" && (
-                              <span className="text-sm text-gray-700">{emp.id}</span>
+                              <span className="text-sm text-gray-700">{veh.id}</span>
                             )}
                             {col.key === "details" && (
                               <button className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100">
@@ -360,24 +368,37 @@ export function EmployeesTab() {
                             )}
                             {col.key === "name" && (
                               <div className="flex items-center gap-2">
-                                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-300">
-                                  <UserIcon className="h-3.5 w-3.5 text-gray-600" />
-                                </div>
+                                {veh.image ? (
+                                  <Image
+                                    src={veh.image}
+                                    alt={veh.name}
+                                    width={32}
+                                    height={32}
+                                    className="w-8 h-8 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center w-8 h-8 rounded bg-gray-200">
+                                    <Car className="h-4 w-4 text-gray-600" />
+                                  </div>
+                                )}
                                 <Link
-                                  href={`/employees/${emp.id}`}
+                                  href={`/vehicles/${veh.id}`}
                                   className="text-sm text-primary hover:underline font-medium"
                                 >
-                                  {emp.firstName} {emp.lastName}
+                                  {veh.name}
                                 </Link>
                               </div>
                             )}
-                            {col.key === "jobTitle" && (
-                              <span className="text-sm text-gray-700">{emp.jobTitle}</span>
-                            )}
                             {col.key === "status" && (
-                              <Badge className={`${empStatusBadge[emp.status].bg} ${empStatusBadge[emp.status].text} hover:opacity-90`}>
-                                {emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}
+                              <Badge className={`${vehStatusBadge[veh.status].bg} ${vehStatusBadge[veh.status].text} hover:opacity-90`}>
+                                {veh.status.charAt(0).toUpperCase() + veh.status.slice(1)}
                               </Badge>
+                            )}
+                            {col.key === "make" && (
+                              <span className="text-sm text-gray-700">{veh.make}</span>
+                            )}
+                            {col.key === "model" && (
+                              <span className="text-sm text-gray-700">{veh.model}</span>
                             )}
                             {col.key === "reports" && (
                               <Link href="#" className="text-sm text-primary hover:underline font-medium">
@@ -387,11 +408,6 @@ export function EmployeesTab() {
                             {col.key === "createTask" && (
                               <Link href="#" className="text-sm text-primary hover:underline font-medium">
                                 Create Task
-                              </Link>
-                            )}
-                            {col.key === "viewRota" && (
-                              <Link href="#" className="text-sm text-primary hover:underline font-medium">
-                                View Rota
                               </Link>
                             )}
                           </TableCell>
@@ -438,10 +454,10 @@ export function EmployeesTab() {
         </div>
       </div>
 
-      {/* Create Employee Dialog */}
-      <CreateEmployeeDialog
-        open={showCreateEmployee}
-        onOpenChange={setShowCreateEmployee}
+      {/* Add Vehicle Dialog */}
+      <CreateVehicleDialog
+        open={showAddVehicle}
+        onOpenChange={setShowAddVehicle}
       />
     </div>
   )

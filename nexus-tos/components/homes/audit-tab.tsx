@@ -47,7 +47,6 @@ import { getHomeAuditsByCategory } from "@/lib/mock-data"
 import type { HomeAuditCategory } from "@/types"
 
 const auditCategories: { key: string; label: string }[] = [
-  { key: "homes", label: "Homes" },
   { key: "medication-locations", label: "Medication Locations" },
   { key: "medication-stocks", label: "Medication Stocks" },
   { key: "medication-stock-audits", label: "Medication Stock Audits" },
@@ -71,7 +70,7 @@ const auditColumns: { key: AuditColumnKey; label: string; filterable: boolean; f
 const defaultAuditColumns: AuditColumnKey[] = ["event", "createdBy", "createdAt"]
 
 export function AuditTab() {
-  const [activeCategory, setActiveCategory] = useState<HomeAuditCategory>("homes")
+  const [activeCategory, setActiveCategory] = useState<HomeAuditCategory>("medication-locations")
   const [visibleColumns, setVisibleColumns] = useState<AuditColumnKey[]>(defaultAuditColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())

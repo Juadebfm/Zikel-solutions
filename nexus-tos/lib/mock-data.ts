@@ -26,6 +26,11 @@ import type {
   EmpSettingCategory,
   EmpAuditEntry,
   EmpAuditCategory,
+  VehicleSettingItem,
+  VehicleSettingCategory,
+  VehicleCustomInfoField,
+  VehicleAuditEntry,
+  VehicleAuditCategory,
 } from "@/types"
 
 // Current logged in user
@@ -619,37 +624,69 @@ export const mockLogs: IOILog[] = [
 // Vehicles
 export const mockVehicles: Vehicle[] = [
   {
-    id: "veh-1",
+    id: 22,
+    name: "Nissan Qashqai",
     registration: "AB12 CDE",
+    make: "Nissan",
+    model: "Qashqai",
+    homeId: "home-1",
+    homeName: "The Homeland",
+    status: "current",
+    mileage: 45230,
+    nextServiceDate: "2024-03-15",
+    image: "https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=100&h=100&fit=crop&q=80",
+  },
+  {
+    id: 23,
+    name: "Ford Transit Custom",
+    registration: "XY34 FGH",
     make: "Ford",
     model: "Transit Custom",
     homeId: "home-1",
-    homeName: "Maple House",
-    status: "available",
-    mileage: 45230,
-    nextServiceDate: "2024-03-15",
-  },
-  {
-    id: "veh-2",
-    registration: "XY34 FGH",
-    make: "Volkswagen",
-    model: "Caddy",
-    homeId: "home-2",
-    homeName: "Oak Lodge",
-    status: "in-use",
+    homeName: "The Homeland",
+    status: "current",
     mileage: 32100,
     nextServiceDate: "2024-02-28",
+    image: "https://images.unsplash.com/photo-1532581140115-3e355d1ed1de?w=100&h=100&fit=crop&q=80",
   },
   {
-    id: "veh-3",
+    id: 24,
+    name: "Vauxhall Vivaro",
     registration: "LM56 NOP",
     make: "Vauxhall",
     model: "Vivaro",
-    homeId: "home-3",
-    homeName: "Willow Court",
-    status: "maintenance",
+    homeId: "home-2",
+    homeName: "Oakwood House",
+    status: "current",
     mileage: 67800,
     nextServiceDate: "2024-01-25",
+    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0637?w=100&h=100&fit=crop&q=80",
+  },
+  {
+    id: 25,
+    name: "Volkswagen Caddy",
+    registration: "QR78 STU",
+    make: "Volkswagen",
+    model: "Caddy",
+    homeId: "home-2",
+    homeName: "Oakwood House",
+    status: "past",
+    mileage: 89500,
+    nextServiceDate: "2023-11-10",
+    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=100&h=100&fit=crop&q=80",
+  },
+  {
+    id: 26,
+    name: "Peugeot Partner",
+    registration: "VW90 XYZ",
+    make: "Peugeot",
+    model: "Partner",
+    homeId: "home-1",
+    homeName: "The Homeland",
+    status: "planned",
+    mileage: 0,
+    nextServiceDate: "2025-06-01",
+    image: "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=100&h=100&fit=crop&q=80",
   },
 ]
 
@@ -1072,11 +1109,11 @@ export function getHomeSettingsByCategory(category: HomeSettingCategory): HomeSe
 // ─── Home Audit Mock Data ────────────────────────────────────────────────────
 
 export const mockHomeAudits: HomeAuditEntry[] = [
-  // Homes
-  { id: 1, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "homes", before: [{ field: "ID", value: "1" }, { field: "Email", value: "" }, { field: "Phone", value: "" }, { field: "Latitude", value: "" }, { field: "Postcode", value: "NN5 5US" }, { field: "Longitude", value: "" }], after: [{ field: "ID", value: "1" }, { field: "Email", value: "Kwadwo.Opoku-Adomako@thresidentialservice.co.uk" }, { field: "Phone", value: "7483103245" }, { field: "Latitude", value: "52.2412199" }, { field: "Postcode", value: "NN5 5ES" }, { field: "Longitude", value: "-0.9129055" }] },
-  { id: 2, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "homes", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "The Homeland" }, { field: "Status", value: "Current" }, { field: "Category", value: "Children's Home" }] },
-  { id: 3, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "homes", before: [{ field: "Updated By", value: "" }], after: [{ field: "Updated By", value: "5" }] },
-  { id: 4, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "homes", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Oakwood House" }, { field: "Status", value: "Current" }] },
+  // Medication Locations
+  { id: 1, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "medication-locations", before: [{ field: "ID", value: "1" }, { field: "Email", value: "" }, { field: "Phone", value: "" }, { field: "Latitude", value: "" }, { field: "Postcode", value: "NN5 5US" }, { field: "Longitude", value: "" }], after: [{ field: "ID", value: "1" }, { field: "Email", value: "Kwadwo.Opoku-Adomako@thresidentialservice.co.uk" }, { field: "Phone", value: "7483103245" }, { field: "Latitude", value: "52.2412199" }, { field: "Postcode", value: "NN5 5ES" }, { field: "Longitude", value: "-0.9129055" }] },
+  { id: 2, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "medication-locations", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "The Homeland" }, { field: "Status", value: "Current" }, { field: "Category", value: "Children's Home" }] },
+  { id: 3, event: "Update", createdBy: "Kwadwo Opoku-Adomako", createdAt: "08/01/2026 4:34:46 PM", category: "medication-locations", before: [{ field: "Updated By", value: "" }], after: [{ field: "Updated By", value: "5" }] },
+  { id: 4, event: "Create", createdBy: "Zikel Admin", createdAt: "18/11/2025 11:23:22 AM", category: "medication-locations", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Oakwood House" }, { field: "Status", value: "Current" }] },
   // Medication Locations
   { id: 10, event: "Create", createdBy: "thrservicesadmin", createdAt: "20/01/2026 9:00:00 AM", category: "medication-locations", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Kitchen Cabinet" }, { field: "Home", value: "The Homeland" }] },
   { id: 11, event: "Update", createdBy: "Penn", createdAt: "05/02/2026 2:15:00 PM", category: "medication-locations", before: [{ field: "Name", value: "Kitchen Cabinet" }], after: [{ field: "Name", value: "Kitchen Locked Cabinet" }] },
@@ -1171,11 +1208,11 @@ export function getYPSettingsByCategory(category: YPSettingCategory): YPSettingI
 // ─── Young People Audits ──────────────────────────────────────────────────
 
 export const mockYPAudits: YPAuditEntry[] = [
-  // Young People
-  { id: 1, event: "Create", createdBy: "Zikel Admin", createdAt: "01/06/2023 9:00:00 AM", category: "young-people", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "James Wilson" }, { field: "Home", value: "The Homeland" }, { field: "Status", value: "Current" }] },
-  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "15/04/2023 10:30:00 AM", category: "young-people", before: [{ field: "Key Worker", value: "Mark Thompson" }], after: [{ field: "Key Worker", value: "Sarah Johnson" }] },
-  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "15/04/2023 9:00:00 AM", category: "young-people", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Emily Brown" }, { field: "Home", value: "The Homeland" }] },
   // Placements
+  { id: 1, event: "Create", createdBy: "Zikel Admin", createdAt: "01/06/2023 9:00:00 AM", category: "placements", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "James Wilson" }, { field: "Home", value: "The Homeland" }, { field: "Status", value: "Current" }] },
+  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "15/04/2023 10:30:00 AM", category: "placements", before: [{ field: "Key Worker", value: "Mark Thompson" }], after: [{ field: "Key Worker", value: "Sarah Johnson" }] },
+  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "15/04/2023 9:00:00 AM", category: "placements", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Emily Brown" }, { field: "Home", value: "The Homeland" }] },
+  //
   { id: 10, event: "Create", createdBy: "Zikel Admin", createdAt: "01/06/2023 9:05:00 AM", category: "placements", before: [], after: [{ field: "Young Person", value: "James Wilson" }, { field: "Home", value: "The Homeland" }, { field: "Type", value: "Residential" }, { field: "Start Date", value: "01/06/2023" }] },
   { id: 11, event: "Update", createdBy: "Zikel Admin", createdAt: "05/03/2025 2:00:00 PM", category: "placements", before: [{ field: "Status", value: "Current" }], after: [{ field: "Status", value: "Past" }, { field: "End Date", value: "05/03/2025" }] },
   // Rewards
@@ -1287,11 +1324,11 @@ export function getEmpSettingsByCategory(category: EmpSettingCategory): EmpSetti
 // ─── Employee Audits ──────────────────────────────────────────────────────
 
 export const mockEmpAudits: EmpAuditEntry[] = [
-  // Employees
-  { id: 1, event: "Create", createdBy: "Kwadwo Opoku-Adomako", createdAt: "11/01/2026 9:23:54 PM", category: "employees", before: [], after: [{ field: "ID", value: "16" }, { field: "User ID", value: "-" }, { field: "Gender ID", value: "2" }, { field: "NI Number", value: "-" }, { field: "Created At", value: "11/01/2026 9:23:54 PM" }] },
-  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "12/01/2026 10:00:00 AM", category: "employees", before: [{ field: "Job Title", value: "Support Worker" }], after: [{ field: "Job Title", value: "Senior Support Worker" }] },
-  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "10/01/2024 9:00:00 AM", category: "employees", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Sarah Johnson" }, { field: "Job Title", value: "Registered Manager" }, { field: "Home", value: "The Homeland" }] },
   // Genders
+  { id: 1, event: "Create", createdBy: "Kwadwo Opoku-Adomako", createdAt: "11/01/2026 9:23:54 PM", category: "genders", before: [], after: [{ field: "ID", value: "16" }, { field: "User ID", value: "-" }, { field: "Gender ID", value: "2" }, { field: "NI Number", value: "-" }, { field: "Created At", value: "11/01/2026 9:23:54 PM" }] },
+  { id: 2, event: "Update", createdBy: "Zikel Admin", createdAt: "12/01/2026 10:00:00 AM", category: "genders", before: [{ field: "Job Title", value: "Support Worker" }], after: [{ field: "Job Title", value: "Senior Support Worker" }] },
+  { id: 3, event: "Create", createdBy: "Zikel Admin", createdAt: "10/01/2024 9:00:00 AM", category: "genders", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Sarah Johnson" }, { field: "Job Title", value: "Registered Manager" }, { field: "Home", value: "The Homeland" }] },
+  //
   { id: 10, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "genders", before: [], after: [{ field: "ID", value: "1" }, { field: "Name", value: "Male" }] },
   { id: 11, event: "Create", createdBy: "Zikel Admin", createdAt: "01/01/2024 9:00:00 AM", category: "genders", before: [], after: [{ field: "ID", value: "2" }, { field: "Name", value: "Female" }] },
   { id: 12, event: "Create", createdBy: "Zikel Admin", createdAt: "10/03/2024 2:00:00 PM", category: "genders", before: [], after: [{ field: "ID", value: "3" }, { field: "Name", value: "Non-Binary" }] },
@@ -1323,4 +1360,100 @@ export function getHomeById(id: string): Home | undefined {
 // Helper function to get log by ID
 export function getLogById(id: string): IOILog | undefined {
   return mockLogs.find((log) => log.id === id)
+}
+
+// ─── Vehicle Settings Mock Data ────────────────────────────────────────────
+
+export const mockVehicleSettings: VehicleSettingItem[] = [
+  // File Categories
+  { id: 1, name: "Uncategorised", systemGenerated: true, hidden: false, createdBy: "System", createdAt: "01/01/2023", updatedOn: "01/01/2023", updatedBy: "System", category: "file-categories", sortOrder: 1 },
+  { id: 2, name: "MOT Certificate", systemGenerated: true, hidden: false, createdBy: "System", createdAt: "01/01/2023", updatedOn: "01/01/2023", updatedBy: "System", category: "file-categories", sortOrder: 2 },
+  { id: 3, name: "Service Record", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "05/02/2023", updatedOn: "05/02/2023", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 3 },
+  { id: 4, name: "Insurance Document", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "12/05/2023", updatedOn: "12/05/2023", updatedBy: "Zikel Admin", category: "file-categories", sortOrder: 4 },
+  // Custom Information Groups
+  { id: 5, name: "Details", systemGenerated: true, hidden: false, createdBy: "System", createdAt: "01/01/2023", updatedOn: "01/01/2023", updatedBy: "System", category: "custom-information-groups", sortOrder: 1 },
+  { id: 6, name: "Contact Details", systemGenerated: true, hidden: false, createdBy: "System", createdAt: "01/01/2023", updatedOn: "01/01/2023", updatedBy: "System", category: "custom-information-groups", sortOrder: 2 },
+  { id: 7, name: "Ownership Details", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "15/03/2023", updatedOn: "15/03/2023", updatedBy: "Zikel Admin", category: "custom-information-groups", sortOrder: 3 },
+  { id: 8, name: "Miscellaneous Details", systemGenerated: false, hidden: false, createdBy: "Zikel Admin", createdAt: "20/04/2023", updatedOn: "20/04/2023", updatedBy: "Zikel Admin", category: "custom-information-groups", sortOrder: 4 },
+]
+
+export const mockVehicleCustomInfoFields: VehicleCustomInfoField[] = []
+
+export function getVehicleSettingsByCategory(category: VehicleSettingCategory): VehicleSettingItem[] {
+  return mockVehicleSettings.filter((s) => s.category === category)
+}
+
+export function getVehicleCustomInfoFields(): VehicleCustomInfoField[] {
+  return mockVehicleCustomInfoFields
+}
+
+export function getVehicleCustomInfoGroups(): VehicleSettingItem[] {
+  return mockVehicleSettings.filter((s) => s.category === "custom-information-groups")
+}
+
+// ─── Vehicle Audit Mock Data ───────────────────────────────────────────────
+
+export const mockVehicleAudits: VehicleAuditEntry[] = [
+  {
+    id: 1,
+    event: "Create",
+    createdBy: "Zikel Admin",
+    createdAt: "12/01/2024 09:15",
+    category: "file-categories",
+    before: [],
+    after: [{ field: "Name", value: "Nissan Qashqai" }, { field: "Status", value: "Current" }],
+  },
+  {
+    id: 2,
+    event: "Update",
+    createdBy: "Zikel Admin",
+    createdAt: "15/02/2024 14:30",
+    category: "file-categories",
+    before: [{ field: "Mileage", value: "42000" }],
+    after: [{ field: "Mileage", value: "45230" }],
+  },
+  {
+    id: 3,
+    event: "Create",
+    createdBy: "Zikel Admin",
+    createdAt: "01/03/2023 10:00",
+    category: "file-categories",
+    before: [],
+    after: [{ field: "Name", value: "Service Record" }],
+  },
+  {
+    id: 4,
+    event: "Create",
+    createdBy: "Zikel Admin",
+    createdAt: "10/06/2023 11:45",
+    category: "custom-information-groups",
+    before: [],
+    after: [{ field: "Name", value: "Ownership Details" }],
+  },
+  {
+    id: 5,
+    event: "Update",
+    createdBy: "Zikel Admin",
+    createdAt: "20/01/2024 16:20",
+    category: "file-categories",
+    before: [{ field: "Status", value: "Current" }],
+    after: [{ field: "Status", value: "Past" }],
+  },
+  {
+    id: 6,
+    event: "Create",
+    createdBy: "Zikel Admin",
+    createdAt: "25/01/2024 09:00",
+    category: "custom-information-groups",
+    before: [],
+    after: [{ field: "Name", value: "Miscellaneous Details" }],
+  },
+]
+
+export function getVehicleAuditsByCategory(category: VehicleAuditCategory): VehicleAuditEntry[] {
+  return mockVehicleAudits.filter((a) => a.category === category)
+}
+
+export function getVehicleById(id: number): Vehicle | undefined {
+  return mockVehicles.find((v) => v.id === id)
 }

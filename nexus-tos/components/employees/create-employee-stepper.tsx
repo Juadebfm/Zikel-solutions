@@ -11,9 +11,9 @@ interface Step {
 
 const steps: Step[] = [
   { id: 1, label: "Summary", icon: User },
-  { id: 2, label: "Personal Details", icon: UserCircle },
-  { id: 3, label: "Employment Details", icon: Briefcase },
-  { id: 4, label: "User Details", icon: Settings },
+  { id: 2, label: "Personal\nDetails", icon: UserCircle },
+  { id: 3, label: "Employment\nDetails", icon: Briefcase },
+  { id: 4, label: "User\nDetails", icon: Settings },
   { id: 5, label: "Associations", icon: Building2 },
   { id: 6, label: "Permissions", icon: Shield },
 ]
@@ -34,35 +34,35 @@ export function CreateEmployeeStepper({
   onSave,
 }: CreateEmployeeStepperProps) {
   return (
-    <div className="flex items-center justify-between bg-blue-50/60 rounded-xl px-4 sm:px-8 py-4">
+    <div className="flex items-center justify-between bg-blue-50/60 rounded-xl px-3 sm:px-6 lg:px-8 py-3 sm:py-4 gap-2 sm:gap-0">
       {/* Back button */}
       {currentStep > 1 ? (
         <button
           onClick={onBackClick}
-          className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium text-sm hover:bg-white transition-colors mr-4"
+          className="flex items-center gap-1 sm:gap-1.5 border border-gray-300 text-gray-600 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm hover:bg-white transition-colors shrink-0"
         >
-          <ChevronLeft className="h-4 w-4" />
-          back
+          <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">back</span>
         </button>
       ) : (
-        <div className="w-0 sm:w-20" />
+        <div className="w-0 sm:w-16 shrink-0" />
       )}
 
-      <div className="flex items-center gap-1 sm:gap-4 flex-1">
+      <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 min-w-0 mx-1 sm:mx-3">
         {steps.map((step, index) => {
           const isActive = currentStep === step.id
           const isCompleted = currentStep > step.id
           const Icon = step.icon
 
           return (
-            <div key={step.id} className="flex items-center gap-1 sm:gap-4 flex-1 last:flex-none">
+            <div key={step.id} className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 last:flex-none min-w-0">
               <button
                 onClick={() => onStepClick(step.id)}
-                className="flex items-center gap-1.5 sm:gap-3 group"
+                className="flex items-center gap-1 sm:gap-2 group shrink-0"
               >
                 <div
                   className={cn(
-                    "h-8 w-8 sm:h-12 sm:w-12 rounded-full flex items-center justify-center transition-colors shrink-0",
+                    "h-7 w-7 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full flex items-center justify-center transition-colors shrink-0",
                     isActive
                       ? "bg-primary text-white shadow-md"
                       : isCompleted
@@ -71,15 +71,15 @@ export function CreateEmployeeStepper({
                   )}
                 >
                   {isCompleted ? (
-                    <Check className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <Check className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
                   ) : (
-                    <Icon className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
                   )}
                 </div>
                 <div className="hidden lg:block text-left">
                   <p
                     className={cn(
-                      "text-xs font-semibold",
+                      "text-xs font-semibold leading-tight whitespace-pre-line",
                       isActive ? "text-gray-900" : "text-gray-500"
                     )}
                   >
@@ -92,7 +92,7 @@ export function CreateEmployeeStepper({
               {index < steps.length - 1 && (
                 <div
                   className={cn(
-                    "flex-1 h-0.5 rounded-full",
+                    "flex-1 h-0.5 rounded-full min-w-2",
                     currentStep > step.id ? "bg-green-600" : "bg-gray-200"
                   )}
                 />
@@ -105,15 +105,15 @@ export function CreateEmployeeStepper({
       {currentStep < steps.length ? (
         <button
           onClick={onNextClick}
-          className="ml-4 flex items-center gap-2 bg-primary text-white px-4 sm:px-6 py-2.5 rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-1 sm:gap-2 bg-primary text-white px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm hover:bg-primary/90 transition-colors shrink-0"
         >
           Next
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
       ) : (
         <button
           onClick={onSave}
-          className="ml-4 flex items-center gap-2 bg-green-600 text-white px-4 sm:px-6 py-2.5 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors"
+          className="flex items-center gap-1 sm:gap-2 bg-green-600 text-white px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm hover:bg-green-700 transition-colors shrink-0"
         >
           Save
         </button>

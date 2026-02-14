@@ -47,7 +47,6 @@ import { getEmpAuditsByCategory } from "@/lib/mock-data"
 import type { EmpAuditCategory } from "@/types"
 
 const auditCategories: { key: string; label: string }[] = [
-  { key: "employees", label: "Employees" },
   { key: "genders", label: "Genders" },
   { key: "employment-types", label: "Employment Types" },
 ]
@@ -63,7 +62,7 @@ const auditColumns: { key: AuditColumnKey; label: string; filterable: boolean; f
 const defaultAuditColumns: AuditColumnKey[] = ["event", "createdBy", "createdAt"]
 
 export function EmpAuditTab() {
-  const [activeCategory, setActiveCategory] = useState<EmpAuditCategory>("employees")
+  const [activeCategory, setActiveCategory] = useState<EmpAuditCategory>("genders")
   const [visibleColumns, setVisibleColumns] = useState<AuditColumnKey[]>(defaultAuditColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
