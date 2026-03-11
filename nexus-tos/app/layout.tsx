@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Zikel Solutions",
   description:
     "Zikel Solutions Compact",
+  icons: {
+    icon: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({
