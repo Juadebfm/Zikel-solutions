@@ -16,6 +16,8 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
+import { authService } from "@/services/auth.service"
+import { getApiErrorMessage } from "@/lib/api/error"
 
 const forgotPasswordSchema = z.object({
   email: z
@@ -29,6 +31,7 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -38,12 +41,16 @@ export default function ForgotPasswordPage() {
   })
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
+    setSubmitError(null)
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    console.log("Password reset requested for:", data.email)
-    setIsLoading(false)
-    setIsSubmitted(true)
+    try {
+      await authService.forgotPassword(data.email)
+      setIsSubmitted(true)
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, "Failed to send reset instructions. Please try again."))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isSubmitted) {
@@ -91,6 +98,11 @@ export default function ForgotPasswordPage() {
         {/* Form */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {submitError && (
+              <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                {submitError}
+              </div>
+            )}
             <FormField
               control={form.control}
               name="email"

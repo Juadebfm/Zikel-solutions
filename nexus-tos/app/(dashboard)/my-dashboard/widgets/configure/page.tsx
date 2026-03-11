@@ -28,8 +28,9 @@ import {
   periodOptions,
   reportsOnOptions,
   type WidgetType,
-  type Widget,
 } from "@/data/mock-widgets"
+import { useCreateDashboardWidget } from "@/hooks/api/use-dashboard"
+import { getApiErrorMessage } from "@/lib/api/error"
 
 const widgetTypeIcons: Record<string, React.ElementType> = {
   "data-card": CreditCard,
@@ -47,31 +48,26 @@ function ConfigureWidgetForm() {
   const [title, setTitle] = useState("")
   const [period, setPeriod] = useState("")
   const [reportsOn, setReportsOn] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const createWidgetMutation = useCreateDashboardWidget()
 
   const Icon = widgetTypeIcons[widgetType] || BarChart3
   const typeName = widgetTypeLabels[widgetType] || "Widget"
 
-  const handleSave = () => {
-    const newWidget: Widget = {
-      id: `w-${Date.now()}`,
-      type: widgetType,
-      title,
-      period,
-      reportsOn,
-      data: widgetType === "data-card"
-        ? { value: Math.floor(Math.random() * 200) + 1 }
-        : { completed: 85, "in-progress": 32, overdue: 12, draft: 13 },
-    }
+  const handleSave = async () => {
+    setError(null)
 
-    const storageKey = "dashboard-widgets"
     try {
-      const existing = JSON.parse(localStorage.getItem(storageKey) || "[]")
-      localStorage.setItem(storageKey, JSON.stringify([...existing, newWidget]))
-    } catch {
-      localStorage.setItem(storageKey, JSON.stringify([newWidget]))
-    }
+      await createWidgetMutation.mutateAsync({
+        title: title.trim(),
+        period: period as "last_7_days" | "last_30_days" | "this_month" | "this_year" | "all_time",
+        reportsOn: reportsOn as "tasks" | "approvals" | "young_people" | "employees",
+      })
 
-    router.push("/my-dashboard")
+      router.push("/my-dashboard")
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to save widget. Please try again."))
+    }
   }
 
   const isValid = title.trim() && period && reportsOn
@@ -114,9 +110,14 @@ function ConfigureWidgetForm() {
       {/* Configuration Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Widget Settings</CardTitle>
+        <CardTitle className="text-base">Widget Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          {error && (
+            <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+              {error}
+            </div>
+          )}
           {/* Card Title */}
           <div className="space-y-2">
             <Label htmlFor="widget-title">Card Title</Label>
@@ -169,9 +170,9 @@ function ConfigureWidgetForm() {
         <Link href="/my-dashboard">
           <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
         </Link>
-        <Button onClick={handleSave} disabled={!isValid} className="gap-2 w-full sm:w-auto">
+        <Button onClick={handleSave} disabled={!isValid || createWidgetMutation.isPending} className="gap-2 w-full sm:w-auto">
           <Save className="size-3.5" />
-          Save Widget
+          {createWidgetMutation.isPending ? "Saving..." : "Save Widget"}
         </Button>
       </div>
     </div>

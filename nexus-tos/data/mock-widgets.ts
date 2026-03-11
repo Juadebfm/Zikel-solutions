@@ -26,22 +26,18 @@ export const widgetTypeDescriptions: Record<WidgetType, string> = {
 }
 
 export const periodOptions = [
-  { value: "today", label: "Today" },
-  { value: "this-week", label: "This Week" },
-  { value: "this-month", label: "This Month" },
-  { value: "last-month", label: "Last Month" },
-  { value: "this-quarter", label: "This Quarter" },
-  { value: "this-year", label: "This Year" },
+  { value: "last_7_days", label: "Last 7 Days" },
+  { value: "last_30_days", label: "Last 30 Days" },
+  { value: "this_month", label: "This Month" },
+  { value: "this_year", label: "This Year" },
+  { value: "all_time", label: "All Time" },
 ]
 
 export const reportsOnOptions = [
   { value: "tasks", label: "Tasks" },
-  { value: "care-plans", label: "Care Plans" },
-  { value: "incidents", label: "Incidents" },
-  { value: "medications", label: "Medications" },
-  { value: "staff-hours", label: "Staff Hours" },
-  { value: "young-people", label: "Young People" },
-  { value: "shifts", label: "Shifts" },
+  { value: "approvals", label: "Approvals" },
+  { value: "young_people", label: "Young People" },
+  { value: "employees", label: "Employees" },
 ]
 
 // Pre-saved mock widgets for the dashboard

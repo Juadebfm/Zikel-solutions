@@ -3,23 +3,27 @@
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
+  useState,
   useCallback,
   type ReactNode,
 } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import type { User, UserRole, RolePermissions } from "@/types"
+import { usePathname, useRouter } from "next/navigation"
+
+import { getApiErrorMessage } from "@/lib/api/error"
+import { useAuthSessionStore } from "@/stores/auth-session-store"
+import { authService, type LoginPayload } from "@/services/auth.service"
+import type { RolePermissions, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
-import { authenticateUser, getRoleDisplayName } from "@/lib/mock-auth"
 
 interface AuthContextType {
-  user: User | null
+  user: ReturnType<typeof useAuthSessionStore.getState>["user"]
   isLoading: boolean
   isAuthenticated: boolean
   permissions: RolePermissions | null
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
-  logout: () => void
+  completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
+  logout: () => Promise<void>
   hasPermission: (permission: keyof RolePermissions) => boolean
   isRole: (role: UserRole | UserRole[]) => boolean
   getRoleDisplay: () => string
@@ -28,133 +32,182 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"]
-const STORAGE_KEY = "nexus-auth"
 
-interface StoredAuth {
-  user: User
-  token: string
-  expiresAt: number
+const ROLE_DISPLAY: Record<UserRole, string> = {
+  admin: "Administrator",
+  manager: "Manager",
+  staff: "Staff",
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
 
-  // Get permissions based on user role
-  const permissions = user ? ROLE_PERMISSIONS[user.role] : null
+  const user = useAuthSessionStore((state) => state.user)
+  const permissions = useAuthSessionStore((state) => state.permissions)
+  const accessToken = useAuthSessionStore((state) => state.accessToken)
+  const refreshToken = useAuthSessionStore((state) => state.refreshToken)
+  const hasHydrated = useAuthSessionStore((state) => state.hasHydrated)
+  const setSession = useAuthSessionStore((state) => state.setSession)
+  const setUser = useAuthSessionStore((state) => state.setUser)
+  const setPermissions = useAuthSessionStore((state) => state.setPermissions)
+  const clearSession = useAuthSessionStore((state) => state.clearSession)
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const checkAuth = () => {
+  const [isLoading, setIsLoading] = useState(true)
+
+  const completeAuth = useCallback(
+    async (payload: LoginPayload, redirectTo = "/my-summary") => {
+      const mappedUser = authService.mapAuthApiUserToAppUser(payload.user)
+
+      setSession({
+        user: mappedUser,
+        accessToken: payload.tokens.accessToken,
+        refreshToken: payload.tokens.refreshToken,
+        permissions: null,
+      })
+
       try {
-        const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored) {
-          const auth: StoredAuth = JSON.parse(stored)
+        const [profile, rolePermissions] = await Promise.all([
+          authService.getMeProfile(),
+          authService.getPermissions(),
+        ])
 
-          // Check if session is expired (24 hours)
-          if (auth.expiresAt > Date.now()) {
-            setUser(auth.user)
-          } else {
-            // Session expired, clear storage
-            localStorage.removeItem(STORAGE_KEY)
-          }
-        }
+        setUser(authService.mapMeProfileToAppUser(profile))
+        setPermissions(rolePermissions)
       } catch {
-        localStorage.removeItem(STORAGE_KEY)
+        // Fall back to login payload + role defaults if profile hydration fails.
+        setPermissions(ROLE_PERMISSIONS[mappedUser.role])
       }
-      setIsLoading(false)
-    }
-    checkAuth()
-  }, [])
 
-  // Redirect logic based on auth state
+      router.push(redirectTo)
+    },
+    [router, setPermissions, setSession, setUser]
+  )
+
   useEffect(() => {
-    if (isLoading) return
+    if (!hasHydrated) {
+      return
+    }
 
-    const isPublicRoute = PUBLIC_ROUTES.some((route) =>
-      pathname.startsWith(route)
-    )
+    let isCancelled = false
+
+    const bootstrap = async () => {
+      if (!accessToken) {
+        setIsLoading(false)
+        return
+      }
+
+      setIsLoading(true)
+
+      try {
+        const [profile, rolePermissions] = await Promise.all([
+          authService.getMeProfile(),
+          authService.getPermissions(),
+        ])
+
+        if (isCancelled) return
+
+        setUser(authService.mapMeProfileToAppUser(profile))
+        setPermissions(rolePermissions)
+      } catch {
+        if (!isCancelled) {
+          clearSession()
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void bootstrap()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [accessToken, clearSession, hasHydrated, setPermissions, setUser])
+
+  useEffect(() => {
+    if (!hasHydrated || isLoading) {
+      return
+    }
+
+    const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
 
     if (!user && !isPublicRoute && pathname !== "/") {
-      router.push("/login")
-    } else if (user && isPublicRoute) {
-      router.push("/my-summary")
+      router.replace("/login")
+      return
     }
-  }, [user, isLoading, pathname, router])
+
+    if (user && isPublicRoute) {
+      router.replace("/my-summary")
+    }
+  }, [hasHydrated, isLoading, pathname, router, user])
 
   const login = useCallback(
-    async (
-      email: string,
-      password: string
-    ): Promise<{ success: boolean; message?: string }> => {
+    async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
       setIsLoading(true)
+
       try {
-        const response = await authenticateUser(email, password)
-
-        if (response.success && response.user) {
-          setUser(response.user)
-
-          // Store auth data with 24-hour expiration
-          const authData: StoredAuth = {
-            user: response.user,
-            token: response.token || "",
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-          }
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
-
-          router.push("/my-summary")
-          return { success: true }
-        }
-
+        const payload = await authService.login(email, password)
+        await completeAuth(payload)
+        return { success: true }
+      } catch (error) {
         return {
           success: false,
-          message: response.message || "Login failed. Please try again.",
-        }
-      } catch {
-        return {
-          success: false,
-          message: "An error occurred. Please try again.",
+          message: getApiErrorMessage(error, "Login failed. Please check your credentials."),
         }
       } finally {
         setIsLoading(false)
       }
     },
-    [router]
+    [completeAuth]
   )
 
-  const logout = useCallback(() => {
-    setUser(null)
-    localStorage.removeItem(STORAGE_KEY)
-    router.push("/login")
-  }, [router])
+  const logout = useCallback(async () => {
+    try {
+      if (refreshToken) {
+        await authService.logout(refreshToken)
+      }
+    } catch {
+      // We still clear local session if remote logout fails.
+    } finally {
+      clearSession()
+      router.push("/login")
+    }
+  }, [clearSession, refreshToken, router])
 
-  // Check if user has a specific permission
   const hasPermission = useCallback(
     (permission: keyof RolePermissions): boolean => {
-      if (!permissions) return false
-      return permissions[permission]
+      if (permissions) {
+        return permissions[permission]
+      }
+
+      if (!user) {
+        return false
+      }
+
+      return ROLE_PERMISSIONS[user.role][permission]
     },
-    [permissions]
+    [permissions, user]
   )
 
-  // Check if user has a specific role
   const isRole = useCallback(
     (role: UserRole | UserRole[]): boolean => {
       if (!user) return false
+
       if (Array.isArray(role)) {
         return role.includes(user.role)
       }
+
       return user.role === role
     },
     [user]
   )
 
-  // Get display name for user's role
   const getRoleDisplay = useCallback((): string => {
     if (!user) return ""
-    return getRoleDisplayName(user.role)
+    return ROLE_DISPLAY[user.role]
   }, [user])
 
   return (
@@ -162,9 +215,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: Boolean(user),
         permissions,
         login,
+        completeAuth,
         logout,
         hasPermission,
         isRole,
@@ -178,26 +232,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
+
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
+
   return context
 }
 
-/**
- * Hook to check permissions - returns false during loading
- * Useful for conditional rendering
- */
 export function usePermission(permission: keyof RolePermissions): boolean {
   const { hasPermission, isLoading } = useAuth()
   if (isLoading) return false
   return hasPermission(permission)
 }
 
-/**
- * Hook to check role - returns false during loading
- * Useful for conditional rendering
- */
 export function useRole(role: UserRole | UserRole[]): boolean {
   const { isRole, isLoading } = useAuth()
   if (isLoading) return false

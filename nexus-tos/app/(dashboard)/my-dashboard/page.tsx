@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   FileDown,
@@ -9,11 +8,13 @@ import {
   Plus,
   BarChart3,
   PieChart,
-  LineChart,
   Table2,
-  CreditCard,
   X,
+  ClipboardCheck,
+  Users,
+  Briefcase,
 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -22,55 +23,56 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { StatsOverview } from "@/components/dashboard/stats-overview"
-import { widgetTypeLabels, type Widget } from "@/data/mock-widgets"
+import { StatsOverview, defaultStats, type StatItem } from "@/components/dashboard/stats-overview"
+import { useDashboardStats, useDashboardWidgets, useDeleteDashboardWidget } from "@/hooks/api/use-dashboard"
+import type { DashboardWidgetReportsOn } from "@/services/dashboard.service"
 
-const widgetTypeIcons: Record<string, React.ElementType> = {
-  "data-card": CreditCard,
-  "pie-chart": PieChart,
-  "bar-chart": BarChart3,
-  "line-chart": LineChart,
-  "table": Table2,
+const reportsOnIconMap: Record<DashboardWidgetReportsOn, React.ElementType> = {
+  tasks: Table2,
+  approvals: ClipboardCheck,
+  young_people: Users,
+  employees: Briefcase,
 }
 
-const WIDGETS_STORAGE_KEY = "dashboard-widgets"
-
-function loadWidgets(): Widget[] {
-  if (typeof window === "undefined") return []
-  try {
-    const stored = localStorage.getItem(WIDGETS_STORAGE_KEY)
-    return stored ? JSON.parse(stored) : []
-  } catch {
-    return []
-  }
+const reportsOnLabelMap: Record<DashboardWidgetReportsOn, string> = {
+  tasks: "Tasks",
+  approvals: "Approvals",
+  young_people: "Young People",
+  employees: "Employees",
 }
 
-function saveWidgets(widgets: Widget[]) {
-  localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(widgets))
+const periodLabelMap: Record<string, string> = {
+  last_7_days: "Last 7 Days",
+  last_30_days: "Last 30 Days",
+  this_month: "This Month",
+  this_year: "This Year",
+  all_time: "All Time",
 }
 
 export default function MyDashboardPage() {
-  const [widgets, setWidgets] = useState<Widget[]>([])
+  const statsQuery = useDashboardStats()
+  const widgetsQuery = useDashboardWidgets()
+  const deleteWidgetMutation = useDeleteDashboardWidget()
 
-  useEffect(() => {
-    setWidgets(loadWidgets())
-  }, [])
+  const stats = toStatsOverview(statsQuery.data)
+  const widgets = widgetsQuery.data ?? []
 
   const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export dashboard as ${format}`)
+    // Export implementation will be added once export endpoints are registered.
+    void format
   }
 
   const handleRemoveWidget = (id: string) => {
-    setWidgets((prev) => {
-      const updated = prev.filter((w) => w.id !== id)
-      saveWidgets(updated)
-      return updated
-    })
+    deleteWidgetMutation.mutate(id)
   }
+
+  const pageError =
+    getErrorMessage(statsQuery.error) ||
+    getErrorMessage(widgetsQuery.error) ||
+    getErrorMessage(deleteWidgetMutation.error)
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Dashboard</h1>
@@ -98,10 +100,20 @@ export default function MyDashboardPage() {
         </DropdownMenu>
       </div>
 
-      {/* Stats Grid — 10 cards */}
-      <StatsOverview />
+      {pageError && (
+        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          {pageError}
+        </div>
+      )}
 
-      {/* Widgets Section */}
+      {(statsQuery.isLoading || widgetsQuery.isLoading) && (
+        <div className="p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
+          Loading dashboard data...
+        </div>
+      )}
+
+      <StatsOverview stats={stats} />
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Widgets</h2>
@@ -133,62 +145,36 @@ export default function MyDashboardPage() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {widgets.map((widget) => {
-              const Icon = widgetTypeIcons[widget.type] || BarChart3
+              const Icon = reportsOnIconMap[widget.reportsOn] || PieChart
+
               return (
                 <Card key={widget.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-sm sm:text-base font-semibold">
-                        {widget.title}
-                      </CardTitle>
+                      <CardTitle className="text-sm sm:text-base font-semibold">{widget.title}</CardTitle>
                       <Button
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => handleRemoveWidget(widget.id)}
                         className="text-gray-400 hover:text-gray-600"
+                        disabled={deleteWidgetMutation.isPending}
                       >
                         <X className="size-3.5" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span className="capitalize">{widget.period.replace("-", " ")}</span>
+                      <span>{periodLabelMap[widget.period] ?? widget.period}</span>
                       <span>·</span>
-                      <span className="capitalize">{widget.reportsOn.replace("-", " ")}</span>
+                      <span>{reportsOnLabelMap[widget.reportsOn] ?? widget.reportsOn}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {widget.type === "data-card" ? (
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {widget.data.value}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {widgetTypeLabels[widget.type]}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-36 sm:h-48 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 px-3">
-                        <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300" />
-                        <p className="text-xs text-gray-400">
-                          {widgetTypeLabels[widget.type]} visualization
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-1 justify-center">
-                          {Object.entries(widget.data).map(([key, val]) => (
-                            <span
-                              key={key}
-                              className="text-xs bg-white border border-gray-200 rounded px-2 py-0.5"
-                            >
-                              {key.replace("-", " ")}: <strong>{val}</strong>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="h-36 sm:h-40 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 px-3">
+                      <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300" />
+                      <p className="text-xs text-gray-500 text-center">
+                        Widget configured for {reportsOnLabelMap[widget.reportsOn].toLowerCase()} ({periodLabelMap[widget.period] ?? widget.period.toLowerCase()}).
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               )
@@ -198,4 +184,48 @@ export default function MyDashboardPage() {
       </div>
     </div>
   )
+}
+
+function toStatsOverview(data?: {
+  overdue: number
+  dueToday: number
+  pendingApproval: number
+  rejected: number
+  draft: number
+  future: number
+  comments: number
+  rewards: number
+}): StatItem[] {
+  if (!data) {
+    return defaultStats
+  }
+
+  return defaultStats.map((stat) => {
+    switch (stat.label) {
+      case "Overdue Tasks":
+        return { ...stat, value: data.overdue }
+      case "Tasks Due Today":
+        return { ...stat, value: data.dueToday }
+      case "Pending Approval":
+        return { ...stat, value: data.pendingApproval }
+      case "Rejected Tasks":
+        return { ...stat, value: data.rejected }
+      case "Draft Tasks":
+        return { ...stat, value: data.draft }
+      case "Future Tasks":
+        return { ...stat, value: data.future }
+      case "Comments":
+        return { ...stat, value: data.comments }
+      case "Pending Rewards":
+        return { ...stat, value: data.rewards }
+      default:
+        return stat
+    }
+  })
+}
+
+function getErrorMessage(error: unknown): string | null {
+  if (!error) return null
+  if (error instanceof Error) return error.message
+  return "Unable to load dashboard data."
 }

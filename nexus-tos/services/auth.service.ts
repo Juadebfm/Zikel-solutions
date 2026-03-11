@@ -1,105 +1,292 @@
-/**
- * Auth Service
- *
- * This service provides an abstraction layer for all authentication-related API calls.
- * Currently uses mock implementations, but can easily be swapped for real API calls.
- *
- * When backend is ready:
- * 1. Replace mock function imports with actual API calls
- * 2. Update the base URL in api config
- * 3. No changes needed to consuming components
- */
+import { apiRequest } from "@/lib/api/client"
+import type { Gender, RolePermissions, SignupFormData, User } from "@/types"
 
-import type {
-  AuthResponse,
-  SignupFormData,
-  OTPVerificationResponse,
-  User,
-} from "@/types"
-import {
-  authenticateUser,
-  initiateSignup,
-  verifyOTP as mockVerifyOTP,
-  resendOTP as mockResendOTP,
-  getUserById,
-  getUserByEmail,
-  checkEmailExists,
-} from "@/lib/mock-auth"
-
-export interface AuthService {
-  login(email: string, password: string): Promise<AuthResponse>
-  signup(data: SignupFormData): Promise<AuthResponse>
-  sendVerificationCode(email: string): Promise<{ success: boolean; message?: string }>
-  verifyOTP(email: string, code: string): Promise<OTPVerificationResponse>
-  resendOTP(email: string): Promise<{ success: boolean; message?: string }>
-  getUser(userId: string): Promise<User | null>
-  getUserByEmail(email: string): Promise<User | null>
-  checkEmailExists(email: string): Promise<boolean>
+export interface AuthTokens {
+  accessToken: string
+  refreshToken: string
 }
 
-/**
- * Auth service implementation
- * Uses mock functions for now, ready to swap with real API calls
- */
-export const authService: AuthService = {
-  /**
-   * Login with email and password
-   */
-  async login(email: string, password: string): Promise<AuthResponse> {
-    return authenticateUser(email, password)
+export interface AuthApiUser {
+  id: string
+  email: string
+  role: "staff" | "manager" | "admin"
+  firstName: string
+  middleName: string | null
+  lastName: string
+  gender: Gender
+  country: string
+  phoneNumber: string | null
+  avatarUrl: string | null
+  language: string
+  timezone: string
+  emailVerified: boolean
+  acceptedTerms: boolean
+  isActive: boolean
+  lastLoginAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LoginPayload {
+  user: AuthApiUser
+  tokens: AuthTokens
+}
+
+export interface RegisterPayload {
+  userId: string
+  message: string
+}
+
+export interface ResendOtpPayload {
+  message: string
+  cooldownSeconds: number
+}
+
+export interface GenericMessagePayload {
+  message: string
+}
+
+export interface MeProfile {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: "staff" | "manager" | "admin"
+  avatar: string | null
+  homeId: string | null
+  homeName: string | null
+  phone: string | null
+  jobTitle: string | null
+  language: string
+  timezone: string
+  createdAt: string
+  lastLoginAt: string | null
+}
+
+export interface MePreferences {
+  language: string
+  timezone: string
+}
+
+export interface ResetPasswordInput {
+  email: string
+  code: string
+  newPassword: string
+  confirmPassword: string
+}
+
+function mapAuthApiUserToAppUser(user: AuthApiUser): User {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    avatar: user.avatarUrl ?? undefined,
+    phone: user.phoneNumber ?? undefined,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt ?? undefined,
+    language: user.language,
+    timezone: user.timezone,
+  }
+}
+
+function mapMeProfileToAppUser(profile: MeProfile): User {
+  return {
+    id: profile.id,
+    email: profile.email,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    role: profile.role,
+    avatar: profile.avatar ?? undefined,
+    homeId: profile.homeId ?? undefined,
+    homeName: profile.homeName ?? undefined,
+    phone: profile.phone ?? undefined,
+    jobTitle: profile.jobTitle ?? undefined,
+    language: profile.language,
+    timezone: profile.timezone,
+    createdAt: profile.createdAt,
+    lastLoginAt: profile.lastLoginAt ?? undefined,
+  }
+}
+
+export const authService = {
+  async register(data: SignupFormData): Promise<RegisterPayload> {
+    const response = await apiRequest<RegisterPayload>({
+      path: "/auth/register",
+      method: "POST",
+      body: {
+        country: data.country,
+        firstName: data.firstName,
+        middleName: data.middleName || undefined,
+        lastName: data.surname,
+        gender: data.gender,
+        email: data.email,
+        phoneNumber: data.phone,
+        password: data.password,
+        confirmPassword: data.password,
+        acceptTerms: true,
+      },
+    })
+
+    return response.data
   },
 
-  /**
-   * Start the signup process
-   * Creates account and sends verification email
-   */
-  async signup(data: SignupFormData): Promise<AuthResponse> {
-    return initiateSignup(data)
+  async checkEmailAvailability(email: string): Promise<boolean> {
+    const response = await apiRequest<{ available: boolean }>({
+      path: "/auth/check-email",
+      query: { email },
+    })
+
+    return response.data.available
   },
 
-  /**
-   * Send initial verification code to email
-   */
-  async sendVerificationCode(email: string): Promise<{ success: boolean; message?: string }> {
-    // This is called automatically during signup
-    // For resending, use resendOTP
-    return { success: true, message: "Verification code sent" }
+  async login(email: string, password: string): Promise<LoginPayload> {
+    const response = await apiRequest<LoginPayload>({
+      path: "/auth/login",
+      method: "POST",
+      body: { email, password },
+    })
+
+    return response.data
   },
 
-  /**
-   * Verify OTP code
-   */
-  async verifyOTP(email: string, code: string): Promise<OTPVerificationResponse> {
-    return mockVerifyOTP(email, code)
+  async verifyOtp(email: string, code: string): Promise<LoginPayload> {
+    const response = await apiRequest<LoginPayload>({
+      path: "/auth/verify-otp",
+      method: "POST",
+      body: { email, code },
+    })
+
+    return response.data
   },
 
-  /**
-   * Resend OTP code
-   */
-  async resendOTP(email: string): Promise<{ success: boolean; message?: string }> {
-    return mockResendOTP(email)
+  async resendOtp(email: string): Promise<ResendOtpPayload> {
+    const response = await apiRequest<ResendOtpPayload>({
+      path: "/auth/resend-otp",
+      method: "POST",
+      body: { email, purpose: "email_verification" },
+    })
+
+    return response.data
   },
 
-  /**
-   * Get user by ID
-   */
-  async getUser(userId: string): Promise<User | null> {
-    return getUserById(userId)
+  async refresh(refreshToken: string): Promise<LoginPayload> {
+    const response = await apiRequest<LoginPayload>({
+      path: "/auth/refresh",
+      method: "POST",
+      body: { refreshToken },
+    })
+
+    return response.data
   },
 
-  /**
-   * Get user by email
-   */
-  async getUserByEmail(email: string): Promise<User | null> {
-    return getUserByEmail(email)
+  async logout(refreshToken: string): Promise<GenericMessagePayload> {
+    const response = await apiRequest<GenericMessagePayload>({
+      path: "/auth/logout",
+      method: "POST",
+      auth: true,
+      body: { refreshToken },
+    })
+
+    return response.data
   },
 
-  /**
-   * Check if email already exists
-   */
-  async checkEmailExists(email: string): Promise<boolean> {
-    return checkEmailExists(email)
+  async forgotPassword(email: string): Promise<GenericMessagePayload> {
+    const response = await apiRequest<GenericMessagePayload>({
+      path: "/auth/forgot-password",
+      method: "POST",
+      body: { email },
+    })
+
+    return response.data
   },
+
+  async resetPassword(input: ResetPasswordInput): Promise<GenericMessagePayload> {
+    const response = await apiRequest<GenericMessagePayload>({
+      path: "/auth/reset-password",
+      method: "POST",
+      body: input,
+    })
+
+    return response.data
+  },
+
+  async getAuthMe(): Promise<AuthApiUser> {
+    const response = await apiRequest<AuthApiUser>({
+      path: "/auth/me",
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async getMeProfile(): Promise<MeProfile> {
+    const response = await apiRequest<MeProfile>({
+      path: "/me",
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async updateMeProfile(input: Partial<Pick<MeProfile, "firstName" | "lastName" | "phone" | "avatar">>): Promise<MeProfile> {
+    const response = await apiRequest<MeProfile>({
+      path: "/me",
+      method: "PATCH",
+      auth: true,
+      body: input,
+    })
+
+    return response.data
+  },
+
+  async changePassword(input: {
+    currentPassword: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<GenericMessagePayload> {
+    const response = await apiRequest<GenericMessagePayload>({
+      path: "/me/change-password",
+      method: "POST",
+      auth: true,
+      body: input,
+    })
+
+    return response.data
+  },
+
+  async getPermissions(): Promise<RolePermissions> {
+    const response = await apiRequest<RolePermissions>({
+      path: "/me/permissions",
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async getPreferences(): Promise<MePreferences> {
+    const response = await apiRequest<MePreferences>({
+      path: "/me/preferences",
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async updatePreferences(input: Partial<MePreferences>): Promise<MePreferences> {
+    const response = await apiRequest<MePreferences>({
+      path: "/me/preferences",
+      method: "PATCH",
+      auth: true,
+      body: input,
+    })
+
+    return response.data
+  },
+
+  mapAuthApiUserToAppUser,
+  mapMeProfileToAppUser,
 }
 
 export default authService

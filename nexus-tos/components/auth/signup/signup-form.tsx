@@ -50,7 +50,7 @@ interface SignupFormProps {
 
 export function SignupForm({ onStepChange }: SignupFormProps) {
   const router = useRouter()
-  const { login } = useAuth()
+  const { completeAuth } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
   const {
@@ -101,14 +101,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     }
 
     try {
-      const result = await authService.signup(signupData)
-      if (result.success) {
-        nextStep()
-      } else {
-        setError(result.message || "Failed to create account. Please try again.")
-      }
-    } catch {
-      setError("An error occurred. Please try again.")
+      await authService.register(signupData)
+      nextStep()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
     }
   }
 
@@ -116,26 +112,18 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   const handleVerify = async (code: string): Promise<boolean> => {
     setError(null)
     try {
-      const result = await authService.verifyOTP(data.step2.email, code)
-      if (result.success) {
-        // Auto-login after successful verification
-        const loginResult = await login(data.step2.email, data.step3.password)
-        if (loginResult.success) {
-          router.push("/my-summary")
-        } else {
-          // Fallback to login page if auto-login fails
-          router.push("/login?verified=true")
-        }
-        return true
-      }
-      return false
+      const payload = await authService.verifyOtp(data.step2.email, code)
+      await completeAuth(payload)
+      return true
     } catch {
+      // Fallback to login page if complete auth flow fails unexpectedly.
+      router.push("/login?verified=true")
       return false
     }
   }
 
   const handleResend = async () => {
-    await authService.resendOTP(data.step2.email)
+    await authService.resendOtp(data.step2.email)
   }
 
   return (

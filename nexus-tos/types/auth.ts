@@ -50,6 +50,7 @@ export interface User {
   id: string
   email: string
   firstName: string
+  middleName?: string | null
   lastName: string
   role: UserRole
   avatar?: string
@@ -57,8 +58,14 @@ export interface User {
   homeName?: string
   phone?: string
   jobTitle?: string
+  language?: string
+  timezone?: string
+  emailVerified?: boolean
+  acceptedTerms?: boolean
+  isActive?: boolean
   createdAt: string
   lastLoginAt?: string
+  updatedAt?: string
 }
 
 // Auth Types (for mock authentication)
@@ -71,6 +78,8 @@ export interface AuthResponse {
   user?: User
   message?: string
   token?: string // For future JWT implementation
+  accessToken?: string
+  refreshToken?: string
 }
 
 // Login Form Data

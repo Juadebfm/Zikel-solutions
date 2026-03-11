@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   FileText,
 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -42,7 +43,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockAnnouncements, type Announcement } from "@/data/mock-announcements"
+import { useAnnouncements } from "@/hooks/api/use-announcements"
+import type { Announcement } from "@/services/announcements.service"
 
 type ColumnKey = "id" | "title" | "startsAt" | "endsAt" | "status" | "message"
 
@@ -71,35 +73,38 @@ function capitalize(s: string) {
 export default function AnnouncementsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all")
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(defaultVisibleColumns)
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
 
-  // Filter by tab
-  const tabFiltered = useMemo(() => {
-    if (activeTab === "all") return mockAnnouncements
-    return mockAnnouncements.filter((a) => a.status === activeTab)
-  }, [activeTab])
+  const announcementQuery = useAnnouncements({
+    status: activeTab === "all" ? undefined : activeTab,
+    page: 1,
+    limit: 100,
+  })
 
-  // Filter by column search
   const filtered = useMemo(() => {
-    return tabFiltered.filter((announcement) => {
+    const announcements = announcementQuery.data?.items ?? []
+
+    return announcements.filter((announcement) => {
       for (const [key, value] of Object.entries(filters)) {
         if (!value) continue
+
         const cellValue = getCellValue(announcement, key as ColumnKey)
-        if (!cellValue.toLowerCase().includes(value.toLowerCase())) return false
+        if (!cellValue.toLowerCase().includes(value.toLowerCase())) {
+          return false
+        }
       }
+
       return true
     })
-  }, [tabFiltered, filters])
+  }, [announcementQuery.data?.items, filters])
 
-  // Pagination
-  const pageSizeNum = parseInt(pageSize)
+  const pageSizeNum = parseInt(pageSize, 10)
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSizeNum))
   const paginated = filtered.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
 
-  // Reset page on filter/tab change
   const handleTabChange = (tab: "all" | "unread" | "read") => {
     setActiveTab(tab)
     setPage(0)
@@ -111,7 +116,6 @@ export default function AnnouncementsPage() {
     setPage(0)
   }
 
-  // Column toggle
   const toggleColumn = (col: ColumnKey) => {
     setVisibleColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
@@ -125,12 +129,14 @@ export default function AnnouncementsPage() {
     setPage(0)
   }
 
-  // Row selection
-  const toggleRow = (id: number) => {
+  const toggleRow = (id: string) => {
     setSelectedRows((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -139,20 +145,19 @@ export default function AnnouncementsPage() {
     if (selectedRows.size === paginated.length) {
       setSelectedRows(new Set())
     } else {
-      setSelectedRows(new Set(paginated.map((a) => a.id)))
+      setSelectedRows(new Set(paginated.map((announcement) => announcement.id)))
     }
   }
 
-  // Export
   const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`, { visibleColumns, data: filtered })
+    // Export endpoint is not registered yet in the live backend.
+    void format
   }
 
   const visibleColumnDefs = allColumns.filter((col) => visibleColumns.includes(col.key))
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
         <p className="text-gray-500 mt-1">
@@ -160,7 +165,20 @@ export default function AnnouncementsPage() {
         </p>
       </div>
 
-      {/* Tabs */}
+      {announcementQuery.error && (
+        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          {announcementQuery.error instanceof Error
+            ? announcementQuery.error.message
+            : "Unable to load announcements."}
+        </div>
+      )}
+
+      {announcementQuery.isLoading && (
+        <div className="p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
+          Loading announcements...
+        </div>
+      )}
+
       <div className="flex">
         {(["all", "unread", "read"] as const).map((tab) => (
           <button
@@ -177,7 +195,6 @@ export default function AnnouncementsPage() {
         ))}
       </div>
 
-      {/* Toolbar: reset grid + columns on left, export on right */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={resetGrid} className="gap-1.5">
@@ -198,17 +215,11 @@ export default function AnnouncementsPage() {
               </div>
               <div className="relative mb-3">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                <Input
-                  placeholder="Search"
-                  className="pl-8 h-8 text-sm"
-                />
+                <Input placeholder="Search" className="pl-8 h-8 text-sm" />
               </div>
               <div className="space-y-2">
                 {allColumns.map((col) => (
-                  <label
-                    key={col.key}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
+                  <label key={col.key} className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
                       checked={visibleColumns.includes(col.key)}
                       onCheckedChange={() => toggleColumn(col.key)}
@@ -241,7 +252,6 @@ export default function AnnouncementsPage() {
         </DropdownMenu>
       </div>
 
-      {/* Table */}
       <div className="border rounded-lg bg-white overflow-x-auto">
         <Table className="min-w-160">
           <TableHeader>
@@ -257,14 +267,12 @@ export default function AnnouncementsPage() {
                   key={col.key}
                   className={`font-semibold text-gray-700 ${
                     col.key === "id" ? "w-20" : ""
-                  } ${col.key === "status" ? "text-center" : ""
-                  } ${col.key === "message" ? "pr-6 text-right" : ""}`}
+                  } ${col.key === "status" ? "text-center" : ""} ${col.key === "message" ? "pr-6 text-right" : ""}`}
                 >
                   {col.label}
                 </TableHead>
               ))}
             </TableRow>
-            {/* Filter row */}
             <TableRow>
               <TableHead className="pl-4" />
               {visibleColumnDefs.map((col) => (
@@ -278,7 +286,7 @@ export default function AnnouncementsPage() {
                       <Input
                         placeholder=""
                         value={filters[col.key] || ""}
-                        onChange={(e) => handleFilterChange(col.key, e.target.value)}
+                        onChange={(event) => handleFilterChange(col.key, event.target.value)}
                         className="pl-6 h-6 text-xs border-gray-200"
                       />
                     </div>
@@ -288,7 +296,7 @@ export default function AnnouncementsPage() {
                       type="text"
                       placeholder="&#x21A4;"
                       value={filters[col.key] || ""}
-                      onChange={(e) => handleFilterChange(col.key, e.target.value)}
+                      onChange={(event) => handleFilterChange(col.key, event.target.value)}
                       className="h-6 text-xs border-gray-200 text-center"
                     />
                   )}
@@ -299,19 +307,13 @@ export default function AnnouncementsPage() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={visibleColumnDefs.length + 1}
-                  className="text-center py-10 text-gray-400"
-                >
+                <TableCell colSpan={visibleColumnDefs.length + 1} className="text-center py-10 text-gray-400">
                   No announcements found.
                 </TableCell>
               </TableRow>
             ) : (
               paginated.map((announcement, index) => (
-                <TableRow
-                  key={announcement.id}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}
-                >
+                <TableRow key={announcement.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
                   <TableCell className="pl-4 py-3.5">
                     <Checkbox
                       checked={selectedRows.has(announcement.id)}
@@ -321,9 +323,7 @@ export default function AnnouncementsPage() {
                   {visibleColumnDefs.map((col) => (
                     <TableCell
                       key={col.key}
-                      className={`py-3.5 ${
-                        col.key === "status" ? "text-center" : ""
-                      } ${col.key === "message" ? "pr-6 text-right" : ""}`}
+                      className={`py-3.5 ${col.key === "status" ? "text-center" : ""} ${col.key === "message" ? "pr-6 text-right" : ""}`}
                     >
                       {col.key === "status" ? (
                         <Badge
@@ -336,16 +336,11 @@ export default function AnnouncementsPage() {
                           {capitalize(announcement.status)}
                         </Badge>
                       ) : col.key === "message" ? (
-                        <Link
-                          href={`/announcements/${announcement.id}`}
-                          className="text-primary hover:underline font-medium text-sm"
-                        >
+                        <Link href={`/announcements/${announcement.id}`} className="text-primary hover:underline font-medium text-sm">
                           View
                         </Link>
                       ) : (
-                        <span className="text-sm text-gray-700">
-                          {getCellValue(announcement, col.key)}
-                        </span>
+                        <span className="text-sm text-gray-700">{getCellValue(announcement, col.key)}</span>
                       )}
                     </TableCell>
                   ))}
@@ -356,10 +351,9 @@ export default function AnnouncementsPage() {
         </Table>
       </div>
 
-      {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(0) }}>
+          <Select value={pageSize} onValueChange={(value) => { setPageSize(value); setPage(0) }}>
             <SelectTrigger className="w-16 h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -380,14 +374,12 @@ export default function AnnouncementsPage() {
             size="icon"
             className="h-8 w-8"
             disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => setPage((prev) => prev - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1 text-sm">
-            <span className="px-2 py-1 border rounded text-center min-w-8">
-              {page + 1}
-            </span>
+            <span className="px-2 py-1 border rounded text-center min-w-8">{page + 1}</span>
             <span className="text-gray-500">of {totalPages}</span>
           </div>
           <Button
@@ -395,7 +387,7 @@ export default function AnnouncementsPage() {
             size="icon"
             className="h-8 w-8"
             disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => setPage((prev) => prev + 1)}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -408,13 +400,13 @@ export default function AnnouncementsPage() {
 function getCellValue(announcement: Announcement, key: ColumnKey): string {
   switch (key) {
     case "id":
-      return announcement.id.toString()
+      return announcement.id
     case "title":
       return announcement.title
     case "startsAt":
-      return announcement.startsAt
+      return formatDateTime(announcement.startsAt)
     case "endsAt":
-      return announcement.endsAt
+      return announcement.endsAt ? formatDateTime(announcement.endsAt) : "-"
     case "status":
       return announcement.status
     case "message":
@@ -422,4 +414,19 @@ function getCellValue(announcement: Announcement, key: ColumnKey): string {
     default:
       return ""
   }
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
