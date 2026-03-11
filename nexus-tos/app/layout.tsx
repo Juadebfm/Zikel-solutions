@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Nexus TOS - Therapeutic Operating System",
+  title: "Zikel Solutions",
   description:
-    "SaaS web application for therapeutic documentation in children's homes",
+    "Zikel Solutions Compact",
 }
 
 export default function RootLayout({
