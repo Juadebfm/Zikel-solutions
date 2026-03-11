@@ -4,8 +4,8 @@ import { useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { MobileNav } from "@/components/layout/mobile-nav"
+import { PageLoading } from "@/components/shared/page-loading"
 import { useAuth } from "@/contexts/auth-context"
-import { Loader2 } from "lucide-react"
 
 export default function DashboardLayout({
   children,
@@ -17,26 +17,12 @@ export default function DashboardLayout({
 
   // Show loading state while checking auth
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading fullscreen message="Loading Zikel dashboard..." />
   }
 
   // Don't render dashboard if not authenticated (redirect will happen via context)
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading fullscreen message="Redirecting to Zikel sign in..." />
   }
 
   return (

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +16,7 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
+import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
 import { loginSchema, type LoginFormValues } from "@/lib/validators"
@@ -48,14 +48,7 @@ export function LoginForm() {
     <div className="w-full max-w-md mx-auto">
       {/* Logo - Mobile */}
       <div className="flex justify-center mb-8 lg:hidden">
-        <Image
-          src="/favicon.png"
-          alt="Zikel Solutions"
-          width={48}
-          height={48}
-          className="rounded-xl"
-          priority
-        />
+        <BrandMark size={48} priority animated />
       </div>
 
       {/* Form Card */}

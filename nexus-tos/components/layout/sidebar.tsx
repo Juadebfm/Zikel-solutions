@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   HelpCircle,
@@ -12,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { navItems } from "@/config/nav-config"
+import { BrandMark } from "@/components/shared/brand-mark"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -40,14 +40,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border shrink-0">
         <Link href="/my-summary" className="flex items-center gap-3">
-          <Image
-            src="/favicon.png"
-            alt="Zikel Solutions"
-            width={36}
-            height={36}
-            className="rounded-lg"
-            priority
-          />
+          <BrandMark size={36} priority />
           <span className="text-xl font-bold text-sidebar-foreground">
             Zikel Solutions
           </span>

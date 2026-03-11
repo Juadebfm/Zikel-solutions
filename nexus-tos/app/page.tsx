@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Loader2 } from "lucide-react"
+import { PageLoading } from "@/components/shared/page-loading"
 
 export default function HomePage() {
   const router = useRouter()
@@ -20,11 +20,6 @@ export default function HomePage() {
   }, [isAuthenticated, isLoading, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading Nexus TOS...</p>
-      </div>
-    </div>
+    <PageLoading fullscreen message="Preparing your Zikel workspace..." />
   )
 }

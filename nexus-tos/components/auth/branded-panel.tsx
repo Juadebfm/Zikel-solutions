@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
+import { motion, useReducedMotion } from "framer-motion"
+
+import { BrandMark } from "@/components/shared/brand-mark"
 import { cn } from "@/lib/utils"
 
 interface BrandedPanelProps {
@@ -10,16 +11,7 @@ interface BrandedPanelProps {
 }
 
 export function BrandedPanel({ animate = false, className }: BrandedPanelProps) {
-  const [isAnimating, setIsAnimating] = useState(false)
-
-  // Trigger animation when animate prop changes to true
-  useEffect(() => {
-    if (animate) {
-      setIsAnimating(true)
-      const timer = setTimeout(() => setIsAnimating(false), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [animate])
+  const reduceMotion = useReducedMotion()
 
   return (
     <div
@@ -28,7 +20,6 @@ export function BrandedPanel({ animate = false, className }: BrandedPanelProps) 
         className
       )}
     >
-      {/* Mesh Pattern Background */}
       <div
         className="absolute inset-0"
         style={{
@@ -40,45 +31,85 @@ export function BrandedPanel({ animate = false, className }: BrandedPanelProps) 
         }}
       />
 
-      {/* Content */}
+      <motion.div
+        className="absolute -top-20 -right-20 h-52 w-52 rounded-full bg-white/10"
+        animate={reduceMotion ? undefined : { scale: [1, 1.08, 1], opacity: [0.35, 0.55, 0.35] }}
+        transition={
+          reduceMotion
+            ? undefined
+            : { duration: 4, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
+        }
+      />
+      <motion.div
+        className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-white/10"
+        animate={reduceMotion ? undefined : { scale: [1.06, 0.95, 1.06], opacity: [0.28, 0.5, 0.28] }}
+        transition={
+          reduceMotion
+            ? undefined
+            : { duration: 4.6, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
+        }
+      />
+
       <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
-        {/* Logo with Animation */}
-        <div
-          className={cn(
-            "transition-transform duration-500 ease-out",
-            isAnimating && "scale-110"
-          )}
+        <motion.div
+          animate={
+            reduceMotion
+              ? undefined
+              : animate
+                ? { scale: [1, 1.1, 1], y: [0, -2, 0] }
+                : { scale: 1, y: 0 }
+          }
+          transition={{ duration: 0.55, ease: "easeInOut" }}
+          className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-lg"
         >
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-            <Image
-              src="/favicon.png"
-              alt="Zikel Solutions"
-              width={80}
-              height={80}
-              className="rounded-xl"
-              priority
-            />
-          </div>
-        </div>
+          <BrandMark size={80} priority animated={animate} />
+        </motion.div>
 
-        {/* Brand Name */}
-        <h1 className="mt-8 text-3xl font-bold text-white text-center">
+        <motion.h1
+          className="mt-8 text-3xl font-bold text-white text-center"
+          initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
           Zikel Solutions
-        </h1>
+        </motion.h1>
 
-        {/* Tagline */}
-        <p className="mt-4 text-lg text-white/80 text-center max-w-sm">
-          Nexus Therapeutic Operating System
-        </p>
+        <motion.p
+          className="mt-4 text-lg text-white/80 text-center max-w-sm"
+          initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        >
+          Zikel Care Documentation Platform
+        </motion.p>
 
-        {/* Decorative Elements */}
         <div className="mt-12 flex items-center gap-2">
-          <div className="w-8 h-1 bg-white/40 rounded-full" />
-          <div className="w-4 h-1 bg-white/30 rounded-full" />
-          <div className="w-2 h-1 bg-white/20 rounded-full" />
+          {[0, 1, 2].map((index) => (
+            <motion.div
+              key={index}
+              className={cn(
+                "h-1 rounded-full bg-white/40",
+                index === 0 ? "w-8" : index === 1 ? "w-4 bg-white/30" : "w-2 bg-white/20"
+              )}
+              animate={
+                reduceMotion
+                  ? undefined
+                  : { opacity: [0.3, 0.95, 0.3], width: index === 0 ? [32, 36, 32] : undefined }
+              }
+              transition={
+                reduceMotion
+                  ? undefined
+                  : {
+                      duration: 1.2,
+                      ease: "easeInOut",
+                      repeat: Number.POSITIVE_INFINITY,
+                      delay: index * 0.14,
+                    }
+              }
+            />
+          ))}
         </div>
 
-        {/* Bottom Decoration */}
         <div className="absolute bottom-8 left-0 right-0 flex justify-center">
           <div className="flex items-center gap-6 text-white/50 text-sm">
             <span>Secure</span>
@@ -89,10 +120,6 @@ export function BrandedPanel({ animate = false, className }: BrandedPanelProps) 
           </div>
         </div>
       </div>
-
-      {/* Corner Accents */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full" />
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-tr-full" />
     </div>
   )
 }

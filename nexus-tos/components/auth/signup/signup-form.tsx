@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 import { StepIndicator } from "@/components/auth/step-indicator"
@@ -11,6 +10,7 @@ import { StepBasicInfo } from "./step-basic-info"
 import { StepPassword } from "./step-password"
 import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
+import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
 import { authService } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry, Gender } from "@/types"
@@ -130,14 +130,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     <div className="w-full">
       {/* Logo - Mobile */}
       <div className="flex justify-center mb-6 lg:hidden">
-        <Image
-          src="/favicon.png"
-          alt="Zikel Solutions"
-          width={48}
-          height={48}
-          className="rounded-xl"
-          priority
-        />
+        <BrandMark size={48} priority animated />
       </div>
 
       {/* Step Indicator */}

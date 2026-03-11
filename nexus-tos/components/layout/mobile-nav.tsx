@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   HelpCircle,
@@ -12,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { navItems } from "@/config/nav-config"
+import { BrandMark } from "@/components/shared/brand-mark"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,14 +55,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
         <SheetHeader className="p-4 border-b border-sidebar-border shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-            <Image
-              src="/favicon.png"
-              alt="Zikel Solutions"
-              width={36}
-              height={36}
-              className="rounded-lg"
-              priority
-            />
+            <BrandMark size={36} priority />
             <Button
               variant="ghost"
               size="icon"
