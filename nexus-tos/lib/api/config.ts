@@ -1,15 +1,21 @@
 const API_PREFIX = "/api/v1"
+const DEFAULT_BACKEND_ORIGIN = "https://zikel-solutions-be.onrender.com"
 
 function normalizeBaseUrl(rawBaseUrl: string | undefined): string {
   const trimmed = rawBaseUrl?.trim()
 
   if (!trimmed) {
-    return API_PREFIX
+    return `${DEFAULT_BACKEND_ORIGIN}${API_PREFIX}`
   }
 
   const withoutTrailingSlash = trimmed.endsWith("/")
     ? trimmed.slice(0, -1)
     : trimmed
+
+  // Prevent accidental same-origin calls in production when a relative path is provided.
+  if (withoutTrailingSlash.startsWith("/")) {
+    return `${DEFAULT_BACKEND_ORIGIN}${API_PREFIX}`
+  }
 
   if (withoutTrailingSlash.endsWith(API_PREFIX)) {
     return withoutTrailingSlash
