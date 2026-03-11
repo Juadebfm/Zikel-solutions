@@ -20,9 +20,9 @@ This frontend uses **TanStack Query + Zustand**.
 
 ## 1) Base URL and Prefix
 
-- Base URL (production): your Render service URL, e.g. `https://<service>.onrender.com`
+- Base URL (production): `https://zikel-solutions-be.onrender.com`
 - API prefix: `/api/v1`
-- Full API base: `https://<service>.onrender.com/api/v1`
+- Full API base: `https://zikel-solutions-be.onrender.com/api/v1`
 
 Infrastructure endpoints (no `/api/v1` prefix):
 - `GET /health`
