@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
+import { LEGAL_URLS, isExternalUrl } from "@/lib/config/legal"
 import { passwordSchema, type PasswordFormValues } from "@/lib/validators"
 import { useLanguage } from "@/contexts/language-context"
 
@@ -30,14 +31,22 @@ interface PasswordData {
 
 interface StepPasswordProps {
   data: PasswordData
-  onNext: (data: PasswordData) => void
+  onNext: (data: PasswordData) => Promise<void> | void
   onBack: () => void
+  isSubmitting?: boolean
 }
 
-export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
+export function StepPassword({
+  data,
+  onNext,
+  onBack,
+  isSubmitting = false,
+}: StepPasswordProps) {
   const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const termsUrl = LEGAL_URLS.terms
+  const privacyUrl = LEGAL_URLS.privacy
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -52,8 +61,12 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
 
   const password = form.watch("password")
 
-  const onSubmit = (formData: PasswordFormValues) => {
-    onNext({
+  const onSubmit = async (formData: PasswordFormValues) => {
+    if (isSubmitting) {
+      return
+    }
+
+    await onNext({
       password: formData.password,
       confirmPassword: formData.confirmPassword,
       acceptTerms: formData.acceptTerms,
@@ -179,19 +192,55 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
                   </FormControl>
                   <div className="text-sm text-gray-600 leading-tight">
                     {t("auth.signup.step3.acceptTerms")}{" "}
-                    <Link
-                      href="/terms"
-                      className="text-primary hover:text-primary/80 underline"
-                    >
-                      {t("auth.signup.step3.termsOfUse")}
-                    </Link>{" "}
+                    {isExternalUrl(termsUrl) ? (
+                      <a
+                        href={termsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        tabIndex={isSubmitting ? -1 : undefined}
+                        className={`text-primary underline ${
+                          isSubmitting ? "pointer-events-none opacity-60" : "hover:text-primary/80"
+                        }`}
+                      >
+                        {t("auth.signup.step3.termsOfUse")}
+                      </a>
+                    ) : (
+                      <Link
+                        href={termsUrl}
+                        prefetch={false}
+                        tabIndex={isSubmitting ? -1 : undefined}
+                        className={`text-primary underline ${
+                          isSubmitting ? "pointer-events-none opacity-60" : "hover:text-primary/80"
+                        }`}
+                      >
+                        {t("auth.signup.step3.termsOfUse")}
+                      </Link>
+                    )}{" "}
                     {t("auth.signup.step3.and")}{" "}
-                    <Link
-                      href="/privacy"
-                      className="text-primary hover:text-primary/80 underline"
-                    >
-                      {t("auth.signup.step3.privacyPolicy")}
-                    </Link>
+                    {isExternalUrl(privacyUrl) ? (
+                      <a
+                        href={privacyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        tabIndex={isSubmitting ? -1 : undefined}
+                        className={`text-primary underline ${
+                          isSubmitting ? "pointer-events-none opacity-60" : "hover:text-primary/80"
+                        }`}
+                      >
+                        {t("auth.signup.step3.privacyPolicy")}
+                      </a>
+                    ) : (
+                      <Link
+                        href={privacyUrl}
+                        prefetch={false}
+                        tabIndex={isSubmitting ? -1 : undefined}
+                        className={`text-primary underline ${
+                          isSubmitting ? "pointer-events-none opacity-60" : "hover:text-primary/80"
+                        }`}
+                      >
+                        {t("auth.signup.step3.privacyPolicy")}
+                      </Link>
+                    )}
                     .
                   </div>
                 </FormItem>
@@ -202,6 +251,7 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
             {/* Submit Button */}
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
             >
               {t("common.continue")}
@@ -214,6 +264,7 @@ export function StepPassword({ data, onNext, onBack }: StepPasswordProps) {
       <button
         type="button"
         onClick={onBack}
+        disabled={isSubmitting}
         className="flex items-center justify-center gap-2 w-full max-w-md mx-auto mt-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />

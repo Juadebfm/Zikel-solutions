@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { LanguageProvider } from "@/contexts/language-context"
 import { LanguageSelector } from "@/components/auth/language-selector"
 import { BrandedPanel } from "@/components/auth/branded-panel"
+import { LEGAL_URLS, isExternalUrl } from "@/lib/config/legal"
 
 export default function AuthLayout({
   children,
@@ -14,6 +15,8 @@ export default function AuthLayout({
   const pathname = usePathname()
   const [animate, setAnimate] = useState(false)
   const [prevPathname, setPrevPathname] = useState(pathname)
+  const termsUrl = LEGAL_URLS.terms
+  const privacyUrl = LEGAL_URLS.privacy
 
   // Trigger animation on route change
   useEffect(() => {
@@ -67,12 +70,41 @@ export default function AuthLayout({
                   Help Center
                 </a>
                 <span className="text-gray-300">|</span>
-                <a
-                  href="/terms"
-                  className="text-gray-500 hover:text-gray-700 text-xs"
-                >
-                  Terms of Service
-                </a>
+                {isExternalUrl(termsUrl) ? (
+                  <a
+                    href={termsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    Terms of Service
+                  </a>
+                ) : (
+                  <a
+                    href={termsUrl}
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    Terms of Service
+                  </a>
+                )}
+                <span className="text-gray-300">|</span>
+                {isExternalUrl(privacyUrl) ? (
+                  <a
+                    href={privacyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    Privacy Policy
+                  </a>
+                ) : (
+                  <a
+                    href={privacyUrl}
+                    className="text-gray-500 hover:text-gray-700 text-xs"
+                  >
+                    Privacy Policy
+                  </a>
+                )}
               </div>
             </div>
           </div>

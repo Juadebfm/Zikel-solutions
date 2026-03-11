@@ -109,6 +109,7 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 
 - [x] Add env config for API base URL.
 - [x] Build shared HTTP client wrapper (used by TanStack Query query/mutation functions).
+- [x] Ensure FE legal routes exist for signup links (`/terms`, `/privacy`) to avoid route-level 404s.
 - [x] Implement `ApiSuccess<T>`, `ApiError`, and response narrowing.
 - [x] Add Query Key factory for all modules (`auth`, `me`, `summary`, etc.).
 - [x] Confirm `QueryProvider` is mounted once at app root layout.
@@ -118,6 +119,7 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 - [x] Add auth header injection for protected calls.
 - [x] Implement centralized `401 -> refresh -> single retry` interceptor flow.
 - [x] Enforce refresh token rotation in storage after `/auth/refresh`.
+- [x] Convert client abort/timeout/network fetch failures into normalized `ApiClientError` messages.
 - [x] Add unified error handling by `error.code` + `error.message`.
 - [x] Add optional `x-request-id` forwarding support.
 

@@ -52,6 +52,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   const router = useRouter()
   const { completeAuth } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const {
     currentStep,
@@ -84,6 +85,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
   // Step 3: Password - submit to API and move to verification
   const handlePasswordNext = async (passwordData: SignupStepData["step3"]) => {
+    if (isRegistering) {
+      return
+    }
+
     setStepData("step3", passwordData)
     setError(null)
 
@@ -101,10 +106,13 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     }
 
     try {
+      setIsRegistering(true)
       await authService.register(signupData)
       nextStep()
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
+    } finally {
+      setIsRegistering(false)
     }
   }
 
@@ -167,6 +175,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
           data={data.step3}
           onNext={handlePasswordNext}
           onBack={prevStep}
+          isSubmitting={isRegistering}
         />
       )}
 
@@ -184,7 +193,11 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
         Got an account?{" "}
         <Link
           href="/login"
-          className="text-primary hover:text-primary/80 font-medium"
+          className={`text-primary font-medium ${
+            isRegistering && currentStep === 3
+              ? "pointer-events-none opacity-60"
+              : "hover:text-primary/80"
+          }`}
         >
           Sign in
         </Link>

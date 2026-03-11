@@ -110,39 +110,44 @@ async function refreshAccessToken(): Promise<string | null> {
       return null
     }
 
-    const response = await fetchWithTimeout(buildRequestUrl("/auth/refresh"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken: session.refreshToken }),
-    })
+    try {
+      const response = await fetchWithTimeout(buildRequestUrl("/auth/refresh"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken: session.refreshToken }),
+      })
 
-    const payload = await parseJsonSafely(response)
+      const payload = await parseJsonSafely(response)
 
-    if (!response.ok) {
+      if (!response.ok) {
+        session.clearSession()
+        return null
+      }
+
+      if (!isApiSuccessPayload<RefreshPayload, unknown>(payload)) {
+        session.clearSession()
+        return null
+      }
+
+      const tokens = payload.data?.tokens
+
+      if (!tokens?.accessToken || !tokens.refreshToken) {
+        session.clearSession()
+        return null
+      }
+
+      session.setTokens({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      })
+
+      return tokens.accessToken
+    } catch {
       session.clearSession()
       return null
     }
-
-    if (!isApiSuccessPayload<RefreshPayload, unknown>(payload)) {
-      session.clearSession()
-      return null
-    }
-
-    const tokens = payload.data?.tokens
-
-    if (!tokens?.accessToken || !tokens.refreshToken) {
-      session.clearSession()
-      return null
-    }
-
-    session.setTokens({
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    })
-
-    return tokens.accessToken
   })()
 
   try {
@@ -218,13 +223,40 @@ async function fetchWithTimeout(
   init: RequestInit
 ): Promise<Response> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), API_CONFIG.requestTimeoutMs)
+  const timeout = setTimeout(() => controller.abort("timeout"), API_CONFIG.requestTimeoutMs)
 
   try {
     return await fetch(input, {
       ...init,
       signal: controller.signal,
     })
+  } catch (error) {
+    if (isAbortError(error)) {
+      const reason = controller.signal.reason
+      const isTimeout = reason === "timeout"
+
+      throw new ApiClientError({
+        status: isTimeout ? 408 : 499,
+        code: isTimeout ? "REQUEST_TIMEOUT" : "REQUEST_ABORTED",
+        message: isTimeout
+          ? "The request timed out. Please try again."
+          : "The request was cancelled. Please try again.",
+        details:
+          typeof reason === "string" && reason && reason !== "timeout"
+            ? { reason }
+            : undefined,
+      })
+    }
+
+    if (error instanceof TypeError) {
+      throw new ApiClientError({
+        status: 0,
+        code: "NETWORK_ERROR",
+        message: "Unable to reach the server. Check your connection and try again.",
+      })
+    }
+
+    throw error
   } finally {
     clearTimeout(timeout)
   }
@@ -262,4 +294,8 @@ function isApiFailurePayload(value: unknown): value is Extract<ApiResponse<unkno
 
   const typedError = error as Record<string, unknown>
   return typeof typedError.code === "string" && typeof typedError.message === "string"
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError"
 }

@@ -28,5 +28,5 @@ export const API_BASE_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_BASE_UR
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  requestTimeoutMs: 30_000,
+  requestTimeoutMs: 90_000,
 }
