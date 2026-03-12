@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
 import { AuditDiffPanel } from "@/components/homes/audit-diff-panel"
-import { getYPAuditsByCategory } from "@/lib/mock-data"
+import { useYPAudits } from "@/hooks/api/use-backend-data"
 import type { YPAuditCategory } from "@/types"
 
 const auditCategories: { key: string; label: string }[] = [
@@ -74,8 +74,7 @@ export function YPAuditTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getYPAuditsByCategory(activeCategory)
+  const { data: allItems = [] } = useYPAudits(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

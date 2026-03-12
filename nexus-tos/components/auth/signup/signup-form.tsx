@@ -12,7 +12,8 @@ import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
 import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
-import { authService } from "@/services/auth.service"
+import { getOtpDeliveryStatusMessage } from "@/lib/auth/otp"
+import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry, Gender } from "@/types"
 
 const SIGNUP_STEPS = [
@@ -53,6 +54,9 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   const { completeAuth } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isRegistering, setIsRegistering] = useState(false)
+  const [resendAvailableAt, setResendAvailableAt] = useState<string | null>(null)
+  const [otpDeliveryStatus, setOtpDeliveryStatus] = useState<OtpDeliveryStatus | null>(null)
+  const [otpDeliveryMessage, setOtpDeliveryMessage] = useState<string | null>(null)
 
   const {
     currentStep,
@@ -107,7 +111,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
     try {
       setIsRegistering(true)
-      await authService.register(signupData)
+      const payload = await authService.register(signupData)
+      setResendAvailableAt(payload.resendAvailableAt)
+      setOtpDeliveryStatus(payload.otpDeliveryStatus)
+      setOtpDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
       nextStep()
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
@@ -130,8 +137,12 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     }
   }
 
-  const handleResend = async () => {
-    await authService.resendOtp(data.step2.email)
+  const handleResend = async (): Promise<ResendOtpPayload> => {
+    const payload = await authService.resendOtp(data.step2.email)
+    setResendAvailableAt(payload.resendAvailableAt)
+    setOtpDeliveryStatus(payload.otpDeliveryStatus)
+    setOtpDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
+    return payload
   }
 
   return (
@@ -185,6 +196,9 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
           onVerify={handleVerify}
           onResend={handleResend}
           onBack={prevStep}
+          initialResendAvailableAt={resendAvailableAt}
+          deliveryStatus={otpDeliveryStatus}
+          deliveryMessage={otpDeliveryMessage}
         />
       )}
 

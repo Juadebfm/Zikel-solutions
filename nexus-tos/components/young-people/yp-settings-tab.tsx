@@ -42,7 +42,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
-import { getYPSettingsByCategory } from "@/lib/mock-data"
+import { useYPSettings } from "@/hooks/api/use-backend-data"
 import type { YPSettingCategory } from "@/types"
 
 const settingsCategories: { key: string; label: string }[] = [
@@ -78,8 +78,7 @@ export function YPSettingsTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getYPSettingsByCategory(activeCategory)
+  const { data: allItems = [] } = useYPSettings(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

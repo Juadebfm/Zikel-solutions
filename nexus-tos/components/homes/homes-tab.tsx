@@ -45,7 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockCareGroupHomes } from "@/lib/mock-data"
+import { useHomes } from "@/hooks/api/use-backend-data"
 import type { CareGroupHomeStatus } from "@/types"
 
 type HomesStatusTab = "all" | "current" | "past" | "planned"
@@ -78,8 +78,7 @@ export function HomesTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allHomes = mockCareGroupHomes
+  const { data: allHomes = [] } = useHomes()
 
   const statusFiltered = statusTab === "all" ? allHomes : allHomes.filter((h) => h.status === statusTab)
 

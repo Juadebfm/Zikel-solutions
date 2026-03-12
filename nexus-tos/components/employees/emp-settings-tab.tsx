@@ -43,7 +43,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
-import { getEmpSettingsByCategory } from "@/lib/mock-data"
+import { useEmployeeSettings } from "@/hooks/api/use-backend-data"
 import type { EmpSettingCategory } from "@/types"
 
 const settingsCategories: { key: string; label: string }[] = [
@@ -87,8 +87,7 @@ export function EmpSettingsTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getEmpSettingsByCategory(activeCategory)
+  const { data: allItems = [] } = useEmployeeSettings(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

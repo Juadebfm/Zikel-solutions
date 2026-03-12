@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -59,7 +59,10 @@ export function StepPassword({
     mode: "onChange",
   })
 
-  const password = form.watch("password")
+  const password = useWatch({
+    control: form.control,
+    name: "password",
+  }) ?? ""
 
   const onSubmit = async (formData: PasswordFormValues) => {
     if (isSubmitting) {
@@ -254,7 +257,14 @@ export function StepPassword({
               disabled={isSubmitting}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
             >
-              {t("common.continue")}
+              {isSubmitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t("common.continue")}</span>
+                </span>
+              ) : (
+                t("common.continue")
+              )}
             </Button>
           </form>
         </Form>

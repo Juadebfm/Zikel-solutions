@@ -6,28 +6,45 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { OTPInput } from "@/components/auth/otp-input"
 import { useLanguage } from "@/contexts/language-context"
+import { getOtpDeliveryStatusMessage, getResendCooldownSeconds } from "@/lib/auth/otp"
+import type { OtpDeliveryStatus, ResendOtpPayload } from "@/services/auth.service"
 
 interface StepVerificationProps {
   email: string
   onVerify: (code: string) => Promise<boolean>
-  onResend: () => Promise<void>
+  onResend: () => Promise<ResendOtpPayload>
   onBack: () => void
+  initialResendAvailableAt?: string | null
+  deliveryStatus?: OtpDeliveryStatus | null
+  deliveryMessage?: string | null
 }
-
-const RESEND_COOLDOWN = 60 // seconds
 
 export function StepVerification({
   email,
   onVerify,
   onResend,
   onBack,
+  initialResendAvailableAt = null,
+  deliveryStatus = null,
+  deliveryMessage = null,
 }: StepVerificationProps) {
   const { t } = useLanguage()
   const [code, setCode] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cooldown, setCooldown] = useState(0)
+  const [cooldown, setCooldown] = useState(() => getResendCooldownSeconds(initialResendAvailableAt))
+  const [currentDeliveryStatus, setCurrentDeliveryStatus] = useState<OtpDeliveryStatus | null>(deliveryStatus)
+  const [currentDeliveryMessage, setCurrentDeliveryMessage] = useState<string | null>(deliveryMessage)
+
+  useEffect(() => {
+    setCurrentDeliveryStatus(deliveryStatus)
+    setCurrentDeliveryMessage(deliveryMessage)
+  }, [deliveryMessage, deliveryStatus])
+
+  useEffect(() => {
+    setCooldown(getResendCooldownSeconds(initialResendAvailableAt))
+  }, [initialResendAvailableAt])
 
   // Cooldown timer
   useEffect(() => {
@@ -65,8 +82,10 @@ export function StepVerification({
     setError(null)
 
     try {
-      await onResend()
-      setCooldown(RESEND_COOLDOWN)
+      const payload = await onResend()
+      setCooldown(getResendCooldownSeconds(payload.resendAvailableAt))
+      setCurrentDeliveryStatus(payload.otpDeliveryStatus)
+      setCurrentDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
     } catch {
       setError("Failed to resend code. Please try again.")
     } finally {
@@ -106,6 +125,18 @@ export function StepVerification({
             <span className="font-medium text-gray-700">{email}</span>
           </p>
         </div>
+
+        {currentDeliveryMessage && (
+          <div
+            className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+              currentDeliveryStatus === "failed"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            {currentDeliveryMessage}
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

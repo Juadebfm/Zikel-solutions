@@ -1,28 +1,36 @@
 "use client"
 
+import { useMemo } from "react"
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell, Tooltip } from "recharts"
 import { Button } from "@/components/ui/button"
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import { ConfiguredInfo } from "@/components/task-explorer/configured-info"
-import { mockFormSubmissions } from "@/lib/mock-data"
+import { useTaskExplorerFormSubmissions } from "@/hooks/api/use-backend-data"
 import type { TaskExplorerFilters } from "@/types"
 
 interface TaskExplorerFormsProps {
   filters: TaskExplorerFilters
 }
 
-// Build chart config from mock data
-const chartConfig: ChartConfig = Object.fromEntries(
-  mockFormSubmissions.map((item) => [
-    item.name,
-    { label: item.name, color: item.color },
-  ])
-)
-
-// Calculate total for percentage
-const total = mockFormSubmissions.reduce((sum, item) => sum + item.count, 0)
-
 export function TaskExplorerForms({ filters }: TaskExplorerFormsProps) {
+  const { data: formSubmissions = [] } = useTaskExplorerFormSubmissions()
+
+  const chartConfig: ChartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        formSubmissions.map((item) => [
+          item.name,
+          { label: item.name, color: item.color },
+        ])
+      ),
+    [formSubmissions]
+  )
+
+  const total = useMemo(
+    () => formSubmissions.reduce((sum, item) => sum + item.count, 0),
+    [formSubmissions]
+  )
+
   return (
     <div className="space-y-6">
       {/* Configured Information Summary */}
@@ -42,7 +50,7 @@ export function TaskExplorerForms({ filters }: TaskExplorerFormsProps) {
       <div className="px-2">
         <ChartContainer config={chartConfig} className="h-100 w-full">
           <BarChart
-            data={mockFormSubmissions}
+            data={formSubmissions}
             margin={{ top: 10, right: 20, left: 10, bottom: 80 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -62,7 +70,7 @@ export function TaskExplorerForms({ filters }: TaskExplorerFormsProps) {
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 const data = payload[0].payload
-                const pct = Math.round((data.count / total) * 100)
+                const pct = total > 0 ? Math.round((data.count / total) * 100) : 0
                 return (
                   <div className="rounded-lg border bg-white px-3 py-2 shadow-md">
                     <p className="text-sm font-medium text-gray-900">{data.name}</p>
@@ -74,7 +82,7 @@ export function TaskExplorerForms({ filters }: TaskExplorerFormsProps) {
               }}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={50}>
-              {mockFormSubmissions.map((entry, index) => (
+              {formSubmissions.map((entry, index) => (
                 <Cell key={index} fill={entry.color} />
               ))}
             </Bar>
@@ -84,8 +92,8 @@ export function TaskExplorerForms({ filters }: TaskExplorerFormsProps) {
 
       {/* Legend */}
       <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 px-4 pb-4">
-        {mockFormSubmissions.map((item) => {
-          const pct = Math.round((item.count / total) * 100)
+        {formSubmissions.map((item) => {
+          const pct = total > 0 ? Math.round((item.count / total) * 100) : 0
           return (
             <div key={item.name} className="flex items-center gap-1.5 text-xs text-gray-600">
               <span

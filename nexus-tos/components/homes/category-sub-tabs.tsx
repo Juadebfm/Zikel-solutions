@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronUp } from "lucide-react"
 
 interface CategoryTab {
   key: string

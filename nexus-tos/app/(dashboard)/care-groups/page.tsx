@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockCareGroups } from "@/lib/mock-data"
+import { useCareGroups } from "@/hooks/api/use-backend-data"
 import type { CareGroup } from "@/types"
 
 type ColumnKey = "id" | "name" | "phoneNumber" | "email" | "reports"
@@ -73,10 +73,11 @@ export default function CareGroupsPage() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
+  const { data: allCareGroups = [] } = useCareGroups()
 
   // Filter by column search
   const filtered = useMemo(() => {
-    return mockCareGroups.filter((cg) => {
+    return allCareGroups.filter((cg) => {
       for (const [key, value] of Object.entries(filters)) {
         if (!value) continue
         const cellValue = getCellValue(cg, key as ColumnKey)
@@ -84,7 +85,7 @@ export default function CareGroupsPage() {
       }
       return true
     })
-  }, [filters])
+  }, [allCareGroups, filters])
 
   // Pagination
   const pageSizeNum = parseInt(pageSize)

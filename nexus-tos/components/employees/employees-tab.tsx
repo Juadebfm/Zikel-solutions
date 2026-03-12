@@ -45,8 +45,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockEmployees } from "@/lib/mock-data"
 import { CreateEmployeeDialog } from "@/components/employees/create-employee-dialog"
+import { useEmployees } from "@/hooks/api/use-backend-data"
 import type { EmployeeStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -80,8 +80,7 @@ export function EmployeesTab() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const [showCreateEmployee, setShowCreateEmployee] = useState(false)
-
-  const allEmployees = mockEmployees
+  const { data: allEmployees = [] } = useEmployees()
 
   const statusFiltered = statusTab === "all" ? allEmployees : allEmployees.filter((e) => e.status === statusTab)
 

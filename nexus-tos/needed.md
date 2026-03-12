@@ -2,7 +2,7 @@
 
 **Project:** Nexus TOS (Therapeutic Operating System)
 **Type:** SaaS platform for therapeutic documentation in children's homes
-**Stack:** Next.js frontend (App Router) — currently 100% mock data, no real API calls
+**Stack:** Next.js frontend (App Router) — backend-integrated via API client + React Query (no runtime mock data modules)
 **Auth pattern:** JWT token, stored client-side, 24-hour expiry
 **Role system:** `staff` | `manager` | `admin`
 

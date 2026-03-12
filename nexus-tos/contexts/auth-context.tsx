@@ -10,18 +10,24 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { getApiErrorMessage } from "@/lib/api/error"
+import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { authService, type LoginPayload } from "@/services/auth.service"
 import type { RolePermissions, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
+
+interface LoginResult {
+  success: boolean
+  message?: string
+  requiresVerification?: boolean
+}
 
 interface AuthContextType {
   user: ReturnType<typeof useAuthSessionStore.getState>["user"]
   isLoading: boolean
   isAuthenticated: boolean
   permissions: RolePermissions | null
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
+  login: (email: string, password: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
   logout: () => Promise<void>
   hasPermission: (permission: keyof RolePermissions) => boolean
@@ -31,7 +37,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"]
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/verify-email"]
 
 const ROLE_DISPLAY: Record<UserRole, string> = {
   admin: "Administrator",
@@ -145,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hasHydrated, isLoading, pathname, router, user])
 
   const login = useCallback(
-    async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    async (email: string, password: string): Promise<LoginResult> => {
       setIsLoading(true)
 
       try {
@@ -153,6 +159,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await completeAuth(payload)
         return { success: true }
       } catch (error) {
+        if (
+          isApiClientError(error) &&
+          error.status === 403 &&
+          error.code === "EMAIL_NOT_VERIFIED"
+        ) {
+          return {
+            success: false,
+            message: "Email not verified. Enter the OTP to continue.",
+            requiresVerification: true,
+          }
+        }
+
         return {
           success: false,
           message: getApiErrorMessage(error, "Login failed. Please check your credentials."),

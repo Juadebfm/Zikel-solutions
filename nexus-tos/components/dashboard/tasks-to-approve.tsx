@@ -107,6 +107,16 @@ export function TasksToApprove({
                       >
                         View
                       </Button>
+                      {onApprove && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-green-700 h-6 px-1.5 text-[10px]"
+                          onClick={() => onApprove(item.id)}
+                        >
+                          Approve
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="hidden sm:flex items-center gap-2 shrink-0">
@@ -124,6 +134,16 @@ export function TasksToApprove({
                     >
                       View
                     </Button>
+                    {onApprove && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-700 h-7 px-2 text-xs"
+                        onClick={() => onApprove(item.id)}
+                      >
+                        Approve
+                      </Button>
+                    )}
                   </div>
                 </div>
               )

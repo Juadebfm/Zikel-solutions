@@ -1,5 +1,9 @@
 ﻿# Backend High-Level Plan (Neon + Fly.io)
 
+Status update (March 12, 2026):
+- Frontend runtime mock modules have been removed.
+- Frontend data access now uses backend APIs via React Query hooks and shared API client.
+
 ## Purpose
 - [ ] Build a production-ready backend from the current frontend domains and flows.
 - [ ] Use Neon (Postgres) for data storage.
@@ -10,7 +14,7 @@
 - [ ] Role and permission model (staff, manager, admin; server-side RBAC enforcement).
 - [ ] Core modules: care-groups, homes, employees, young-people, vehicles, tasks, announcements, dashboard.
 - [ ] Audit and activity tracking for sensitive operations.
-- [ ] Replace mock data/services with API-driven data access.
+- [x] Replace mock data/services with API-driven data access.
 
 ## Target Architecture
 - [ ] Node.js + TypeScript backend service.
@@ -36,7 +40,7 @@
 
 ### Phase 2: Data Model and Neon Setup
 - [ ] Design normalized schema for all frontend domains.
-- [ ] Add migration pipeline and seed scripts from current mock data.
+- [ ] Add migration pipeline and seed scripts from sanitized source data exports.
 - [ ] Create indexes for list filters/sorts used by UI tables.
 - [ ] Configure Neon environments: dev, staging, prod.
 - [ ] Configure pooled runtime URL and direct migration URL separation.
@@ -62,10 +66,10 @@
 - [ ] Deploy staging, run smoke tests, then promote to production.
 
 ### Phase 6: Frontend Integration and Cutover
-- [ ] Replace mock auth service with real backend auth.
-- [ ] Replace mock list/data modules with React Query API hooks.
+- [x] Replace mock auth service with real backend auth.
+- [x] Replace mock list/data modules with React Query API hooks.
 - [ ] Add feature flags for controlled rollout.
-- [ ] Remove local mock persistence once endpoints are stable.
+- [x] Remove local mock persistence once endpoints are stable.
 - [ ] Run end-to-end acceptance checks and regression tests.
 
 ## Security Baseline Checklist (Required)
@@ -145,7 +149,7 @@
 - [ ] Observability sink configured for logs/metrics/traces.
 
 ## Definition of Done
-- [ ] All critical frontend paths use backend APIs (no mock fallback in production).
+- [x] All critical frontend paths use backend APIs (no mock fallback in production).
 - [ ] Security checklist complete and verified.
 - [ ] Load test passes agreed throughput/latency targets.
 - [ ] Staging and production deployment runbooks validated.

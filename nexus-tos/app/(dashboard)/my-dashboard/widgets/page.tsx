@@ -18,7 +18,7 @@ import {
   widgetTypeLabels,
   widgetTypeDescriptions,
   type WidgetType,
-} from "@/data/mock-widgets"
+} from "@/data/widget-options"
 
 const widgetTypes: { type: WidgetType; icon: React.ElementType }[] = [
   { type: "data-card", icon: CreditCard },

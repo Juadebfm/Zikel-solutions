@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useCallback, useEffect, type KeyboardEvent, type ClipboardEvent } from "react"
+import { useRef, useState, useCallback, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Clipboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,14 +29,6 @@ export function OTPInput({
 
   // Split value into individual digits
   const digits = value.split("").concat(Array(length).fill("")).slice(0, length)
-
-  // Focus first empty input on mount
-  useEffect(() => {
-    const firstEmptyIndex = digits.findIndex((d) => !d)
-    if (firstEmptyIndex !== -1 && inputRefs.current[firstEmptyIndex]) {
-      inputRefs.current[firstEmptyIndex]?.focus()
-    }
-  }, [])
 
   // Handle input change
   const handleChange = useCallback(

@@ -41,7 +41,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockOutcomeStars } from "@/lib/mock-data"
+import { useOutcomeStars } from "@/hooks/api/use-backend-data"
 
 type OSColumnKey = "id" | "youngPerson" | "completedBy" | "completedAt" | "score" | "status"
 
@@ -68,8 +68,7 @@ export function OutcomeStarTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = mockOutcomeStars
+  const { data: allItems = [] } = useOutcomeStars()
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

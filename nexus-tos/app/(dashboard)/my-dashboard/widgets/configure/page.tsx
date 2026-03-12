@@ -28,7 +28,7 @@ import {
   periodOptions,
   reportsOnOptions,
   type WidgetType,
-} from "@/data/mock-widgets"
+} from "@/data/widget-options"
 import { useCreateDashboardWidget } from "@/hooks/api/use-dashboard"
 import { getApiErrorMessage } from "@/lib/api/error"
 

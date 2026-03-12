@@ -22,7 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getVehicleCustomInfoGroups } from "@/lib/mock-data"
+import {
+  useCreateVehicleCustomInfoField,
+  useVehicleCustomInfoGroups,
+} from "@/hooks/api/use-backend-data"
+import { getApiErrorMessage } from "@/lib/api/error"
 import type { CustomFieldType } from "@/types"
 
 interface CreateCustomInfoFieldDialogProps {
@@ -68,20 +72,28 @@ export function CreateCustomInfoFieldDialog({
   const [customGroup, setCustomGroup] = useState("")
   const [fieldType, setFieldType] = useState("")
   const [defaultValue, setDefaultValue] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const { data: groups = [] } = useVehicleCustomInfoGroups()
+  const createFieldMutation = useCreateVehicleCustomInfoField()
 
-  const groups = getVehicleCustomInfoGroups()
+  const handleSave = async () => {
+    setError(null)
 
-  const handleSave = () => {
-    console.log("Create custom info field:", {
-      fieldName,
-      description,
-      required,
-      customGroup,
-      fieldType,
-      defaultValue,
-    })
-    handleReset()
-    onOpenChange(false)
+    try {
+      await createFieldMutation.mutateAsync({
+        fieldName,
+        description,
+        required,
+        customGroup,
+        fieldType,
+        defaultValue,
+      })
+
+      handleReset()
+      onOpenChange(false)
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError, "Unable to create custom field. Please try again."))
+    }
   }
 
   const handleReset = () => {
@@ -91,6 +103,7 @@ export function CreateCustomInfoFieldDialog({
     setCustomGroup("")
     setFieldType("")
     setDefaultValue("")
+    setError(null)
   }
 
   const handleBack = () => {
@@ -111,6 +124,12 @@ export function CreateCustomInfoFieldDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {/* Field Name */}
           <div className="space-y-1.5">
             <Label htmlFor="fieldName" className="text-sm font-medium">
@@ -249,9 +268,9 @@ export function CreateCustomInfoFieldDialog({
               size="sm"
               className="bg-primary hover:bg-primary/90"
               onClick={handleSave}
-              disabled={!fieldName || !customGroup || !fieldType}
+              disabled={!fieldName || !customGroup || !fieldType || createFieldMutation.isPending}
             >
-              Save
+              {createFieldMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>

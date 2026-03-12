@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useVehicleStore } from "@/stores/vehicle-store"
-import { mockCareGroupHomes } from "@/lib/mock-data"
+import { useHomes } from "@/hooks/api/use-backend-data"
+import { getApiErrorMessage } from "@/lib/api/error"
 import type { VehicleStatus } from "@/types"
 
 interface CreateVehicleDialogProps {
@@ -56,6 +57,7 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
   const { addVehicle } = useVehicleStore()
   const [form, setForm] = useState<FormData>(initialForm)
   const [errors, setErrors] = useState<string[]>([])
+  const { data: allHomes = [] } = useHomes()
 
   const updateField = (key: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -63,11 +65,11 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
   }
 
   const handleHomeChange = (homeId: string) => {
-    const home = mockCareGroupHomes.find((h) => h.id.toString() === homeId)
+    const home = allHomes.find((h) => h.id.toString() === homeId)
     if (home) {
       setForm((prev) => ({
         ...prev,
-        homeId: `home-${home.id}`,
+        homeId: home.id.toString(),
         homeName: home.name,
       }))
       setErrors((prev) => prev.filter((e) => !e.includes("Location")))
@@ -85,27 +87,31 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
     return errs
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const validationErrors = validate()
     if (validationErrors.length > 0) {
       setErrors(validationErrors)
       return
     }
 
-    addVehicle({
-      name: form.name.trim(),
-      registration: form.registration.trim(),
-      make: form.make.trim(),
-      model: form.model.trim(),
-      homeId: form.homeId,
-      homeName: form.homeName,
-      status: form.status as VehicleStatus,
-      mileage: form.mileage ? parseInt(form.mileage) : 0,
-      nextServiceDate: form.nextServiceDate || "",
-      image: form.image || undefined,
-    })
+    try {
+      await addVehicle({
+        name: form.name.trim(),
+        registration: form.registration.trim(),
+        make: form.make.trim(),
+        model: form.model.trim(),
+        homeId: form.homeId,
+        homeName: form.homeName,
+        status: form.status as VehicleStatus,
+        mileage: form.mileage ? parseInt(form.mileage, 10) : 0,
+        nextServiceDate: form.nextServiceDate || "",
+        image: form.image || undefined,
+      })
 
-    handleClose(false)
+      handleClose(false)
+    } catch (error) {
+      setErrors([getApiErrorMessage(error, "Unable to save vehicle. Please try again.")])
+    }
   }
 
   const handleClose = (isOpen: boolean) => {
@@ -201,7 +207,7 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockCareGroupHomes.map((home) => (
+                  {allHomes.map((home) => (
                     <SelectItem key={home.id} value={home.id.toString()}>
                       {home.name}
                     </SelectItem>

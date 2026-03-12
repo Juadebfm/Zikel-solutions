@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { TaskExplorerFilters, TaskExplorerPeriod, TaskExplorerType, TaskExplorerStatusOption } from "@/types"
+import type { TaskExplorerFilters } from "@/types"
 
 interface ValidationError {
   field: string

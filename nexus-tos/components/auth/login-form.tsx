@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { loginSchema, type LoginFormValues } from "@/lib/validators"
 
 export function LoginForm() {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading } = useAuth()
@@ -39,6 +41,11 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFormValues) => {
     setError(null)
     const result = await login(data.email, data.password)
+    if (!result.success && result.requiresVerification) {
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
+      return
+    }
+
     if (!result.success) {
       setError(result.message || "Invalid email or password. Please try again.")
     }

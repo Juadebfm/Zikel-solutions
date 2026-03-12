@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from "react"
@@ -14,19 +13,6 @@ import fr from "@/i18n/fr.json"
 
 // Translation data type
 type TranslationData = typeof en
-
-// Nested key path type
-type NestedKeyOf<T> = T extends object
-  ? {
-      [K in keyof T]: K extends string
-        ? T[K] extends object
-          ? `${K}.${NestedKeyOf<T[K]>}` | K
-          : K
-        : never
-    }[keyof T]
-  : never
-
-type TranslationKey = NestedKeyOf<TranslationData>
 
 interface LanguageContextType {
   language: Language
@@ -45,21 +31,23 @@ const STORAGE_KEY = "nexus-language"
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en")
-  const [isLoading, setIsLoading] = useState(true)
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === "undefined") {
+      return "en"
+    }
 
-  // Load language preference from localStorage on mount
-  useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Language | null
+      const stored = window.localStorage.getItem(STORAGE_KEY) as Language | null
       if (stored && (stored === "en" || stored === "fr")) {
-        setLanguageState(stored)
+        return stored
       }
     } catch {
       // localStorage not available
     }
-    setIsLoading(false)
-  }, [])
+
+    return "en"
+  })
+  const isLoading = false
 
   // Update language and persist to localStorage
   const setLanguage = useCallback((lang: Language) => {

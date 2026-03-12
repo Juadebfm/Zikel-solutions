@@ -17,17 +17,9 @@ import { useAuth } from "@/contexts/auth-context"
 
 interface HeaderProps {
   onMenuClick?: () => void
-  title?: string
-  subtitle?: string
-  showActions?: boolean
 }
 
-export function Header({
-  onMenuClick,
-  title,
-  subtitle,
-  showActions = true,
-}: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth()
 
   const getInitials = (firstName: string, lastName: string) => {

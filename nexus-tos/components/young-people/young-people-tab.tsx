@@ -45,7 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockYoungPeople } from "@/lib/mock-data"
+import { useYoungPeople } from "@/hooks/api/use-backend-data"
 import type { YoungPersonStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -78,8 +78,7 @@ export function YoungPeopleTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allYP = mockYoungPeople
+  const { data: allYP = [] } = useYoungPeople()
 
   const statusFiltered = statusTab === "all" ? allYP : allYP.filter((yp) => yp.status === statusTab)
 

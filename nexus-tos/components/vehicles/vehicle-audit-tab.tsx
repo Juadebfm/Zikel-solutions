@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
 import { AuditDiffPanel } from "@/components/homes/audit-diff-panel"
-import { getVehicleAuditsByCategory } from "@/lib/mock-data"
+import { useVehicleAudits } from "@/hooks/api/use-backend-data"
 import type { VehicleAuditCategory } from "@/types"
 
 const auditCategories: { key: VehicleAuditCategory; label: string }[] = [
@@ -57,8 +57,7 @@ export function VehicleAuditTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const items = getVehicleAuditsByCategory(activeCategory as VehicleAuditCategory)
+  const { data: items = [] } = useVehicleAudits(activeCategory)
 
   const filtered = items.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

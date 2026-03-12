@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { LanguageProvider } from "@/contexts/language-context"
 import { LanguageSelector } from "@/components/auth/language-selector"
@@ -13,20 +12,8 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [animate, setAnimate] = useState(false)
-  const [prevPathname, setPrevPathname] = useState(pathname)
   const termsUrl = LEGAL_URLS.terms
   const privacyUrl = LEGAL_URLS.privacy
-
-  // Trigger animation on route change
-  useEffect(() => {
-    if (pathname !== prevPathname) {
-      setAnimate(true)
-      setPrevPathname(pathname)
-      const timer = setTimeout(() => setAnimate(false), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [pathname, prevPathname])
 
   return (
     <LanguageProvider>
@@ -111,7 +98,7 @@ export default function AuthLayout({
         </div>
 
         {/* Right Panel - Branded */}
-        <BrandedPanel animate={animate} />
+        <BrandedPanel key={pathname} animate />
       </div>
     </LanguageProvider>
   )

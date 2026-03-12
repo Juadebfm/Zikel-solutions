@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "./category-sub-tabs"
 import { AuditDiffPanel } from "./audit-diff-panel"
-import { getHomeAuditsByCategory } from "@/lib/mock-data"
+import { useHomeAudits } from "@/hooks/api/use-backend-data"
 import type { HomeAuditCategory } from "@/types"
 
 const auditCategories: { key: string; label: string }[] = [
@@ -77,8 +77,7 @@ export function AuditTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getHomeAuditsByCategory(activeCategory)
+  const { data: allItems = [] } = useHomeAudits(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

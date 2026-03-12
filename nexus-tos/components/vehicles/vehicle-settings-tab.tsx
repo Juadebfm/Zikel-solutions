@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
 import { CreateCustomInfoFieldDialog } from "@/components/vehicles/create-custom-info-field-dialog"
-import { getVehicleSettingsByCategory, getVehicleCustomInfoFields } from "@/lib/mock-data"
+import { useVehicleCustomInfoFields, useVehicleSettings } from "@/hooks/api/use-backend-data"
 import type { VehicleSettingCategory, VehicleCustomInfoField } from "@/types"
 
 const settingCategories: { key: VehicleSettingCategory; label: string }[] = [
@@ -104,9 +104,8 @@ export function VehicleSettingsTab() {
 
   const isCustomFields = activeCategory === "custom-information-fields"
   const columns = isCustomFields ? customFieldColumns : baseColumns
-
-  const settingItems = isCustomFields ? [] : getVehicleSettingsByCategory(activeCategory as VehicleSettingCategory)
-  const customFieldItems = isCustomFields ? getVehicleCustomInfoFields() : []
+  const { data: settingItems = [] } = useVehicleSettings(activeCategory)
+  const { data: customFieldItems = [] } = useVehicleCustomInfoFields()
 
   // Unified filtering
   const filteredSettings = settingItems.filter((item) => {

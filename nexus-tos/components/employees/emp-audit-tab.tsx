@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "@/components/homes/category-sub-tabs"
 import { AuditDiffPanel } from "@/components/homes/audit-diff-panel"
-import { getEmpAuditsByCategory } from "@/lib/mock-data"
+import { useEmployeeAudits } from "@/hooks/api/use-backend-data"
 import type { EmpAuditCategory } from "@/types"
 
 const auditCategories: { key: string; label: string }[] = [
@@ -69,8 +69,7 @@ export function EmpAuditTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getEmpAuditsByCategory(activeCategory)
+  const { data: allItems = [] } = useEmployeeAudits(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

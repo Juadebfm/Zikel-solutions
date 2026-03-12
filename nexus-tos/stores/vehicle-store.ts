@@ -1,45 +1,24 @@
 import { create } from "zustand"
 import type { Vehicle } from "@/types"
-import { mockVehicles } from "@/lib/mock-data"
-
-const STORAGE_KEY = "nexus-vehicles"
-
-function loadFromStorage(): Vehicle[] {
-  if (typeof window === "undefined") return mockVehicles
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : mockVehicles
-  } catch {
-    return mockVehicles
-  }
-}
-
-function saveToStorage(vehicles: Vehicle[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles))
-}
+import { backendDataService } from "@/services/backend-data.service"
 
 interface VehicleStore {
   vehicles: Vehicle[]
-  loadVehicles: () => void
-  addVehicle: (vehicle: Omit<Vehicle, "id">) => void
+  loadVehicles: () => Promise<void>
+  addVehicle: (vehicle: Omit<Vehicle, "id">) => Promise<void>
 }
 
-export const useVehicleStore = create<VehicleStore>((set, get) => ({
+export const useVehicleStore = create<VehicleStore>((set) => ({
   vehicles: [],
 
-  loadVehicles: () => {
-    set({ vehicles: loadFromStorage() })
+  loadVehicles: async () => {
+    const vehicles = await backendDataService.listVehicles()
+    set({ vehicles })
   },
 
-  addVehicle: (vehicleData) => {
-    const { vehicles } = get()
-    const maxId = vehicles.length > 0 ? Math.max(...vehicles.map((v) => v.id)) : 0
-    const newVehicle: Vehicle = {
-      ...vehicleData,
-      id: maxId + 1,
-    }
-    const updated = [...vehicles, newVehicle]
-    saveToStorage(updated)
-    set({ vehicles: updated })
+  addVehicle: async (vehicleData) => {
+    await backendDataService.createVehicle(vehicleData)
+    const vehicles = await backendDataService.listVehicles()
+    set({ vehicles })
   },
 }))

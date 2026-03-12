@@ -42,7 +42,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { CategorySubTabs } from "./category-sub-tabs"
-import { getHomeSettingsByCategory } from "@/lib/mock-data"
+import { useHomeSettings } from "@/hooks/api/use-backend-data"
 import type { HomeSettingCategory } from "@/types"
 
 const settingsCategories: { key: string; label: string }[] = [
@@ -79,8 +79,7 @@ export function SettingsTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = getHomeSettingsByCategory(activeCategory)
+  const { data: allItems = [] } = useHomeSettings(activeCategory)
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

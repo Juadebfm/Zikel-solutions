@@ -36,8 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ConfiguredInfo } from "@/components/task-explorer/configured-info"
+import { useTaskExplorerLogs } from "@/hooks/api/use-backend-data"
 import { statusColors } from "@/lib/constants"
-import { mockTaskExplorerLogs } from "@/lib/mock-data"
 import type { TaskExplorerFilters, TaskExplorerStatusOption } from "@/types"
 
 interface TaskExplorerLogsProps {
@@ -77,9 +77,10 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
+  const { data: allLogs = [] } = useTaskExplorerLogs()
 
   const filteredLogs = useMemo(() => {
-    return mockTaskExplorerLogs.filter((log) => {
+    return allLogs.filter((log) => {
       if (filters.statuses.length > 0 && !filters.statuses.includes(log.status)) {
         return false
       }
@@ -102,7 +103,7 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
       }
       return true
     })
-  }, [filters])
+  }, [allLogs, filters])
 
   // Pagination
   const pageSizeNum = parseInt(pageSize)

@@ -41,7 +41,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { mockYPRewards } from "@/lib/mock-data"
+import { useYPRewards } from "@/hooks/api/use-backend-data"
 
 type RewardColumnKey = "id" | "youngPerson" | "rewardType" | "points" | "awardedBy" | "awardedAt" | "status"
 
@@ -69,8 +69,7 @@ export function RewardsTab() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
-
-  const allItems = mockYPRewards
+  const { data: allItems = [] } = useYPRewards()
 
   const filtered = allItems.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {

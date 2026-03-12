@@ -51,8 +51,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import { getCareGroupById, mockStakeholders, mockCareGroupHomes } from "@/lib/mock-data"
-import type { CareGroupType, CareGroupHomeStatus } from "@/types"
+import {
+  useCareGroupDetail,
+  useCareGroupStakeholders,
+  useHomes,
+} from "@/hooks/api/use-backend-data"
+import type { CareGroup, CareGroupHomeStatus, CareGroupType, Stakeholder } from "@/types"
 
 type TabKey = "summary" | "contact-details" | "addresses" | "settings" | "stakeholders" | "homes"
 
@@ -68,36 +72,79 @@ const tabs: { key: TabKey; label: string }[] = [
 export default function CareGroupDetailPage() {
   const params = useParams()
   const careGroupId = Number(params.id)
-  const careGroup = getCareGroupById(careGroupId)
+  const { data: careGroup, isLoading: isCareGroupLoading } = useCareGroupDetail(careGroupId)
+  const { data: stakeholders = [] } = useCareGroupStakeholders(careGroupId)
+  const { data: careGroupHomes = [] } = useHomes(careGroupId)
 
   const [activeTab, setActiveTab] = useState<TabKey>("summary")
 
   // Form state
-  const [name, setName] = useState(careGroup?.name || "")
-  const [type, setType] = useState<CareGroupType>(careGroup?.type || "private")
-  const [description, setDescription] = useState(careGroup?.description || "")
-  const [website, setWebsite] = useState(careGroup?.website || "")
-  const [ipRestriction, setIpRestriction] = useState(careGroup?.defaultUserIpRestriction || false)
+  const [name, setName] = useState<string | undefined>()
+  const [type, setType] = useState<CareGroupType | undefined>()
+  const [description, setDescription] = useState<string | undefined>()
+  const [website, setWebsite] = useState<string | undefined>()
+  const [ipRestriction, setIpRestriction] = useState<boolean | undefined>()
 
   // Contact Details
-  const [contact, setContact] = useState(careGroup?.contact || "")
-  const [phone, setPhone] = useState(careGroup?.phoneNumber || "")
-  const [fax, setFax] = useState(careGroup?.faxNumber || "")
-  const [email, setEmail] = useState(careGroup?.email || "")
+  const [contact, setContact] = useState<string | undefined>()
+  const [phone, setPhone] = useState<string | undefined>()
+  const [fax, setFax] = useState<string | undefined>()
+  const [email, setEmail] = useState<string | undefined>()
 
   // Address
-  const [addressLine1, setAddressLine1] = useState(careGroup?.addressLine1 || "")
-  const [addressLine2, setAddressLine2] = useState(careGroup?.addressLine2 || "")
-  const [city, setCity] = useState(careGroup?.city || "")
-  const [countryRegion, setCountryRegion] = useState(careGroup?.countryRegion || "")
-  const [postcode, setPostcode] = useState(careGroup?.postcode || "")
+  const [addressLine1, setAddressLine1] = useState<string | undefined>()
+  const [addressLine2, setAddressLine2] = useState<string | undefined>()
+  const [city, setCity] = useState<string | undefined>()
+  const [countryRegion, setCountryRegion] = useState<string | undefined>()
+  const [postcode, setPostcode] = useState<string | undefined>()
+
+  const resolvedName = name ?? careGroup?.name ?? ""
+  const resolvedType = type ?? careGroup?.type ?? "private"
+  const resolvedDescription = description ?? careGroup?.description ?? ""
+  const resolvedWebsite = website ?? careGroup?.website ?? ""
+  const resolvedIpRestriction = ipRestriction ?? Boolean(careGroup?.defaultUserIpRestriction)
+  const resolvedContact = contact ?? careGroup?.contact ?? ""
+  const resolvedPhone = phone ?? careGroup?.phoneNumber ?? ""
+  const resolvedFax = fax ?? careGroup?.faxNumber ?? ""
+  const resolvedEmail = email ?? careGroup?.email ?? ""
+  const resolvedAddressLine1 = addressLine1 ?? careGroup?.addressLine1 ?? ""
+  const resolvedAddressLine2 = addressLine2 ?? careGroup?.addressLine2 ?? ""
+  const resolvedCity = city ?? careGroup?.city ?? ""
+  const resolvedCountryRegion = countryRegion ?? careGroup?.countryRegion ?? ""
+  const resolvedPostcode = postcode ?? careGroup?.postcode ?? ""
 
   const handleSave = () => {
-    console.log("Save care group", { name, type, description, website, ipRestriction, contact, phone, fax, email, addressLine1, addressLine2, city, countryRegion, postcode })
+    console.log("Save care group", {
+      name: resolvedName,
+      type: resolvedType,
+      description: resolvedDescription,
+      website: resolvedWebsite,
+      ipRestriction: resolvedIpRestriction,
+      contact: resolvedContact,
+      phone: resolvedPhone,
+      fax: resolvedFax,
+      email: resolvedEmail,
+      addressLine1: resolvedAddressLine1,
+      addressLine2: resolvedAddressLine2,
+      city: resolvedCity,
+      countryRegion: resolvedCountryRegion,
+      postcode: resolvedPostcode,
+    })
   }
 
   const handleExport = (format: "pdf" | "excel") => {
     console.log(`Export as ${format}`)
+  }
+
+  if (isCareGroupLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Loading Care Group...</h1>
+          <p className="text-gray-500 mt-1">Fetching latest data from backend.</p>
+        </div>
+      </div>
+    )
   }
 
   if (!careGroup) {
@@ -176,43 +223,43 @@ export default function CareGroupDetailPage() {
       {activeTab === "summary" && (
         <SummaryTab
           careGroup={careGroup}
-          name={name}
+          name={resolvedName}
           setName={setName}
-          type={type}
+          type={resolvedType}
           setType={setType}
-          description={description}
+          description={resolvedDescription}
           setDescription={setDescription}
-          website={website}
+          website={resolvedWebsite}
           setWebsite={setWebsite}
-          ipRestriction={ipRestriction}
+          ipRestriction={resolvedIpRestriction}
           setIpRestriction={setIpRestriction}
         />
       )}
 
       {activeTab === "contact-details" && (
         <ContactDetailsTab
-          contact={contact}
+          contact={resolvedContact}
           setContact={setContact}
-          phone={phone}
+          phone={resolvedPhone}
           setPhone={setPhone}
-          fax={fax}
+          fax={resolvedFax}
           setFax={setFax}
-          email={email}
+          email={resolvedEmail}
           setEmail={setEmail}
         />
       )}
 
       {activeTab === "addresses" && (
         <AddressesTab
-          addressLine1={addressLine1}
+          addressLine1={resolvedAddressLine1}
           setAddressLine1={setAddressLine1}
-          addressLine2={addressLine2}
+          addressLine2={resolvedAddressLine2}
           setAddressLine2={setAddressLine2}
-          city={city}
+          city={resolvedCity}
           setCity={setCity}
-          countryRegion={countryRegion}
+          countryRegion={resolvedCountryRegion}
           setCountryRegion={setCountryRegion}
-          postcode={postcode}
+          postcode={resolvedPostcode}
           setPostcode={setPostcode}
         />
       )}
@@ -221,13 +268,9 @@ export default function CareGroupDetailPage() {
         <SettingsTab careGroup={careGroup} />
       )}
 
-      {activeTab === "stakeholders" && (
-        <StakeholdersTab />
-      )}
+      {activeTab === "stakeholders" && <StakeholdersTab stakeholders={stakeholders} />}
 
-      {activeTab === "homes" && (
-        <HomesTab careGroupId={careGroupId} />
-      )}
+      {activeTab === "homes" && <HomesTab homes={careGroupHomes} />}
       </div>
     </div>
   )
@@ -236,7 +279,7 @@ export default function CareGroupDetailPage() {
 // ─── Summary Tab ─────────────────────────────────────────────────────────────
 
 interface SummaryTabProps {
-  careGroup: NonNullable<ReturnType<typeof getCareGroupById>>
+  careGroup: CareGroup
   name: string
   setName: (v: string) => void
   type: CareGroupType
@@ -502,7 +545,7 @@ function AddressesTab({ addressLine1, setAddressLine1, addressLine2, setAddressL
 // ─── Settings Tab ────────────────────────────────────────────────────────────
 
 interface SettingsTabProps {
-  careGroup: NonNullable<ReturnType<typeof getCareGroupById>>
+  careGroup: CareGroup
 }
 
 function SettingsTab({ careGroup }: SettingsTabProps) {
@@ -550,12 +593,16 @@ const stakeholderColumns: { key: StakeholderColumnKey; label: string; filterable
   { key: "endDate", label: "End Date", filterable: true, filterType: "date" },
 ]
 
-function StakeholdersTab() {
+interface StakeholdersTabProps {
+  stakeholders: Stakeholder[]
+}
+
+function StakeholdersTab({ stakeholders }: StakeholdersTabProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const pageSizeNum = parseInt(pageSize)
-  const totalPages = Math.max(1, Math.ceil(mockStakeholders.length / pageSizeNum))
-  const paginated = mockStakeholders.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
+  const totalPages = Math.max(1, Math.ceil(stakeholders.length / pageSizeNum))
+  const paginated = stakeholders.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
 
   const handleAdd = () => {
     console.log("Add stakeholder")
@@ -771,10 +818,10 @@ const homeStatusBadge: Record<CareGroupHomeStatus, { bg: string; text: string }>
 }
 
 interface HomesTabProps {
-  careGroupId: number
+  homes: Array<{ id: number; name: string; status: CareGroupHomeStatus; category: string; responsibleIndividual: string }>
 }
 
-function HomesTab({ careGroupId }: HomesTabProps) {
+function HomesTab({ homes }: HomesTabProps) {
   const [statusTab, setStatusTab] = useState<HomesStatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<HomeColumnKey[]>(defaultHomeColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -782,7 +829,7 @@ function HomesTab({ careGroupId }: HomesTabProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
 
-  const allHomes = mockCareGroupHomes.filter((h) => h.careGroupId === careGroupId)
+  const allHomes = homes
 
   // Filter by status tab
   const statusFiltered = statusTab === "all" ? allHomes : allHomes.filter((h) => h.status === statusTab)

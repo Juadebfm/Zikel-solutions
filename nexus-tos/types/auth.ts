@@ -68,20 +68,6 @@ export interface User {
   updatedAt?: string
 }
 
-// Auth Types (for mock authentication)
-export interface AuthUser extends User {
-  password: string // Only used in mock data, never exposed to client
-}
-
-export interface AuthResponse {
-  success: boolean
-  user?: User
-  message?: string
-  token?: string // For future JWT implementation
-  accessToken?: string
-  refreshToken?: string
-}
-
 // Login Form Data
 export interface LoginFormData {
   email: string

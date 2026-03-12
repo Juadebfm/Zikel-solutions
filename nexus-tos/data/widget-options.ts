@@ -1,14 +1,5 @@
 export type WidgetType = "data-card" | "pie-chart" | "bar-chart" | "line-chart" | "table"
 
-export interface Widget {
-  id: string
-  type: WidgetType
-  title: string
-  period: string
-  reportsOn: string
-  data: Record<string, number>
-}
-
 export const widgetTypeLabels: Record<WidgetType, string> = {
   "data-card": "Data Card",
   "pie-chart": "Pie Chart",
@@ -38,24 +29,4 @@ export const reportsOnOptions = [
   { value: "approvals", label: "Approvals" },
   { value: "young_people", label: "Young People" },
   { value: "employees", label: "Employees" },
-]
-
-// Pre-saved mock widgets for the dashboard
-export const mockWidgets: Widget[] = [
-  {
-    id: "w1",
-    type: "data-card",
-    title: "Total Tasks This Month",
-    period: "this-month",
-    reportsOn: "tasks",
-    data: { value: 142 },
-  },
-  {
-    id: "w2",
-    type: "pie-chart",
-    title: "Task Status Distribution",
-    period: "this-month",
-    reportsOn: "tasks",
-    data: { completed: 85, "in-progress": 32, overdue: 12, draft: 13 },
-  },
 ]

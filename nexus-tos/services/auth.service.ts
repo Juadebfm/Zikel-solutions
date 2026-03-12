@@ -35,16 +35,22 @@ export interface LoginPayload {
 export interface RegisterPayload {
   userId: string
   message: string
+  otpDeliveryStatus: OtpDeliveryStatus
+  resendAvailableAt: string
 }
 
 export interface ResendOtpPayload {
   message: string
   cooldownSeconds: number
+  otpDeliveryStatus: OtpDeliveryStatus
+  resendAvailableAt: string
 }
 
 export interface GenericMessagePayload {
   message: string
 }
+
+export type OtpDeliveryStatus = "sent" | "queued" | "failed"
 
 export interface MeProfile {
   id: string

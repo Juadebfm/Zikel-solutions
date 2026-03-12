@@ -1,18 +1,27 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { SignupForm } from "@/components/auth/signup/signup-form"
+import dynamic from "next/dynamic"
+
+function RegisterFormLoading() {
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+        <div className="flex flex-col items-center justify-center py-14">
+          <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          <p className="mt-4 text-sm text-gray-500">Loading registration form...</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SignupForm = dynamic(
+  () => import("@/components/auth/signup/signup-form").then((mod) => mod.SignupForm),
+  {
+    loading: () => <RegisterFormLoading />,
+  }
+)
 
 export default function RegisterPage() {
-  // This state is used to trigger animation in the parent layout
-  // We pass a callback to SignupForm that gets called on step change
-  const [, setCurrentStep] = useState(1)
-
-  const handleStepChange = useCallback((step: number) => {
-    setCurrentStep(step)
-    // The animation is handled by the layout through pathname change detection
-    // But for in-page step changes, we could add additional logic here
-  }, [])
-
-  return <SignupForm onStepChange={handleStepChange} />
+  return <SignupForm />
 }
