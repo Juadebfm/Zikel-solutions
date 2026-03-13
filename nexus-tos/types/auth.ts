@@ -1,5 +1,22 @@
 // User Roles and Permissions
-export type UserRole = "staff" | "manager" | "admin"
+export type UserRole = "staff" | "manager" | "admin" | "super_admin"
+export type TenantRole = "tenant_admin" | "sub_admin" | "staff"
+
+export interface TenantMembership {
+  id: string
+  tenantId: string
+  tenantRole: TenantRole
+  isActive: boolean
+  tenantName?: string
+}
+
+export interface AuthSessionContext {
+  activeTenantId: string | null
+  activeTenantRole: TenantRole | null
+  memberships: TenantMembership[]
+  mfaRequired: boolean
+  mfaVerified: boolean
+}
 
 export interface RolePermissions {
   canViewAllHomes: boolean
@@ -34,6 +51,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canExportData: true,
   },
   admin: {
+    canViewAllHomes: true,
+    canViewAllYoungPeople: true,
+    canViewAllEmployees: true,
+    canApproveIOILogs: true,
+    canManageUsers: true,
+    canManageSettings: true,
+    canViewReports: true,
+    canExportData: true,
+  },
+  super_admin: {
     canViewAllHomes: true,
     canViewAllYoungPeople: true,
     canViewAllEmployees: true,

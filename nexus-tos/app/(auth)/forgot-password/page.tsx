@@ -16,8 +16,9 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
+import { TurnstileCaptcha } from "@/components/auth/turnstile-captcha"
+import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { authService } from "@/services/auth.service"
-import { getApiErrorMessage } from "@/lib/api/error"
 
 const forgotPasswordSchema = z.object({
   email: z
@@ -32,6 +33,9 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
+  const requiresCaptcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -42,12 +46,18 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setSubmitError(null)
+    if (requiresCaptcha && !captchaToken) {
+      setSubmitError("Please complete the security verification.")
+      return
+    }
+
     setIsLoading(true)
     try {
-      await authService.forgotPassword(data.email)
+      await authService.forgotPassword(data.email, { captchaToken: captchaToken ?? undefined })
       setIsSubmitted(true)
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, "Failed to send reset instructions. Please try again."))
+      setSubmitError(getPublicAuthErrorMessage(error, "Failed to send reset instructions. Please try again."))
+      setCaptchaResetSignal((value) => value + 1)
     } finally {
       setIsLoading(false)
     }
@@ -135,6 +145,12 @@ export default function ForgotPasswordPage() {
                 "Send Reset Instructions"
               )}
             </Button>
+
+            <TurnstileCaptcha
+              token={captchaToken}
+              onTokenChange={setCaptchaToken}
+              resetSignal={captchaResetSignal}
+            />
 
             <div className="text-center pt-4">
               <Link

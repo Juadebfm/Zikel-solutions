@@ -20,6 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { canManageInvites } from "@/lib/auth/rbac"
 
 interface MobileNavProps {
   open: boolean
@@ -28,7 +29,7 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, session, hasPermission, logout } = useAuth()
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -45,8 +46,14 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
   // Filter nav items based on user role
   const visibleItems = navItems.filter((item) => {
-    if (!item.roles || item.roles.length === 0) return true
-    return user?.role ? item.roles.includes(user.role) : false
+    const roleAllowed = !item.roles || item.roles.length === 0
+      ? true
+      : Boolean(user?.role && item.roles.includes(user.role))
+    const permissionAllowed = item.permission ? hasPermission(item.permission) : true
+    const inviteFallbackAllowed =
+      item.href === "/users" && canManageInvites(user?.role, session?.activeTenantRole)
+
+    return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })
 
   return (

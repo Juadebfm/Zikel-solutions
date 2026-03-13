@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { BrandMark } from "@/components/shared/brand-mark"
+import { TurnstileCaptcha } from "@/components/auth/turnstile-captcha"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
 import { loginSchema, type LoginFormValues } from "@/lib/validators"
@@ -26,8 +27,11 @@ export function LoginForm() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
   const { login, isLoading } = useAuth()
   const { t } = useLanguage()
+  const requiresCaptcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -40,14 +44,21 @@ export function LoginForm() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setError(null)
-    const result = await login(data.email, data.password)
+    if (requiresCaptcha && !captchaToken) {
+      setError("Please complete the security verification.")
+      return
+    }
+
+    const result = await login(data.email, data.password, captchaToken ?? undefined)
     if (!result.success && result.requiresVerification) {
+      setCaptchaResetSignal((value) => value + 1)
       router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
       return
     }
 
     if (!result.success) {
       setError(result.message || "Invalid email or password. Please try again.")
+      setCaptchaResetSignal((value) => value + 1)
     }
   }
 
@@ -158,6 +169,13 @@ export function LoginForm() {
                 t("auth.login.loginButton")
               )}
             </Button>
+
+            <TurnstileCaptcha
+              token={captchaToken}
+              onTokenChange={setCaptchaToken}
+              className="pt-1"
+              resetSignal={captchaResetSignal}
+            />
           </form>
         </Form>
       </div>

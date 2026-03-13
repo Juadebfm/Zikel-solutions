@@ -46,6 +46,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { CreateEmployeeDialog } from "@/components/employees/create-employee-dialog"
+import { useAuth } from "@/contexts/auth-context"
+import { canWriteEmployees } from "@/lib/auth/rbac"
 import { useEmployees } from "@/hooks/api/use-backend-data"
 import type { EmployeeStatus } from "@/types"
 
@@ -73,6 +75,7 @@ const empStatusBadge: Record<EmployeeStatus, { bg: string; text: string }> = {
 }
 
 export function EmployeesTab() {
+  const { user } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<EmpColumnKey[]>(defaultEmpColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -81,6 +84,7 @@ export function EmployeesTab() {
   const [pageSize, setPageSize] = useState("20")
   const [showCreateEmployee, setShowCreateEmployee] = useState(false)
   const { data: allEmployees = [] } = useEmployees()
+  const canWriteEmployeeRecords = canWriteEmployees(user?.role)
 
   const statusFiltered = statusTab === "all" ? allEmployees : allEmployees.filter((e) => e.status === statusTab)
 
@@ -202,10 +206,12 @@ export function EmployeesTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowCreateEmployee(true)}>
-            <Plus className="size-3.5" />
-            Add
-          </Button>
+          {canWriteEmployeeRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowCreateEmployee(true)}>
+              <Plus className="size-3.5" />
+              Add
+            </Button>
+          ) : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -226,9 +232,11 @@ export function EmployeesTab() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
-            Actions
-          </Button>
+          {canWriteEmployeeRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
+              Actions
+            </Button>
+          ) : null}
         </div>
       </div>
 

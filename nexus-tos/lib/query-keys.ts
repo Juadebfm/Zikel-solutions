@@ -24,6 +24,31 @@ export const queryKeys = {
       ["announcements", "list", params] as const,
     detail: (id: string) => ["announcements", "detail", id] as const,
   },
+  tenants: {
+    invites: (tenantId: string, params: { status?: string; page: number; limit: number }) =>
+      ["tenants", "invites", tenantId, params] as const,
+    invitesBase: (tenantId: string) => ["tenants", "invites", tenantId] as const,
+  },
+  audit: {
+    events: (params: {
+      search?: string
+      action?: string
+      actorId?: string
+      tenantId?: string
+      from?: string
+      to?: string
+      page: number
+      limit: number
+    }) => ["audit", "events", params] as const,
+    securityAlerts: (params: {
+      search?: string
+      severity?: string
+      status?: string
+      page: number
+      limit: number
+    }) => ["audit", "security-alerts", params] as const,
+    detail: (id: string) => ["audit", "detail", id] as const,
+  },
   backend: {
     careGroups: {
       list: ["backend", "care-groups", "list"] as const,

@@ -1,5 +1,13 @@
 import { apiRequest } from "@/lib/api/client"
-import type { Gender, RolePermissions, SignupFormData, User } from "@/types"
+import type {
+  AuthSessionContext,
+  Gender,
+  RolePermissions,
+  SignupFormData,
+  TenantMembership,
+  TenantRole,
+  User,
+} from "@/types"
 
 export interface AuthTokens {
   accessToken: string
@@ -9,7 +17,7 @@ export interface AuthTokens {
 export interface AuthApiUser {
   id: string
   email: string
-  role: "staff" | "manager" | "admin"
+  role: "staff" | "manager" | "admin" | "super_admin"
   firstName: string
   middleName: string | null
   lastName: string
@@ -29,6 +37,7 @@ export interface AuthApiUser {
 
 export interface LoginPayload {
   user: AuthApiUser
+  session?: AuthApiSession
   tokens: AuthTokens
 }
 
@@ -51,6 +60,39 @@ export interface GenericMessagePayload {
 }
 
 export type OtpDeliveryStatus = "sent" | "queued" | "failed"
+
+export interface PublicAuthOptions {
+  captchaToken?: string
+}
+
+export interface AuthApiMembership {
+  id: string
+  tenantId: string
+  tenantRole: TenantRole
+  isActive: boolean
+  tenantName?: string | null
+}
+
+export interface AuthApiSession {
+  activeTenantId: string | null
+  activeTenantRole: TenantRole | null
+  memberships: AuthApiMembership[]
+  mfaRequired: boolean
+  mfaVerified: boolean
+}
+
+export interface AccessTokenPayload {
+  accessToken: string
+  session?: AuthApiSession
+}
+
+interface AccessTokenEnvelope {
+  accessToken?: string
+  tokens?: {
+    accessToken?: string
+  }
+  session?: AuthApiSession
+}
 
 export interface MeProfile {
   id: string
@@ -97,6 +139,32 @@ function mapAuthApiUserToAppUser(user: AuthApiUser): User {
   }
 }
 
+function mapAuthApiSessionToAppSession(session?: AuthApiSession | null): AuthSessionContext {
+  if (!session) {
+    return {
+      activeTenantId: null,
+      activeTenantRole: null,
+      memberships: [],
+      mfaRequired: false,
+      mfaVerified: false,
+    }
+  }
+
+  return {
+    activeTenantId: session.activeTenantId ?? null,
+    activeTenantRole: session.activeTenantRole ?? null,
+    memberships: session.memberships.map((membership): TenantMembership => ({
+      id: membership.id,
+      tenantId: membership.tenantId,
+      tenantRole: membership.tenantRole,
+      isActive: membership.isActive,
+      tenantName: membership.tenantName ?? undefined,
+    })),
+    mfaRequired: session.mfaRequired,
+    mfaVerified: session.mfaVerified,
+  }
+}
+
 function mapMeProfileToAppUser(profile: MeProfile): User {
   return {
     id: profile.id,
@@ -116,11 +184,22 @@ function mapMeProfileToAppUser(profile: MeProfile): User {
   }
 }
 
+function captchaHeaders(captchaToken?: string): Record<string, string> | undefined {
+  if (!captchaToken) {
+    return undefined
+  }
+
+  return {
+    "x-captcha-token": captchaToken,
+  }
+}
+
 export const authService = {
-  async register(data: SignupFormData): Promise<RegisterPayload> {
+  async register(data: SignupFormData, options?: PublicAuthOptions): Promise<RegisterPayload> {
     const response = await apiRequest<RegisterPayload>({
       path: "/auth/register",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: {
         country: data.country,
         firstName: data.firstName,
@@ -138,39 +217,43 @@ export const authService = {
     return response.data
   },
 
-  async checkEmailAvailability(email: string): Promise<boolean> {
+  async checkEmailAvailability(email: string, options?: PublicAuthOptions): Promise<boolean> {
     const response = await apiRequest<{ available: boolean }>({
       path: "/auth/check-email",
+      headers: captchaHeaders(options?.captchaToken),
       query: { email },
     })
 
     return response.data.available
   },
 
-  async login(email: string, password: string): Promise<LoginPayload> {
+  async login(email: string, password: string, options?: PublicAuthOptions): Promise<LoginPayload> {
     const response = await apiRequest<LoginPayload>({
       path: "/auth/login",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: { email, password },
     })
 
     return response.data
   },
 
-  async verifyOtp(email: string, code: string): Promise<LoginPayload> {
+  async verifyOtp(email: string, code: string, options?: PublicAuthOptions): Promise<LoginPayload> {
     const response = await apiRequest<LoginPayload>({
       path: "/auth/verify-otp",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: { email, code },
     })
 
     return response.data
   },
 
-  async resendOtp(email: string): Promise<ResendOtpPayload> {
+  async resendOtp(email: string, options?: PublicAuthOptions): Promise<ResendOtpPayload> {
     const response = await apiRequest<ResendOtpPayload>({
       path: "/auth/resend-otp",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: { email, purpose: "email_verification" },
     })
 
@@ -198,24 +281,74 @@ export const authService = {
     return response.data
   },
 
-  async forgotPassword(email: string): Promise<GenericMessagePayload> {
+  async forgotPassword(email: string, options?: PublicAuthOptions): Promise<GenericMessagePayload> {
     const response = await apiRequest<GenericMessagePayload>({
       path: "/auth/forgot-password",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: { email },
     })
 
     return response.data
   },
 
-  async resetPassword(input: ResetPasswordInput): Promise<GenericMessagePayload> {
+  async resetPassword(input: ResetPasswordInput, options?: PublicAuthOptions): Promise<GenericMessagePayload> {
     const response = await apiRequest<GenericMessagePayload>({
       path: "/auth/reset-password",
       method: "POST",
+      headers: captchaHeaders(options?.captchaToken),
       body: input,
     })
 
     return response.data
+  },
+
+  async challengeMfa(): Promise<GenericMessagePayload> {
+    const response = await apiRequest<GenericMessagePayload>({
+      path: "/auth/mfa/challenge",
+      method: "POST",
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async verifyMfa(code: string): Promise<AccessTokenPayload> {
+    const response = await apiRequest<AccessTokenEnvelope>({
+      path: "/auth/mfa/verify",
+      method: "POST",
+      auth: true,
+      body: { code },
+    })
+
+    const accessToken = response.data.accessToken ?? response.data.tokens?.accessToken
+    if (!accessToken) {
+      throw new Error("Invalid MFA verify response from server.")
+    }
+
+    return {
+      accessToken,
+      session: response.data.session,
+    }
+  },
+
+  async switchTenant(tenantId: string): Promise<AccessTokenPayload> {
+    const response = await apiRequest<AccessTokenEnvelope>({
+      path: "/auth/switch-tenant",
+      method: "POST",
+      auth: true,
+      body: { tenantId },
+    })
+
+    const accessToken = response.data.accessToken ?? response.data.tokens?.accessToken
+    if (!accessToken) {
+      throw new Error("Invalid tenant switch response from server.")
+    }
+
+    return {
+      accessToken,
+      session: response.data.session,
+    }
   },
 
   async getAuthMe(): Promise<AuthApiUser> {
@@ -292,6 +425,7 @@ export const authService = {
   },
 
   mapAuthApiUserToAppUser,
+  mapAuthApiSessionToAppSession,
   mapMeProfileToAppUser,
 }
 

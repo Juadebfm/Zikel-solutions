@@ -15,18 +15,23 @@ interface ApiRequestOptions {
   headers?: Record<string, string>
   auth?: boolean
   retryOnUnauthorized?: boolean
+  retryOnMfaRequired?: boolean
   requestId?: string
 }
 
 interface RefreshPayload {
-  user: unknown
+  user?: unknown
+  session?: unknown
   tokens: {
     accessToken: string
-    refreshToken: string
+    refreshToken?: string
   }
 }
 
 let refreshPromise: Promise<string | null> | null = null
+let pendingMfaRequest: ApiRequestOptions | null = null
+
+const MFA_RETURN_PATH_STORAGE_KEY = "nexus-mfa-return-path"
 
 export async function apiRequest<T, M = unknown>(
   options: ApiRequestOptions
@@ -35,6 +40,9 @@ export async function apiRequest<T, M = unknown>(
 
   if (!response.ok) {
     const errorPayload = await parseJsonSafely(response)
+    if (options.auth) {
+      syncMfaRequirementFromError(errorPayload)
+    }
     throw toApiClientError(errorPayload, response.status, response.statusText)
   }
 
@@ -60,12 +68,49 @@ export async function apiRequest<T, M = unknown>(
   })
 }
 
+export async function retryPendingMfaRequest(): Promise<boolean> {
+  if (!pendingMfaRequest) {
+    return false
+  }
+
+  const request = pendingMfaRequest
+  pendingMfaRequest = null
+
+  try {
+    const response = await executeRequest({
+      ...request,
+      retryOnMfaRequired: false,
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+export function clearPendingMfaRequest(): void {
+  pendingMfaRequest = null
+}
+
+export function consumeMfaReturnPath(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  const value = window.sessionStorage.getItem(MFA_RETURN_PATH_STORAGE_KEY)
+  if (value) {
+    window.sessionStorage.removeItem(MFA_RETURN_PATH_STORAGE_KEY)
+  }
+
+  return value
+}
+
 async function executeRequest<T, M>(
   options: ApiRequestOptions
 ): Promise<Response> {
   const {
     auth = false,
     retryOnUnauthorized = true,
+    retryOnMfaRequired = true,
   } = options
 
   const session = getAuthSessionState()
@@ -92,6 +137,11 @@ async function executeRequest<T, M>(
       ...options,
       retryOnUnauthorized: false,
     })
+  }
+
+  if (auth && response.status === 403 && retryOnMfaRequired) {
+    const payload = await parseJsonSafely(response.clone())
+    storePendingMfaRequest(options, payload)
   }
 
   return response
@@ -122,7 +172,12 @@ async function refreshAccessToken(): Promise<string | null> {
       const payload = await parseJsonSafely(response)
 
       if (!response.ok) {
-        session.clearSession()
+        if (
+          isApiFailurePayload(payload) &&
+          payload.error.code === "REFRESH_TOKEN_INVALID"
+        ) {
+          session.clearSession()
+        }
         return null
       }
 
@@ -143,9 +198,24 @@ async function refreshAccessToken(): Promise<string | null> {
         refreshToken: tokens.refreshToken,
       })
 
+      if (isAuthSessionPayload(payload.data?.session)) {
+        session.setSessionContext({
+          activeTenantId: payload.data.session.activeTenantId,
+          activeTenantRole: payload.data.session.activeTenantRole,
+          memberships: payload.data.session.memberships.map((membership) => ({
+            id: membership.id,
+            tenantId: membership.tenantId,
+            tenantRole: membership.tenantRole,
+            isActive: membership.isActive,
+            tenantName: membership.tenantName,
+          })),
+          mfaRequired: payload.data.session.mfaRequired,
+          mfaVerified: payload.data.session.mfaVerified,
+        })
+      }
+
       return tokens.accessToken
     } catch {
-      session.clearSession()
       return null
     }
   })()
@@ -298,4 +368,98 @@ function isApiFailurePayload(value: unknown): value is Extract<ApiResponse<unkno
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError"
+}
+
+function syncMfaRequirementFromError(errorPayload: unknown): void {
+  if (!isApiFailurePayload(errorPayload)) {
+    return
+  }
+
+  if (errorPayload.error.code !== "MFA_REQUIRED") {
+    return
+  }
+
+  const session = getAuthSessionState()
+  if (!session.session) {
+    return
+  }
+
+  session.setSessionContext({
+    ...session.session,
+    mfaRequired: true,
+    mfaVerified: false,
+  })
+}
+
+function storePendingMfaRequest(options: ApiRequestOptions, errorPayload: unknown): void {
+  if (!options.auth || options.retryOnMfaRequired === false) {
+    return
+  }
+
+  if (!isApiFailurePayload(errorPayload) || errorPayload.error.code !== "MFA_REQUIRED") {
+    return
+  }
+
+  pendingMfaRequest = {
+    ...options,
+    retryOnMfaRequired: false,
+  }
+
+  if (typeof window !== "undefined") {
+    const path = `${window.location.pathname}${window.location.search}`
+    if (path && !path.startsWith("/mfa-verify")) {
+      window.sessionStorage.setItem(MFA_RETURN_PATH_STORAGE_KEY, path)
+    }
+  }
+}
+
+interface SessionMembershipPayload {
+  id: string
+  tenantId: string
+  tenantRole: "tenant_admin" | "sub_admin" | "staff"
+  isActive: boolean
+  tenantName?: string
+}
+
+interface SessionPayload {
+  activeTenantId: string | null
+  activeTenantRole: "tenant_admin" | "sub_admin" | "staff" | null
+  memberships: SessionMembershipPayload[]
+  mfaRequired: boolean
+  mfaVerified: boolean
+}
+
+function isSessionMembershipPayload(value: unknown): value is SessionMembershipPayload {
+  if (!value || typeof value !== "object") return false
+  const membership = value as Record<string, unknown>
+
+  return (
+    typeof membership.id === "string" &&
+    typeof membership.tenantId === "string" &&
+    (membership.tenantRole === "tenant_admin" ||
+      membership.tenantRole === "sub_admin" ||
+      membership.tenantRole === "staff") &&
+    typeof membership.isActive === "boolean" &&
+    (membership.tenantName === undefined || typeof membership.tenantName === "string")
+  )
+}
+
+function isAuthSessionPayload(value: unknown): value is SessionPayload {
+  if (!value || typeof value !== "object") return false
+  const session = value as Record<string, unknown>
+
+  if (!(session.activeTenantId === null || typeof session.activeTenantId === "string")) return false
+  if (
+    !(
+      session.activeTenantRole === null ||
+      session.activeTenantRole === "tenant_admin" ||
+      session.activeTenantRole === "sub_admin" ||
+      session.activeTenantRole === "staff"
+    )
+  ) return false
+  if (!Array.isArray(session.memberships) || !session.memberships.every(isSessionMembershipPayload)) return false
+  if (typeof session.mfaRequired !== "boolean") return false
+  if (typeof session.mfaVerified !== "boolean") return false
+
+  return true
 }

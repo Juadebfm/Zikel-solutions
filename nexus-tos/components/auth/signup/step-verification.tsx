@@ -5,14 +5,24 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { OTPInput } from "@/components/auth/otp-input"
+import { TurnstileCaptcha } from "@/components/auth/turnstile-captcha"
 import { useLanguage } from "@/contexts/language-context"
-import { getOtpDeliveryStatusMessage, getResendCooldownSeconds } from "@/lib/auth/otp"
+import {
+  getOtpDeliveryStatusMessage,
+  getPublicAuthErrorMessage,
+  getResendCooldownSeconds,
+} from "@/lib/auth/otp"
 import type { OtpDeliveryStatus, ResendOtpPayload } from "@/services/auth.service"
+
+interface VerificationResult {
+  success: boolean
+  message?: string
+}
 
 interface StepVerificationProps {
   email: string
-  onVerify: (code: string) => Promise<boolean>
-  onResend: () => Promise<ResendOtpPayload>
+  onVerify: (code: string, captchaToken?: string) => Promise<VerificationResult>
+  onResend: (captchaToken?: string) => Promise<ResendOtpPayload>
   onBack: () => void
   initialResendAvailableAt?: string | null
   deliveryStatus?: OtpDeliveryStatus | null
@@ -33,9 +43,12 @@ export function StepVerification({
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
   const [cooldown, setCooldown] = useState(() => getResendCooldownSeconds(initialResendAvailableAt))
   const [currentDeliveryStatus, setCurrentDeliveryStatus] = useState<OtpDeliveryStatus | null>(deliveryStatus)
   const [currentDeliveryMessage, setCurrentDeliveryMessage] = useState<string | null>(deliveryMessage)
+  const requiresCaptcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   useEffect(() => {
     setCurrentDeliveryStatus(deliveryStatus)
@@ -60,16 +73,22 @@ export function StepVerification({
       return
     }
 
+    if (requiresCaptcha && !captchaToken) {
+      setError("Please complete the security verification.")
+      return
+    }
+
     setIsVerifying(true)
     setError(null)
 
     try {
-      const success = await onVerify(code)
-      if (!success) {
-        setError("Invalid verification code. Please try again.")
+      const result = await onVerify(code, captchaToken ?? undefined)
+      if (!result.success) {
+        setError(result.message ?? "Invalid verification code. Please try again.")
       }
-    } catch {
-      setError("An error occurred. Please try again.")
+      setCaptchaResetSignal((value) => value + 1)
+    } catch (error) {
+      setError(getPublicAuthErrorMessage(error, "An error occurred. Please try again."))
     } finally {
       setIsVerifying(false)
     }
@@ -82,12 +101,18 @@ export function StepVerification({
     setError(null)
 
     try {
-      const payload = await onResend()
+      if (requiresCaptcha && !captchaToken) {
+        setError("Please complete the security verification.")
+        return
+      }
+
+      const payload = await onResend(captchaToken ?? undefined)
       setCooldown(getResendCooldownSeconds(payload.resendAvailableAt))
       setCurrentDeliveryStatus(payload.otpDeliveryStatus)
       setCurrentDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
-    } catch {
-      setError("Failed to resend code. Please try again.")
+      setCaptchaResetSignal((value) => value + 1)
+    } catch (error) {
+      setError(getPublicAuthErrorMessage(error, "Failed to resend code. Please try again."))
     } finally {
       setIsResending(false)
     }
@@ -95,17 +120,23 @@ export function StepVerification({
 
   const handleComplete = async (completedCode: string) => {
     setCode(completedCode)
+    if (requiresCaptcha && !captchaToken) {
+      setError("Please complete the security verification.")
+      return
+    }
+
     // Auto-submit when code is complete
     setIsVerifying(true)
     setError(null)
 
     try {
-      const success = await onVerify(completedCode)
-      if (!success) {
-        setError("Invalid verification code. Please try again.")
+      const result = await onVerify(completedCode, captchaToken ?? undefined)
+      if (!result.success) {
+        setError(result.message ?? "Invalid verification code. Please try again.")
       }
-    } catch {
-      setError("An error occurred. Please try again.")
+      setCaptchaResetSignal((value) => value + 1)
+    } catch (error) {
+      setError(getPublicAuthErrorMessage(error, "An error occurred. Please try again."))
     } finally {
       setIsVerifying(false)
     }
@@ -153,6 +184,15 @@ export function StepVerification({
             onComplete={handleComplete}
             disabled={isVerifying}
             error={!!error}
+          />
+        </div>
+
+        <div className="mb-6">
+          <TurnstileCaptcha
+            token={captchaToken}
+            onTokenChange={setCaptchaToken}
+            size="compact"
+            resetSignal={captchaResetSignal}
           />
         </div>
 

@@ -2,11 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import {
   HelpCircle,
   LogOut,
   Settings,
   ChevronDown,
+  Building2,
+  Check,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -17,13 +21,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { canManageInvites } from "@/lib/auth/rbac"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, session, hasPermission, switchTenant, logout } = useAuth()
+  const [isSwitchingTenant, setIsSwitchingTenant] = useState(false)
+  const [tenantError, setTenantError] = useState<string | null>(null)
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -31,9 +39,39 @@ export function Sidebar() {
 
   // Filter nav items based on user role
   const visibleItems = navItems.filter((item) => {
-    if (!item.roles || item.roles.length === 0) return true
-    return user?.role ? item.roles.includes(user.role) : false
+    const roleAllowed = !item.roles || item.roles.length === 0
+      ? true
+      : Boolean(user?.role && item.roles.includes(user.role))
+    const permissionAllowed = item.permission ? hasPermission(item.permission) : true
+    const inviteFallbackAllowed =
+      item.href === "/users" && canManageInvites(user?.role, session?.activeTenantRole)
+
+    return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })
+
+  const memberships = session?.memberships ?? []
+  const activeTenantId = session?.activeTenantId ?? null
+  const canSwitchTenant = memberships.length > 1
+
+  const activeTenantName =
+    memberships.find((membership) => membership.tenantId === activeTenantId)?.tenantName ??
+    "No active tenant"
+
+  const handleTenantSwitch = async (tenantId: string) => {
+    if (tenantId === activeTenantId || isSwitchingTenant) {
+      return
+    }
+
+    setTenantError(null)
+    setIsSwitchingTenant(true)
+
+    const result = await switchTenant(tenantId)
+    if (!result.success) {
+      setTenantError(result.message ?? "Unable to switch tenant.")
+    }
+
+    setIsSwitchingTenant(false)
+  }
 
   return (
     <aside data-sidebar className="w-64 h-screen bg-sidebar flex flex-col fixed left-0 top-0">
@@ -106,11 +144,13 @@ export function Sidebar() {
                     {user ? `${user.firstName} ${user.lastName}` : "User"}
                   </p>
                   <p className="text-xs text-sidebar-foreground/60 truncate">
-                    {user?.role === "admin"
-                      ? "Administrator"
-                      : user?.role === "manager"
-                        ? "Manager"
-                        : "Staff"}
+                    {user?.role === "super_admin"
+                      ? "Super Admin"
+                      : user?.role === "admin"
+                        ? "Administrator"
+                        : user?.role === "manager"
+                          ? "Manager"
+                          : "Staff"}
                   </p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -123,6 +163,45 @@ export function Sidebar() {
                 </p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Active tenant</DropdownMenuLabel>
+              <div className="px-2 py-1.5 flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs truncate">{activeTenantName}</p>
+              </div>
+              {canSwitchTenant && (
+                <>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Switch tenant</DropdownMenuLabel>
+                  {memberships.map((membership) => {
+                    const isActiveMembership = membership.tenantId === activeTenantId
+
+                    return (
+                      <DropdownMenuItem
+                        key={membership.id}
+                        className="cursor-pointer"
+                        onClick={() => void handleTenantSwitch(membership.tenantId)}
+                        disabled={isSwitchingTenant || isActiveMembership}
+                      >
+                        <div className="flex w-full items-center gap-2">
+                          {isSwitchingTenant && !isActiveMembership ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          ) : isActiveMembership ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <span className="truncate">{membership.tenantName ?? membership.tenantId}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    )
+                  })}
+                  {tenantError && (
+                    <div className="px-2 pb-2 text-xs text-red-600">
+                      {tenantError}
+                    </div>
+                  )}
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/system-settings" className="cursor-pointer">

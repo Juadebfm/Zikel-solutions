@@ -21,12 +21,14 @@ export default function DailyLogsPage() {
 
       <AccessBanner show={!allowed} />
 
-      <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Approve log"))}>
-          <CheckCircle className="h-4 w-4" />
-          Approve Selected
-        </Button>
-      </div>
+      {allowed ? (
+        <div className="flex gap-2">
+          <Button className="gap-2" onClick={() => guard(() => console.log("Approve log"))}>
+            <CheckCircle className="h-4 w-4" />
+            Approve Selected
+          </Button>
+        </div>
+      ) : null}
 
       <Card>
         <CardContent className="py-10">

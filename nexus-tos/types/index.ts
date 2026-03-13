@@ -4,7 +4,10 @@
 // Auth types
 export type {
   UserRole,
+  TenantRole,
   RolePermissions,
+  TenantMembership,
+  AuthSessionContext,
   User,
   LoginFormData,
   SupportedCountry,

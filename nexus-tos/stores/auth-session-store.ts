@@ -5,7 +5,7 @@ import {
   type StateStorage,
 } from "zustand/middleware"
 
-import type { RolePermissions, User } from "@/types"
+import type { AuthSessionContext, RolePermissions, User } from "@/types"
 
 const STORAGE_KEY = "nexus-auth-session"
 
@@ -17,20 +17,23 @@ const noopStorage: StateStorage = {
 
 interface SessionPayload {
   user: User
+  session: AuthSessionContext
   accessToken: string
-  refreshToken: string
+  refreshToken: string | null
   permissions: RolePermissions | null
 }
 
 interface AuthSessionState {
   user: User | null
+  session: AuthSessionContext | null
   accessToken: string | null
   refreshToken: string | null
   permissions: RolePermissions | null
   hasHydrated: boolean
   setSession: (payload: SessionPayload) => void
+  setSessionContext: (session: AuthSessionContext | null) => void
   setUser: (user: User | null) => void
-  setTokens: (tokens: { accessToken: string; refreshToken: string }) => void
+  setTokens: (tokens: { accessToken: string; refreshToken?: string | null }) => void
   setPermissions: (permissions: RolePermissions | null) => void
   clearSession: () => void
   setHasHydrated: (hasHydrated: boolean) => void
@@ -40,25 +43,31 @@ export const useAuthSessionStore = create<AuthSessionState>()(
   persist(
     (set) => ({
       user: null,
+      session: null,
       accessToken: null,
       refreshToken: null,
       permissions: null,
       hasHydrated: false,
 
-      setSession: ({ user, accessToken, refreshToken, permissions }) => {
-        set({ user, accessToken, refreshToken, permissions })
+      setSession: ({ user, session, accessToken, refreshToken, permissions }) => {
+        set({ user, session, accessToken, refreshToken, permissions })
       },
+
+      setSessionContext: (session) => set({ session }),
 
       setUser: (user) => set({ user }),
 
       setTokens: ({ accessToken, refreshToken }) => {
-        set({ accessToken, refreshToken })
+        set((state) => ({
+          accessToken,
+          refreshToken: refreshToken === undefined ? state.refreshToken : refreshToken,
+        }))
       },
 
       setPermissions: (permissions) => set({ permissions }),
 
       clearSession: () => {
-        set({ user: null, accessToken: null, refreshToken: null, permissions: null })
+        set({ user: null, session: null, accessToken: null, refreshToken: null, permissions: null })
       },
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
@@ -70,6 +79,7 @@ export const useAuthSessionStore = create<AuthSessionState>()(
       ),
       partialize: (state) => ({
         user: state.user,
+        session: state.session,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         permissions: state.permissions,

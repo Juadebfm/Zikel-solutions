@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { StepVerification } from "@/components/auth/signup/step-verification"
 import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
+import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { authService, type ResendOtpPayload } from "@/services/auth.service"
 
 export default function VerifyEmailPage() {
@@ -15,22 +16,28 @@ export default function VerifyEmailPage() {
 
   const email = searchParams.get("email")?.trim() ?? ""
 
-  const handleVerify = async (code: string): Promise<boolean> => {
+  const handleVerify = async (
+    code: string,
+    captchaToken?: string
+  ): Promise<{ success: boolean; message?: string }> => {
     if (!email) {
-      return false
+      return { success: false, message: "Email address is required to verify your account." }
     }
 
     try {
-      const payload = await authService.verifyOtp(email, code)
+      const payload = await authService.verifyOtp(email, code, { captchaToken })
       await completeAuth(payload)
-      return true
-    } catch {
-      return false
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        message: getPublicAuthErrorMessage(error, "Invalid verification code. Please try again."),
+      }
     }
   }
 
-  const handleResend = async (): Promise<ResendOtpPayload> => {
-    return authService.resendOtp(email)
+  const handleResend = async (captchaToken?: string): Promise<ResendOtpPayload> => {
+    return authService.resendOtp(email, { captchaToken })
   }
 
   if (!email) {

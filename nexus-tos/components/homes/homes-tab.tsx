@@ -45,6 +45,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useAuth } from "@/contexts/auth-context"
+import { canWriteHomes } from "@/lib/auth/rbac"
 import { useHomes } from "@/hooks/api/use-backend-data"
 import type { CareGroupHomeStatus } from "@/types"
 
@@ -72,6 +74,7 @@ const homeStatusBadge: Record<CareGroupHomeStatus, { bg: string; text: string }>
 }
 
 export function HomesTab() {
+  const { user } = useAuth()
   const [statusTab, setStatusTab] = useState<HomesStatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<HomeColumnKey[]>(defaultHomeColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -79,6 +82,7 @@ export function HomesTab() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const { data: allHomes = [] } = useHomes()
+  const canWriteHomeRecords = canWriteHomes(user?.role)
 
   const statusFiltered = statusTab === "all" ? allHomes : allHomes.filter((h) => h.status === statusTab)
 
@@ -210,9 +214,11 @@ export function HomesTab() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
-            Actions
-          </Button>
+          {canWriteHomeRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
+              Actions
+            </Button>
+          ) : null}
         </div>
       </div>
 

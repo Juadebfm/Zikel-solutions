@@ -11,24 +11,35 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
+import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import {
+  clearPendingMfaRequest,
+  consumeMfaReturnPath,
+  retryPendingMfaRequest,
+} from "@/lib/api/client"
 import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { authService, type LoginPayload } from "@/services/auth.service"
-import type { RolePermissions, UserRole } from "@/types"
+import type { AuthSessionContext, RolePermissions, TenantRole, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
 
 interface LoginResult {
   success: boolean
   message?: string
   requiresVerification?: boolean
+  requiresMfa?: boolean
 }
 
 interface AuthContextType {
   user: ReturnType<typeof useAuthSessionStore.getState>["user"]
+  session: AuthSessionContext | null
   isLoading: boolean
   isAuthenticated: boolean
   permissions: RolePermissions | null
-  login: (email: string, password: string) => Promise<LoginResult>
+  login: (email: string, password: string, captchaToken?: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
+  switchTenant: (tenantId: string) => Promise<{ success: boolean; message?: string }>
+  challengeMfa: () => Promise<{ success: boolean; message?: string }>
+  verifyMfa: (code: string) => Promise<{ success: boolean; message?: string; redirectTo?: string }>
   logout: () => Promise<void>
   hasPermission: (permission: keyof RolePermissions) => boolean
   isRole: (role: UserRole | UserRole[]) => boolean
@@ -37,9 +48,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/verify-email"]
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/verify-email", "/mfa-verify"]
 
 const ROLE_DISPLAY: Record<UserRole, string> = {
+  super_admin: "Super Admin",
   admin: "Administrator",
   manager: "Manager",
   staff: "Staff",
@@ -50,12 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   const user = useAuthSessionStore((state) => state.user)
+  const session = useAuthSessionStore((state) => state.session)
   const permissions = useAuthSessionStore((state) => state.permissions)
   const accessToken = useAuthSessionStore((state) => state.accessToken)
   const refreshToken = useAuthSessionStore((state) => state.refreshToken)
   const hasHydrated = useAuthSessionStore((state) => state.hasHydrated)
   const setSession = useAuthSessionStore((state) => state.setSession)
+  const setSessionContext = useAuthSessionStore((state) => state.setSessionContext)
   const setUser = useAuthSessionStore((state) => state.setUser)
+  const setTokens = useAuthSessionStore((state) => state.setTokens)
   const setPermissions = useAuthSessionStore((state) => state.setPermissions)
   const clearSession = useAuthSessionStore((state) => state.clearSession)
 
@@ -64,11 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeAuth = useCallback(
     async (payload: LoginPayload, redirectTo = "/my-summary") => {
       const mappedUser = authService.mapAuthApiUserToAppUser(payload.user)
+      clearPendingMfaRequest()
+      consumeMfaReturnPath()
 
       setSession({
         user: mappedUser,
+        session: authService.mapAuthApiSessionToAppSession(payload.session),
         accessToken: payload.tokens.accessToken,
-        refreshToken: payload.tokens.refreshToken,
+        refreshToken: payload.tokens.refreshToken ?? null,
         permissions: null,
       })
 
@@ -85,7 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions(ROLE_PERMISSIONS[mappedUser.role])
       }
 
-      router.push(redirectTo)
+      const mfaPending = Boolean(payload.session?.mfaRequired && !payload.session?.mfaVerified)
+      router.push(mfaPending ? "/mfa-verify" : redirectTo)
     },
     [router, setPermissions, setSession, setUser]
   )
@@ -139,25 +158,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+    const isMfaRoute = pathname.startsWith("/mfa-verify")
+    const mfaPending = Boolean(user && session?.mfaRequired && !session?.mfaVerified)
+
+    if (!user && isMfaRoute) {
+      router.replace("/login")
+      return
+    }
 
     if (!user && !isPublicRoute && pathname !== "/") {
       router.replace("/login")
       return
     }
 
-    if (user && isPublicRoute) {
+    if (mfaPending && !isMfaRoute) {
+      router.replace("/mfa-verify")
+      return
+    }
+
+    if (user && isMfaRoute && !mfaPending) {
+      router.replace("/my-summary")
+      return
+    }
+
+    if (user && isPublicRoute && !isMfaRoute) {
       router.replace("/my-summary")
     }
-  }, [hasHydrated, isLoading, pathname, router, user])
+  }, [hasHydrated, isLoading, pathname, router, session, user])
 
   const login = useCallback(
-    async (email: string, password: string): Promise<LoginResult> => {
+    async (email: string, password: string, captchaToken?: string): Promise<LoginResult> => {
       setIsLoading(true)
 
       try {
-        const payload = await authService.login(email, password)
+        const payload = await authService.login(email, password, { captchaToken })
+        const requiresMfa = Boolean(payload.session?.mfaRequired && !payload.session?.mfaVerified)
         await completeAuth(payload)
-        return { success: true }
+        return { success: true, requiresMfa }
       } catch (error) {
         if (
           isApiClientError(error) &&
@@ -173,13 +210,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return {
           success: false,
-          message: getApiErrorMessage(error, "Login failed. Please check your credentials."),
+          message: getPublicAuthErrorMessage(error, "Login failed. Please check your credentials."),
         }
       } finally {
         setIsLoading(false)
       }
     },
     [completeAuth]
+  )
+
+  const switchTenant = useCallback(
+    async (tenantId: string): Promise<{ success: boolean; message?: string }> => {
+      try {
+        const payload = await authService.switchTenant(tenantId)
+        setTokens({ accessToken: payload.accessToken })
+
+        if (payload.session) {
+          setSessionContext(authService.mapAuthApiSessionToAppSession(payload.session))
+        } else {
+          const current = useAuthSessionStore.getState().session
+          if (current) {
+            const activeTenantRole =
+              current.memberships.find((membership) => membership.tenantId === tenantId)?.tenantRole ??
+              null
+
+            setSessionContext({
+              ...current,
+              activeTenantId: tenantId,
+              activeTenantRole: activeTenantRole as TenantRole | null,
+            })
+          }
+        }
+
+        router.refresh()
+        return { success: true }
+      } catch (error) {
+        return {
+          success: false,
+          message: getApiErrorMessage(error, "Unable to switch tenant. Please try again."),
+        }
+      }
+    },
+    [router, setSessionContext, setTokens]
+  )
+
+  const challengeMfa = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const payload = await authService.challengeMfa()
+      return { success: true, message: payload.message }
+    } catch (error) {
+      return {
+        success: false,
+        message: getApiErrorMessage(error, "Unable to request MFA challenge."),
+      }
+    }
+  }, [])
+
+  const verifyMfa = useCallback(
+    async (code: string): Promise<{ success: boolean; message?: string; redirectTo?: string }> => {
+      try {
+        const payload = await authService.verifyMfa(code)
+        setTokens({ accessToken: payload.accessToken })
+
+        if (payload.session) {
+          setSessionContext(authService.mapAuthApiSessionToAppSession(payload.session))
+        } else {
+          const current = useAuthSessionStore.getState().session
+          if (current) {
+            setSessionContext({
+              ...current,
+              mfaVerified: true,
+            })
+          }
+        }
+
+        await retryPendingMfaRequest()
+
+        return {
+          success: true,
+          redirectTo: consumeMfaReturnPath() ?? "/my-summary",
+        }
+      } catch (error) {
+        return {
+          success: false,
+          message: getApiErrorMessage(error, "MFA verification failed."),
+        }
+      }
+    },
+    [setSessionContext, setTokens]
   )
 
   const logout = useCallback(async () => {
@@ -190,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // We still clear local session if remote logout fails.
     } finally {
+      clearPendingMfaRequest()
+      consumeMfaReturnPath()
       clearSession()
       router.push("/login")
     }
@@ -232,11 +352,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        session,
         isLoading,
         isAuthenticated: Boolean(user),
         permissions,
         login,
         completeAuth,
+        switchTenant,
+        challengeMfa,
+        verifyMfa,
         logout,
         hasPermission,
         isRole,

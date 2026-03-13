@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
+import { TurnstileCaptcha } from "@/components/auth/turnstile-captcha"
 import { LEGAL_URLS, isExternalUrl } from "@/lib/config/legal"
 import { passwordSchema, type PasswordFormValues } from "@/lib/validators"
 import { useLanguage } from "@/contexts/language-context"
@@ -31,7 +32,7 @@ interface PasswordData {
 
 interface StepPasswordProps {
   data: PasswordData
-  onNext: (data: PasswordData) => Promise<void> | void
+  onNext: (data: PasswordData, captchaToken?: string) => Promise<void> | void
   onBack: () => void
   isSubmitting?: boolean
 }
@@ -45,8 +46,12 @@ export function StepPassword({
   const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
+  const [captchaError, setCaptchaError] = useState<string | null>(null)
   const termsUrl = LEGAL_URLS.terms
   const privacyUrl = LEGAL_URLS.privacy
+  const requiresCaptcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -69,12 +74,20 @@ export function StepPassword({
       return
     }
 
+    if (requiresCaptcha && !captchaToken) {
+      setCaptchaError("Please complete the security verification.")
+      return
+    }
+
+    setCaptchaError(null)
+
     await onNext({
       password: formData.password,
       confirmPassword: formData.confirmPassword,
       acceptTerms: formData.acceptTerms,
       acceptMarketing: formData.acceptMarketing || false,
-    })
+    }, captchaToken ?? undefined)
+    setCaptchaResetSignal((value) => value + 1)
   }
 
   return (
@@ -266,6 +279,23 @@ export function StepPassword({
                 t("common.continue")
               )}
             </Button>
+
+            {captchaError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {captchaError}
+              </div>
+            )}
+
+            <TurnstileCaptcha
+              token={captchaToken}
+              onTokenChange={(nextToken) => {
+                setCaptchaToken(nextToken)
+                if (nextToken) {
+                  setCaptchaError(null)
+                }
+              }}
+              resetSignal={captchaResetSignal}
+            />
           </form>
         </Form>
       </div>

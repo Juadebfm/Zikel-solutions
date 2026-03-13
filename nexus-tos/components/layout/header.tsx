@@ -106,11 +106,13 @@ export function Header({ onMenuClick }: HeaderProps) {
                 {user ? `${user.firstName} ${user.lastName}` : "User"}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.role === "admin"
-                  ? "Administrator"
-                  : user?.role === "manager"
-                    ? "Manager"
-                    : "Staff"}
+                {user?.role === "super_admin"
+                  ? "Super Admin"
+                  : user?.role === "admin"
+                    ? "Administrator"
+                    : user?.role === "manager"
+                      ? "Manager"
+                      : "Staff"}
               </p>
             </div>
             <Avatar className="h-10 w-10">

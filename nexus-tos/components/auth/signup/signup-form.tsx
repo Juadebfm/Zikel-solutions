@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 import { StepIndicator } from "@/components/auth/step-indicator"
 import { StepCountry } from "./step-country"
@@ -12,7 +11,7 @@ import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
 import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
-import { getOtpDeliveryStatusMessage } from "@/lib/auth/otp"
+import { getOtpDeliveryStatusMessage, getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry, Gender } from "@/types"
 
@@ -50,7 +49,6 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onStepChange }: SignupFormProps) {
-  const router = useRouter()
   const { completeAuth } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isRegistering, setIsRegistering] = useState(false)
@@ -88,7 +86,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   }
 
   // Step 3: Password - submit to API and move to verification
-  const handlePasswordNext = async (passwordData: SignupStepData["step3"]) => {
+  const handlePasswordNext = async (passwordData: SignupStepData["step3"], captchaToken?: string) => {
     if (isRegistering) {
       return
     }
@@ -111,34 +109,35 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
     try {
       setIsRegistering(true)
-      const payload = await authService.register(signupData)
+      const payload = await authService.register(signupData, { captchaToken })
       setResendAvailableAt(payload.resendAvailableAt)
       setOtpDeliveryStatus(payload.otpDeliveryStatus)
       setOtpDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
       nextStep()
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
+      setError(getPublicAuthErrorMessage(error, "An error occurred. Please try again."))
     } finally {
       setIsRegistering(false)
     }
   }
 
   // Step 4: OTP verification
-  const handleVerify = async (code: string): Promise<boolean> => {
+  const handleVerify = async (code: string, captchaToken?: string): Promise<{ success: boolean; message?: string }> => {
     setError(null)
     try {
-      const payload = await authService.verifyOtp(data.step2.email, code)
+      const payload = await authService.verifyOtp(data.step2.email, code, { captchaToken })
       await completeAuth(payload)
-      return true
-    } catch {
-      // Fallback to login page if complete auth flow fails unexpectedly.
-      router.push("/login?verified=true")
-      return false
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        message: getPublicAuthErrorMessage(error, "Invalid verification code. Please try again."),
+      }
     }
   }
 
-  const handleResend = async (): Promise<ResendOtpPayload> => {
-    const payload = await authService.resendOtp(data.step2.email)
+  const handleResend = async (captchaToken?: string): Promise<ResendOtpPayload> => {
+    const payload = await authService.resendOtp(data.step2.email, { captchaToken })
     setResendAvailableAt(payload.resendAvailableAt)
     setOtpDeliveryStatus(payload.otpDeliveryStatus)
     setOtpDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))

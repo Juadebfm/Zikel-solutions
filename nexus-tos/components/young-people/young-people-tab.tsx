@@ -45,6 +45,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useAuth } from "@/contexts/auth-context"
+import { canWriteYoungPeople } from "@/lib/auth/rbac"
 import { useYoungPeople } from "@/hooks/api/use-backend-data"
 import type { YoungPersonStatus } from "@/types"
 
@@ -72,6 +74,7 @@ const ypStatusBadge: Record<YoungPersonStatus, { bg: string; text: string }> = {
 }
 
 export function YoungPeopleTab() {
+  const { user } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<YPColumnKey[]>(defaultYPColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -79,6 +82,7 @@ export function YoungPeopleTab() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const { data: allYP = [] } = useYoungPeople()
+  const canWriteYoungPeopleRecords = canWriteYoungPeople(user?.role)
 
   const statusFiltered = statusTab === "all" ? allYP : allYP.filter((yp) => yp.status === statusTab)
 
@@ -223,14 +227,18 @@ export function YoungPeopleTab() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="default" size="sm" className="gap-2">
-            <Plus className="size-3.5" />
-            Add Young Person
-          </Button>
+          {canWriteYoungPeopleRecords ? (
+            <Button variant="default" size="sm" className="gap-2">
+              <Plus className="size-3.5" />
+              Add Young Person
+            </Button>
+          ) : null}
 
-          <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
-            Actions
-          </Button>
+          {canWriteYoungPeopleRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
+              Actions
+            </Button>
+          ) : null}
         </div>
       </div>
 

@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/popover"
 import { useVehicleStore } from "@/stores/vehicle-store"
 import { CreateVehicleDialog } from "@/components/vehicles/create-vehicle-dialog"
+import { useAuth } from "@/contexts/auth-context"
+import { canWriteVehicles } from "@/lib/auth/rbac"
 import type { VehicleStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -74,6 +76,7 @@ const vehStatusBadge: Record<VehicleStatus, { bg: string; text: string }> = {
 }
 
 export function VehiclesTab() {
+  const { user } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<VehColumnKey[]>(defaultVehColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -81,6 +84,7 @@ export function VehiclesTab() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const [showAddVehicle, setShowAddVehicle] = useState(false)
+  const canWriteVehicleRecords = canWriteVehicles(user?.role)
 
   const { vehicles, loadVehicles } = useVehicleStore()
 
@@ -211,10 +215,12 @@ export function VehiclesTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowAddVehicle(true)}>
-            <Plus className="size-3.5" />
-            Add Vehicle
-          </Button>
+          {canWriteVehicleRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-green-600 hover:bg-green-700" onClick={() => setShowAddVehicle(true)}>
+              <Plus className="size-3.5" />
+              Add Vehicle
+            </Button>
+          ) : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -235,9 +241,11 @@ export function VehiclesTab() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
-            Actions
-          </Button>
+          {canWriteVehicleRecords ? (
+            <Button variant="default" size="sm" className="gap-2 bg-red-500 hover:bg-red-600">
+              Actions
+            </Button>
+          ) : null}
         </div>
       </div>
 
