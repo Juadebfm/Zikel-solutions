@@ -87,6 +87,16 @@ export type {
   OutcomeStarEntry,
 } from "./dashboard"
 
+// Public form types
+export type {
+  ServiceOfInterest,
+  BookDemoInput,
+  JoinWaitlistInput,
+  ContactUsInput,
+} from "@/services/public.service"
+
+export { SERVICE_OF_INTEREST } from "@/services/public.service"
+
 // Legacy type alias for backward compatibility
 import type { SignupFormData as _SignupFormData } from "./auth"
 export type RegisterFormData = _SignupFormData

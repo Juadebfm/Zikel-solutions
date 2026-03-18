@@ -4,6 +4,8 @@ import { queryKeys } from "@/lib/query-keys"
 import {
   announcementsService,
   type AnnouncementStatus,
+  type CreateAnnouncementInput,
+  type UpdateAnnouncementInput,
 } from "@/services/announcements.service"
 
 export function useAnnouncements(params?: {
@@ -36,6 +38,41 @@ export function useMarkAnnouncementAsRead() {
 
   return useMutation({
     mutationFn: (id: string) => announcementsService.markAsRead(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["announcements"] })
+    },
+  })
+}
+
+export function useCreateAnnouncement() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateAnnouncementInput) =>
+      announcementsService.createAnnouncement(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["announcements"] })
+    },
+  })
+}
+
+export function useUpdateAnnouncement() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateAnnouncementInput }) =>
+      announcementsService.updateAnnouncement(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["announcements"] })
+    },
+  })
+}
+
+export function useDeleteAnnouncement() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => announcementsService.deleteAnnouncement(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["announcements"] })
     },

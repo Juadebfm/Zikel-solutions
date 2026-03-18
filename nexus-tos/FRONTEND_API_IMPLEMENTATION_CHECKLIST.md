@@ -5,7 +5,7 @@ Use this checklist during implementation and mark each item as complete by chang
 
 ## Progress Tracker
 
-- Last updated: `2026-03-11`
+- Last updated: `2026-03-18`
 - Checklist convention:
   - `[ ]` not implemented
   - `[x]` implemented and verified
@@ -149,10 +149,10 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 
 - Important enum update: `serviceOfInterest` now uses `care_documentation_platform` for documentation/demo flows.
 - Deprecated legacy enum values are removed and now return `422 VALIDATION_ERROR`.
-- [ ] `POST /public/book-demo`
-- [ ] `POST /public/join-waitlist`
-- [ ] `POST /public/contact-us`
-- [ ] Enforce FE enum for `serviceOfInterest`:
+- [x] `POST /public/book-demo`
+- [x] `POST /public/join-waitlist`
+- [x] `POST /public/contact-us`
+- [x] Enforce FE enum for `serviceOfInterest`:
   - `care_documentation_platform`
   - `ai_staff_guidance`
   - `training_development`
@@ -163,10 +163,10 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 
 - [x] `GET /announcements?status=read|unread&page=1&limit=20`
 - [x] `GET /announcements/:id` (marks as read)
-- [ ] `POST /announcements/:id/read`
-- [ ] `POST /announcements` (admin only)
-- [ ] `PATCH /announcements/:id` (admin only)
-- [ ] `DELETE /announcements/:id` (admin only)
+- [x] `POST /announcements/:id/read`
+- [x] `POST /announcements` (admin only)
+- [x] `PATCH /announcements/:id` (admin only)
+- [x] `DELETE /announcements/:id` (admin only)
 
 ### 6.5 Summary (all protected)
 
@@ -186,35 +186,35 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 
 ### 6.7 Care Groups (all protected)
 
-- [ ] `GET /care-groups?page=1&pageSize=20&search=&isActive=true`
-- [ ] `GET /care-groups/:id`
-- [ ] `POST /care-groups` (admin only)
-- [ ] `PATCH /care-groups/:id` (admin only)
-- [ ] `DELETE /care-groups/:id` (admin only, soft delete)
+- [x] `GET /care-groups?page=1&pageSize=20&search=&isActive=true`
+- [x] `GET /care-groups/:id`
+- [x] `POST /care-groups` (admin only)
+- [x] `PATCH /care-groups/:id` (admin only)
+- [x] `DELETE /care-groups/:id` (admin only, soft delete)
 
 ### 6.8 Homes (all protected)
 
-- [ ] `GET /homes?page=1&pageSize=20&search=&careGroupId=&isActive=true`
-- [ ] `GET /homes/:id`
-- [ ] `POST /homes` (admin/manager)
-- [ ] `PATCH /homes/:id` (admin/manager)
-- [ ] `DELETE /homes/:id` (admin/manager, soft delete)
+- [x] `GET /homes?page=1&pageSize=20&search=&careGroupId=&isActive=true`
+- [x] `GET /homes/:id`
+- [x] `POST /homes` (admin/manager)
+- [x] `PATCH /homes/:id` (admin/manager)
+- [x] `DELETE /homes/:id` (admin/manager, soft delete)
 
 ### 6.9 Employees (all protected)
 
-- [ ] `GET /employees?page=1&pageSize=20&search=&homeId=&isActive=true`
-- [ ] `GET /employees/:id`
-- [ ] `POST /employees` (admin/manager)
-- [ ] `PATCH /employees/:id` (admin/manager)
-- [ ] `DELETE /employees/:id` (admin/manager, soft delete)
+- [x] `GET /employees?page=1&pageSize=20&search=&homeId=&isActive=true`
+- [x] `GET /employees/:id`
+- [x] `POST /employees` (admin/manager)
+- [x] `PATCH /employees/:id` (admin/manager)
+- [x] `DELETE /employees/:id` (admin/manager, soft delete)
 
 ### 6.10 Young People (all protected)
 
-- [ ] `GET /young-people?page=1&pageSize=20&search=&homeId=&isActive=true`
-- [ ] `GET /young-people/:id`
-- [ ] `POST /young-people` (admin/manager)
-- [ ] `PATCH /young-people/:id` (admin/manager)
-- [ ] `DELETE /young-people/:id` (admin/manager, soft delete)
+- [x] `GET /young-people?page=1&pageSize=20&search=&homeId=&isActive=true`
+- [x] `GET /young-people/:id`
+- [x] `POST /young-people` (admin/manager)
+- [x] `PATCH /young-people/:id` (admin/manager)
+- [x] `DELETE /young-people/:id` (admin/manager, soft delete)
 
 ---
 
@@ -228,22 +228,22 @@ All routes below are relative to `/api/v1` unless otherwise stated.
 - [x] Use Zustand for local UI/workflow state only.
 - [x] Use `pageSize` on most list endpoints.
 - [x] Use `limit` (not `pageSize`) on `/announcements`.
-- [ ] Send ISO date-time where required (e.g. employee `startDate`).
-- [ ] Send `YYYY-MM-DD` for young person `dateOfBirth`.
-- [ ] Send `serviceOfInterest: "care_documentation_platform"` for digital documentation/demo use cases.
-- [ ] Treat `403` as authorization (not token expiry).
+- [x] Send ISO date-time where required (e.g. employee `startDate`).
+- [x] Send `YYYY-MM-DD` for young person `dateOfBirth`.
+- [x] Send `serviceOfInterest: "care_documentation_platform"` for digital documentation/demo use cases.
+- [x] Treat `403` as authorization (not token expiry).
 - [x] Show backend validation messages for `422`.
-- [ ] Treat many delete endpoints as soft-delete (record becomes inactive).
+- [x] Treat many delete endpoints as soft-delete (record becomes inactive).
 
 ### Don't
 
 - [x] Do not call endpoints listed in `needed.md` that are not implemented in the live backend.
-- [ ] Do not send unexpected/extra fields (`additionalProperties: false` on many bodies).
+- [x] Do not send unexpected/extra fields (`additionalProperties: false` on many bodies).
 - [x] Do not continue using an old refresh token after `/auth/refresh` success.
 - [x] Do not store server lists/details in Zustand when TanStack Query cache should be the source of truth.
-- [ ] Do not send deprecated `serviceOfInterest` values.
+- [x] Do not send deprecated `serviceOfInterest` values.
 - [x] Do not assume `/announcements/:id` is read-only (it marks as read).
-- [ ] Do not rely on public endpoint email delivery status for success.
+- [x] Do not rely on public endpoint email delivery status for success.
 
 ---
 

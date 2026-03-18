@@ -49,6 +49,26 @@ export const queryKeys = {
     }) => ["audit", "security-alerts", params] as const,
     detail: (id: string) => ["audit", "detail", id] as const,
   },
+  careGroups: {
+    list: (params: { page: number; pageSize: number; search?: string; isActive?: boolean }) =>
+      ["care-groups", "list", params] as const,
+    detail: (id: string) => ["care-groups", "detail", id] as const,
+  },
+  homes: {
+    list: (params: { page: number; pageSize: number; search?: string; careGroupId?: string; isActive?: boolean }) =>
+      ["homes", "list", params] as const,
+    detail: (id: string) => ["homes", "detail", id] as const,
+  },
+  employees: {
+    list: (params: { page: number; pageSize: number; search?: string; homeId?: string; isActive?: boolean }) =>
+      ["employees", "list", params] as const,
+    detail: (id: string) => ["employees", "detail", id] as const,
+  },
+  youngPeople: {
+    list: (params: { page: number; pageSize: number; search?: string; homeId?: string; isActive?: boolean }) =>
+      ["young-people", "list", params] as const,
+    detail: (id: string) => ["young-people", "detail", id] as const,
+  },
   backend: {
     careGroups: {
       list: ["backend", "care-groups", "list"] as const,
