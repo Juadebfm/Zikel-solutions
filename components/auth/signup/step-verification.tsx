@@ -11,6 +11,7 @@ import {
   getPublicAuthErrorMessage,
   getResendCooldownSeconds,
 } from "@/lib/auth/otp"
+import { isApiClientError } from "@/lib/api/error"
 import type { OtpDeliveryStatus, ResendOtpPayload } from "@/services/auth.service"
 
 interface VerificationResult {
@@ -96,6 +97,10 @@ export function StepVerification({
       setCurrentDeliveryStatus(payload.otpDeliveryStatus)
       setCurrentDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
     } catch (error) {
+      const cooldownSeconds = getCooldownSecondsFromError(error)
+      if (cooldownSeconds > 0) {
+        setCooldown(cooldownSeconds)
+      }
       setError(getPublicAuthErrorMessage(error, "Failed to resend code. Please try again."))
     } finally {
       setIsResending(false)
@@ -212,4 +217,54 @@ export function StepVerification({
       </button>
     </div>
   )
+}
+
+function getCooldownSecondsFromError(error: unknown): number {
+  if (!isApiClientError(error)) {
+    return 0
+  }
+
+  const values = collectNumericDetails(error.details)
+  for (const value of values) {
+    if (Number.isFinite(value) && value > 0) {
+      return Math.ceil(value)
+    }
+  }
+
+  return 0
+}
+
+function collectNumericDetails(value: unknown, out: number[] = []): number[] {
+  if (typeof value === "number") {
+    out.push(value)
+    return out
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value)
+    if (Number.isFinite(parsed)) {
+      out.push(parsed)
+    }
+    return out
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectNumericDetails(item, out)
+    }
+    return out
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    for (const [key, nestedValue] of Object.entries(record)) {
+      if (/retry|cooldown|wait|after|reset/i.test(key)) {
+        collectNumericDetails(nestedValue, out)
+      } else if (typeof nestedValue === "object") {
+        collectNumericDetails(nestedValue, out)
+      }
+    }
+  }
+
+  return out
 }

@@ -1,5 +1,5 @@
 import type { OtpDeliveryStatus } from "@/services/auth.service"
-import { isApiClientError } from "@/lib/api/error"
+import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 
 export function getOtpDeliveryStatusMessage(status: OtpDeliveryStatus): string {
   if (status === "sent") {
@@ -26,10 +26,84 @@ export function getResendCooldownSeconds(resendAvailableAt?: string | null): num
   return Math.max(0, Math.ceil((resendTimestamp - Date.now()) / 1000))
 }
 
-const PUBLIC_AUTH_ERROR_MESSAGES: Record<string, string> = {
-  CAPTCHA_REQUIRED: "Please complete the security verification.",
-  CAPTCHA_INVALID: "Security verification expired. Please try again.",
-  CAPTCHA_NOT_CONFIGURED: "Security verification is unavailable right now. Please try again shortly.",
+const VALIDATION_ERROR_CODES = new Set([
+  "FST_ERR_VALIDATION",
+  "VALIDATION_ERROR",
+  "BAD_REQUEST",
+  "REQUEST_FAILED",
+])
+
+function collectStringValues(value: unknown, out: string[] = []): string[] {
+  if (typeof value === "string") {
+    out.push(value)
+    return out
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringValues(item, out)
+    }
+    return out
+  }
+
+  if (value && typeof value === "object") {
+    for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+      collectStringValues(nestedValue, out)
+    }
+  }
+
+  return out
+}
+
+function mapPasswordValidationMessage(raw: string): string | null {
+  const message = raw.toLowerCase()
+
+  if (!message.includes("password")) {
+    return null
+  }
+
+  if (
+    /fewer than\s*12|at least\s*12|min(?:imum)?\s*(?:length|characters)?.*12|min\.\s*12/.test(
+      message
+    )
+  ) {
+    return "Password must be at least 12 characters."
+  }
+
+  if (message.includes("uppercase")) {
+    return "Password must contain an uppercase letter."
+  }
+
+  if (message.includes("lowercase")) {
+    return "Password must contain a lowercase letter."
+  }
+
+  if (message.includes("number") || message.includes("digit")) {
+    return "Password must contain a number."
+  }
+
+  if (message.includes("special")) {
+    return "Password must contain a special character."
+  }
+
+  if (message.includes("space") || message.includes("whitespace")) {
+    return "Password must not contain spaces."
+  }
+
+  return null
+}
+
+function getFriendlyValidationMessage(message: string, details: unknown): string | null {
+  const candidates = [message, ...collectStringValues(details)]
+
+  for (const candidate of candidates) {
+    const mapped = mapPasswordValidationMessage(candidate)
+    if (mapped) {
+      return mapped
+    }
+  }
+
+  return null
 }
 
 export function getPublicAuthErrorMessage(
@@ -37,11 +111,14 @@ export function getPublicAuthErrorMessage(
   fallback = "Something went wrong. Please try again."
 ): string {
   if (isApiClientError(error)) {
-    if (PUBLIC_AUTH_ERROR_MESSAGES[error.code]) {
-      return PUBLIC_AUTH_ERROR_MESSAGES[error.code]
+    if (VALIDATION_ERROR_CODES.has(error.code)) {
+      const friendlyValidationMessage = getFriendlyValidationMessage(error.message, error.details)
+      if (friendlyValidationMessage) {
+        return friendlyValidationMessage
+      }
     }
 
-    return error.message || fallback
+    return getApiErrorMessage(error, fallback)
   }
 
   if (error instanceof Error && error.message) {

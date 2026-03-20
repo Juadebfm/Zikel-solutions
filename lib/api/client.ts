@@ -213,6 +213,8 @@ async function refreshAccessToken(): Promise<string | null> {
             tenantRole: membership.tenantRole,
             isActive: membership.isActive,
             tenantName: membership.tenantName,
+            tenantSlug: membership.tenantSlug,
+            status: membership.status,
           })),
           mfaRequired: payload.data.session.mfaRequired,
           mfaVerified: payload.data.session.mfaVerified,
@@ -462,6 +464,8 @@ interface SessionMembershipPayload {
   tenantRole: "tenant_admin" | "sub_admin" | "staff"
   isActive: boolean
   tenantName?: string
+  tenantSlug?: string
+  status?: "active" | "invited" | "pending_approval" | "suspended" | "revoked"
 }
 
 interface SessionPayload {
@@ -483,7 +487,14 @@ function isSessionMembershipPayload(value: unknown): value is SessionMembershipP
       membership.tenantRole === "sub_admin" ||
       membership.tenantRole === "staff") &&
     typeof membership.isActive === "boolean" &&
-    (membership.tenantName === undefined || typeof membership.tenantName === "string")
+    (membership.tenantName === undefined || typeof membership.tenantName === "string") &&
+    (membership.tenantSlug === undefined || typeof membership.tenantSlug === "string") &&
+    (membership.status === undefined ||
+      membership.status === "active" ||
+      membership.status === "invited" ||
+      membership.status === "pending_approval" ||
+      membership.status === "suspended" ||
+      membership.status === "revoked")
   )
 }
 

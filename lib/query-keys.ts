@@ -25,6 +25,12 @@ export const queryKeys = {
     detail: (id: string) => ["announcements", "detail", id] as const,
   },
   tenants: {
+    memberships: (tenantId: string, params: { status?: string; page: number; limit: number }) =>
+      ["tenants", "memberships", tenantId, params] as const,
+    membershipsBase: (tenantId: string) => ["tenants", "memberships", tenantId] as const,
+    inviteLinks: (tenantId: string, params: { page: number; limit: number }) =>
+      ["tenants", "invite-links", tenantId, params] as const,
+    inviteLinksBase: (tenantId: string) => ["tenants", "invite-links", tenantId] as const,
     invites: (tenantId: string, params: { status?: string; page: number; limit: number }) =>
       ["tenants", "invites", tenantId, params] as const,
     invitesBase: (tenantId: string) => ["tenants", "invites", tenantId] as const,

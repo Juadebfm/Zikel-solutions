@@ -5,6 +5,7 @@
 export type {
   UserRole,
   TenantRole,
+  TenantMembershipStatus,
   RolePermissions,
   TenantMembership,
   AuthSessionContext,

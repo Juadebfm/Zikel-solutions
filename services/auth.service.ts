@@ -6,6 +6,7 @@ import type {
   RolePermissions,
   SignupFormData,
   TenantMembership,
+  TenantMembershipStatus,
   TenantRole,
   User,
 } from "@/types"
@@ -67,7 +68,9 @@ export interface AuthApiMembership {
   tenantId: string
   tenantRole: TenantRole
   isActive: boolean
+  status?: TenantMembershipStatus | null
   tenantName?: string | null
+  tenantSlug?: string | null
 }
 
 export interface AuthApiSession {
@@ -120,6 +123,29 @@ export interface ResetPasswordInput {
   confirmPassword: string
 }
 
+export interface StaffActivateInput {
+  email: string
+  code: string
+  password: string
+  confirmPassword: string
+  acceptTerms: boolean
+}
+
+export interface JoinInviteDetailsPayload {
+  tenantName: string
+  tenantSlug: string
+  defaultRole: "staff" | "sub_admin" | "tenant_admin"
+}
+
+export interface JoinInviteInput {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  confirmPassword: string
+  acceptTerms: boolean
+}
+
 function mapAuthApiUserToAppUser(user: AuthApiUser): User {
   return {
     id: user.id,
@@ -155,11 +181,27 @@ function mapAuthApiSessionToAppSession(session?: AuthApiSession | null): AuthSes
       tenantId: membership.tenantId,
       tenantRole: membership.tenantRole,
       isActive: membership.isActive,
+      status: normalizeMembershipStatus(membership.status),
       tenantName: membership.tenantName ?? undefined,
+      tenantSlug: membership.tenantSlug ?? undefined,
     })),
     mfaRequired: session.mfaRequired,
     mfaVerified: session.mfaVerified,
   }
+}
+
+function normalizeMembershipStatus(value: unknown): TenantMembershipStatus | undefined {
+  if (
+    value === "active" ||
+    value === "invited" ||
+    value === "pending_approval" ||
+    value === "suspended" ||
+    value === "revoked"
+  ) {
+    return value
+  }
+
+  return undefined
 }
 
 function mapMeProfileToAppUser(profile: MeProfile): User {
@@ -202,20 +244,21 @@ function shouldRetryWithLegacyBody(error: unknown): boolean {
 
 export const authService = {
   async register(data: SignupFormData): Promise<RegisterPayload> {
+    const organizationSlug = data.organizationSlug?.trim().toLowerCase()
+
     const response = await apiRequest<RegisterPayload>({
       path: "/auth/register",
       method: "POST",
       body: {
         country: data.country,
         firstName: data.firstName,
-        middleName: data.middleName || undefined,
         lastName: data.surname,
-        gender: data.gender,
         email: data.email,
-        phoneNumber: data.phone,
         password: data.password,
         confirmPassword: data.password,
         acceptTerms: true,
+        organizationName: data.organizationName.trim(),
+        organizationSlug: organizationSlug || undefined,
       },
     })
 
@@ -339,6 +382,48 @@ export const authService = {
       path: "/auth/reset-password",
       method: "POST",
       body: input,
+    })
+
+    return response.data
+  },
+
+  async staffActivate(input: StaffActivateInput): Promise<LoginPayload> {
+    const response = await apiRequest<LoginPayload>({
+      path: "/auth/staff-activate",
+      method: "POST",
+      body: {
+        email: input.email.trim(),
+        code: input.code.trim(),
+        password: input.password,
+        confirmPassword: input.confirmPassword,
+        acceptTerms: input.acceptTerms,
+      },
+    })
+
+    return response.data
+  },
+
+  async validateJoinInvite(inviteCode: string): Promise<JoinInviteDetailsPayload> {
+    const response = await apiRequest<JoinInviteDetailsPayload>({
+      path: `/auth/join/${encodeURIComponent(inviteCode.trim())}`,
+      method: "GET",
+    })
+
+    return response.data
+  },
+
+  async joinViaInvite(inviteCode: string, input: JoinInviteInput): Promise<RegisterPayload> {
+    const response = await apiRequest<RegisterPayload>({
+      path: `/auth/join/${encodeURIComponent(inviteCode.trim())}`,
+      method: "POST",
+      body: {
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        email: input.email.trim(),
+        password: input.password,
+        confirmPassword: input.confirmPassword,
+        acceptTerms: input.acceptTerms,
+      },
     })
 
     return response.data

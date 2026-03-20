@@ -34,6 +34,8 @@ interface BasicInfoData {
   firstName: string
   middleName: string
   surname: string
+  organizationName: string
+  organizationSlug: string
   gender: Gender | null
   email: string
   phone: string
@@ -69,6 +71,8 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
       firstName: data.firstName || "",
       middleName: data.middleName || "",
       surname: data.surname || "",
+      organizationName: data.organizationName || "",
+      organizationSlug: data.organizationSlug || "",
       gender: data.gender || undefined,
       email: data.email || "",
       phone: data.phone || "",
@@ -81,6 +85,8 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
       firstName: formData.firstName,
       middleName: formData.middleName || "",
       surname: formData.surname,
+      organizationName: formData.organizationName.trim(),
+      organizationSlug: formData.organizationSlug?.trim().toLowerCase() || "",
       gender: formData.gender,
       email: formData.email,
       phone: formData.phone,
@@ -154,6 +160,48 @@ export function StepBasicInfo({ data, country, onNext, onBack }: StepBasicInfoPr
                   <FormControl>
                     <Input
                       placeholder={t("auth.signup.step2.surnamePlaceholder")}
+                      className="h-12 mt-1.5 border-gray-200 rounded-lg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Organization Name */}
+            <FormField
+              control={form.control}
+              name="organizationName"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-sm font-medium text-gray-700">
+                    {t("auth.signup.step2.organizationName")}
+                  </Label>
+                  <FormControl>
+                    <Input
+                      placeholder={t("auth.signup.step2.organizationNamePlaceholder")}
+                      className="h-12 mt-1.5 border-gray-200 rounded-lg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Organization Slug */}
+            <FormField
+              control={form.control}
+              name="organizationSlug"
+              render={({ field }) => (
+                <FormItem>
+                  <Label className="text-sm font-medium text-gray-700">
+                    {t("auth.signup.step2.organizationSlug")}
+                  </Label>
+                  <FormControl>
+                    <Input
+                      placeholder={t("auth.signup.step2.organizationSlugPlaceholder")}
                       className="h-12 mt-1.5 border-gray-200 rounded-lg"
                       {...field}
                     />

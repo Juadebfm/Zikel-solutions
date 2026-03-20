@@ -7,20 +7,17 @@ import { PageLoading } from "@/components/shared/page-loading"
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading, session } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated) {
-        const hasTenantContext = Boolean(
-          (session?.memberships.length ?? 0) > 0 || session?.activeTenantId
-        )
-        router.push(hasTenantContext ? "/my-summary" : "/onboarding/create-organization")
+        router.push("/my-summary")
       } else {
         router.push("/login")
       }
     }
-  }, [isAuthenticated, isLoading, router, session])
+  }, [isAuthenticated, isLoading, router])
 
   return (
     <PageLoading fullscreen message="Preparing your Zikel workspace..." />

@@ -20,7 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { canManageInvites } from "@/lib/auth/rbac"
+import { canManageTenantAdministration } from "@/lib/auth/rbac"
 
 interface MobileNavProps {
   open: boolean
@@ -51,7 +51,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
       : Boolean(user?.role && item.roles.includes(user.role))
     const permissionAllowed = item.permission ? hasPermission(item.permission) : true
     const inviteFallbackAllowed =
-      item.href === "/users" && canManageInvites(user?.role, session?.activeTenantRole)
+      item.href === "/users" && canManageTenantAdministration(user?.role, session?.activeTenantRole)
 
     return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })

@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { isApiClientError } from "@/lib/api/error"
+import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
 import type { AskAiResponse } from "@/services/ai.service"
 import {
@@ -81,6 +81,10 @@ export default function MySummaryPage() {
   const [isAskAiOpen, setIsAskAiOpen] = useState(false)
   const [askAiQuery, setAskAiQuery] = useState("")
   const [askAiError, setAskAiError] = useState<string | null>(null)
+  const [approvalFeedback, setApprovalFeedback] = useState<{
+    type: "success" | "error"
+    message: string
+  } | null>(null)
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([])
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -350,19 +354,68 @@ export default function MySummaryPage() {
 
   const handleApproveTask = (id: string) => {
     guard(() => {
-      approveTaskMutation.mutate({ taskId: id })
+      setApprovalFeedback(null)
+      approveTaskMutation.mutate(
+        { taskId: id },
+        {
+          onSuccess: () => {
+            setApprovalFeedback({
+              type: "success",
+              message: "Task approved successfully.",
+            })
+          },
+          onError: (error) => {
+            setApprovalFeedback({
+              type: "error",
+              message: getTaskApprovalErrorMessage(error),
+            })
+          },
+        }
+      )
     })
   }
 
   const handleProcessBatch = () => {
     guard(() => {
+      if (processBatchMutation.isPending) {
+        return
+      }
+
       const taskIds = approvalTasks.map((task) => task.id)
       if (taskIds.length === 0) return
 
-      processBatchMutation.mutate({
-        taskIds,
-        action: "approve",
-      })
+      setApprovalFeedback(null)
+      processBatchMutation.mutate(
+        {
+          taskIds,
+          action: "approve",
+        },
+        {
+          onSuccess: (result) => {
+            if (result.failed.length > 0) {
+              const firstFailure = result.failed[0]?.reason
+              setApprovalFeedback({
+                type: "error",
+                message: firstFailure
+                  ? `Processed ${result.processed} tasks. ${result.failed.length} failed: ${firstFailure}`
+                  : `Processed ${result.processed} tasks. ${result.failed.length} could not be approved.`,
+              })
+              return
+            }
+
+            setApprovalFeedback({
+              type: "success",
+              message: `Processed ${result.processed} tasks successfully.`,
+            })
+          },
+          onError: (error) => {
+            setApprovalFeedback({
+              type: "error",
+              message: getTaskApprovalErrorMessage(error),
+            })
+          },
+        }
+      )
     })
   }
 
@@ -395,6 +448,18 @@ export default function MySummaryPage() {
       <StatsOverview stats={stats} />
 
       <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
+
+      {approvalFeedback ? (
+        <div
+          className={
+            approvalFeedback.type === "error"
+              ? "p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg"
+              : "p-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg"
+          }
+        >
+          {approvalFeedback.message}
+        </div>
+      ) : null}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <TodoList items={todoItems} />
@@ -643,8 +708,7 @@ function formatDateTime(value: string): string {
 
 function getErrorMessage(error: unknown): string | null {
   if (!error) return null
-  if (error instanceof Error) return error.message
-  return "Unable to load data from the backend."
+  return getApiErrorMessage(error, "Unable to load data from the backend.")
 }
 
 function getAskAiErrorMessage(error: unknown): string {
@@ -654,7 +718,7 @@ function getAskAiErrorMessage(error: unknown): string {
     }
 
     if (error.status === 429) {
-      return "Too many AI requests. Please wait a moment and try again."
+      return getApiErrorMessage(error, "Too many AI requests. Please wait a moment and try again.")
     }
 
     if (error.status >= 500) {
@@ -669,6 +733,24 @@ function getAskAiErrorMessage(error: unknown): string {
   }
 
   return "Unable to get AI response right now."
+}
+
+function getTaskApprovalErrorMessage(error: unknown): string {
+  if (isApiClientError(error)) {
+    if (error.code === "TASK_APPROVAL_STATE_FORBIDDEN") {
+      return "This task cannot be approved in its current state."
+    }
+
+    if (error.code === "TASK_ASSIGN_FORBIDDEN") {
+      return "You are not allowed to approve this task assignment."
+    }
+
+    if (error.code === "INVALID_TASK_STATE") {
+      return "This task is not in an approvable state."
+    }
+  }
+
+  return getApiErrorMessage(error, "Unable to process task approval.")
 }
 
 function createChatMessageId(): string {

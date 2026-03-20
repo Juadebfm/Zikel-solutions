@@ -13,7 +13,7 @@ import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
 import { getOtpDeliveryStatusMessage, getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
-import type { SignupStepData, SupportedCountry, Gender } from "@/types"
+import type { SignupStepData, SupportedCountry } from "@/types"
 
 const SIGNUP_STEPS = [
   { number: 1, title: "Country of residence" },
@@ -28,6 +28,8 @@ const initialData: SignupStepData = {
     firstName: "",
     middleName: "",
     surname: "",
+    organizationName: "",
+    organizationSlug: "",
     gender: null,
     email: "",
     phone: "",
@@ -98,12 +100,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     const signupData = {
       country: data.step1.country!,
       firstName: data.step2.firstName,
-      middleName: data.step2.middleName || undefined,
       surname: data.step2.surname,
-      gender: data.step2.gender as Gender,
       email: data.step2.email,
-      phone: data.step2.phone,
-      phoneCountryCode: data.step2.phoneCountryCode,
+      organizationName: data.step2.organizationName,
+      organizationSlug: data.step2.organizationSlug || undefined,
       password: passwordData.password,
     }
 
@@ -126,6 +126,13 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     setError(null)
     try {
       const payload = await authService.verifyOtp(data.step2.email, code)
+      if (!payload.session?.activeTenantId) {
+        return {
+          success: false,
+          message:
+            "Your account was verified, but we could not activate your organization workspace. Please contact support.",
+        }
+      }
       await completeAuth(payload)
       return { success: true }
     } catch (error) {

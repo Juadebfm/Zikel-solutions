@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { ArrowLeft, CheckCircle, Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react"
-import Link from "next/link"
+import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
   FormControl,
@@ -18,10 +19,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { useAuth } from "@/contexts/auth-context"
 import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { LEGAL_URLS, isExternalUrl } from "@/lib/config/legal"
 import { authService } from "@/services/auth.service"
 
-const resetPasswordSchema = z
+const activateStaffSchema = z
   .object({
     email: z
       .string()
@@ -30,8 +33,8 @@ const resetPasswordSchema = z
     code: z
       .string()
       .trim()
-      .regex(/^\d{6}$/, "Enter the 6-digit code sent to your email"),
-    newPassword: z
+      .regex(/^\d{6}$/, "Enter the 6-digit activation code sent to your email"),
+    password: z
       .string()
       .min(12, "Password must be at least 12 characters")
       .regex(/[a-z]/, "Password must contain a lowercase letter")
@@ -40,103 +43,80 @@ const resetPasswordSchema = z
       .regex(/[^a-zA-Z0-9]/, "Password must contain a special character")
       .regex(/^\S+$/, "Password must not contain spaces"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    acceptTerms: z.boolean().refine((value) => value === true, {
+      message: "You must accept the Terms of Use and Privacy Policy",
+    }),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   })
 
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+type ActivateStaffFormData = z.infer<typeof activateStaffSchema>
 
-export default function ResetPasswordPage() {
+export default function ActivateStaffPage() {
   const searchParams = useSearchParams()
   const prefilledEmail = searchParams.get("email")?.trim() ?? ""
+  const { completeAuth } = useAuth()
+  const termsUrl = LEGAL_URLS.terms
+  const privacyUrl = LEGAL_URLS.privacy
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const form = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
+  const form = useForm<ActivateStaffFormData>({
+    resolver: zodResolver(activateStaffSchema),
     defaultValues: {
       email: prefilledEmail,
       code: "",
-      newPassword: "",
+      password: "",
       confirmPassword: "",
+      acceptTerms: false,
     },
   })
 
-  const onSubmit = async (data: ResetPasswordFormData) => {
+  const onSubmit = async (data: ActivateStaffFormData) => {
     setSubmitError(null)
-
-    setIsLoading(true)
+    setIsSubmitting(true)
 
     try {
-      await authService.resetPassword(
-        {
-          email: data.email.trim(),
-          code: data.code.trim(),
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
-        }
-      )
-      setIsSubmitted(true)
+      const payload = await authService.staffActivate({
+        email: data.email,
+        code: data.code,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        acceptTerms: data.acceptTerms,
+      })
+      await completeAuth(payload)
     } catch (error) {
-      setSubmitError(getPublicAuthErrorMessage(error, "Failed to reset password. Please try again."))
+      setSubmitError(getPublicAuthErrorMessage(error, "Unable to activate your account. Please try again."))
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
-  }
-
-  if (isSubmitted) {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Password updated
-            </h1>
-            <p className="text-gray-600 mb-8">
-              Your password has been reset successfully. You can now sign in with your new password.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to login
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         <div className="mb-8">
-          <p className="text-primary font-medium mb-1">Password Recovery</p>
+          <p className="text-primary font-medium mb-1">Staff Activation</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Reset Password
+            Activate Account
           </h1>
           <p className="text-gray-600">
-            Enter the 6-digit code from your email and set a new password.
+            Enter your email, activation code, and set a password to continue.
           </p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {submitError && (
+            {submitError ? (
               <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
                 {submitError}
               </div>
-            )}
+            ) : null}
 
             <FormField
               control={form.control}
@@ -165,14 +145,14 @@ export default function ResetPasswordPage() {
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Verification code</FormLabel>
+                  <FormLabel>Activation code</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       <Input
                         inputMode="numeric"
                         maxLength={6}
-                        placeholder="6-digit code"
+                        placeholder="6-digit activation code"
                         className="pl-10 h-12 bg-white border-gray-300 focus:border-primary focus:ring-primary"
                         {...field}
                       />
@@ -185,15 +165,15 @@ export default function ResetPasswordPage() {
 
             <FormField
               control={form.control}
-              name="newPassword"
+              name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New password</FormLabel>
+                  <FormLabel>Password</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter new password"
+                        placeholder="Enter password"
                         className="h-12 pr-10 bg-white border-gray-300 focus:border-primary focus:ring-primary"
                         {...field}
                       />
@@ -220,12 +200,12 @@ export default function ResetPasswordPage() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm new password</FormLabel>
+                  <FormLabel>Confirm password</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Re-enter new password"
+                        placeholder="Re-enter password"
                         className="h-12 pr-10 bg-white border-gray-300 focus:border-primary focus:ring-primary"
                         {...field}
                       />
@@ -247,15 +227,67 @@ export default function ResetPasswordPage() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="acceptTerms"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-start space-x-3 pt-1">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <div className="text-sm text-gray-600 leading-tight">
+                      I accept the{" "}
+                      {isExternalUrl(termsUrl) ? (
+                        <a
+                          href={termsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline hover:text-primary/80"
+                        >
+                          Terms of Use
+                        </a>
+                      ) : (
+                        <Link href={termsUrl} className="text-primary underline hover:text-primary/80">
+                          Terms of Use
+                        </Link>
+                      )}{" "}
+                      and{" "}
+                      {isExternalUrl(privacyUrl) ? (
+                        <a
+                          href={privacyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline hover:text-primary/80"
+                        >
+                          Privacy Policy
+                        </a>
+                      ) : (
+                        <Link href={privacyUrl} className="text-primary underline hover:text-primary/80">
+                          Privacy Policy
+                        </Link>
+                      )}
+                      .
+                    </div>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                "Reset Password"
+                "Activate account"
               )}
             </Button>
 

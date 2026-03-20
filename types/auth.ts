@@ -1,13 +1,16 @@
 // User Roles and Permissions
 export type UserRole = "staff" | "manager" | "admin" | "super_admin"
 export type TenantRole = "tenant_admin" | "sub_admin" | "staff"
+export type TenantMembershipStatus = "active" | "invited" | "pending_approval" | "suspended" | "revoked"
 
 export interface TenantMembership {
   id: string
   tenantId: string
   tenantRole: TenantRole
   isActive: boolean
+  status?: TenantMembershipStatus
   tenantName?: string
+  tenantSlug?: string
 }
 
 export interface AuthSessionContext {
@@ -110,12 +113,10 @@ export type Gender = "male" | "female" | "other" | "prefer-not-to-say"
 export interface SignupFormData {
   country: SupportedCountry
   firstName: string
-  middleName?: string
   surname: string
-  gender: Gender
   email: string
-  phone: string
-  phoneCountryCode: string
+  organizationName: string
+  organizationSlug?: string
   password: string
 }
 
@@ -127,6 +128,8 @@ export interface SignupStepData {
     firstName: string
     middleName: string
     surname: string
+    organizationName: string
+    organizationSlug: string
     gender: Gender | null
     email: string
     phone: string

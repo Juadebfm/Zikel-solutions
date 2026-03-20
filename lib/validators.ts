@@ -42,6 +42,20 @@ export const basicInfoSchema = z.object({
     .string()
     .min(2, "Surname must be at least 2 characters")
     .max(50, "Surname is too long"),
+  organizationName: z
+    .string()
+    .trim()
+    .min(2, "Organization name must be at least 2 characters")
+    .max(120, "Organization name is too long"),
+  organizationSlug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(80, "Organization slug is too long")
+    .refine(
+      (value) => value.length === 0 || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+      "Organization slug can only include lowercase letters, numbers, and hyphens"
+    ),
   gender: z.enum(["male", "female", "other", "prefer-not-to-say"], {
     message: "Please select a gender",
   }),
@@ -66,11 +80,12 @@ export const passwordSchema = z
   .object({
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
+      .min(12, "Password must be at least 12 characters")
       .regex(/[a-z]/, "Password must contain a lowercase letter")
       .regex(/[A-Z]/, "Password must contain an uppercase letter")
       .regex(/[0-9]/, "Password must contain a number")
-      .regex(/[^a-zA-Z0-9]/, "Password must contain a special character"),
+      .regex(/[^a-zA-Z0-9]/, "Password must contain a special character")
+      .regex(/^\S+$/, "Password must not contain spaces"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     acceptTerms: z.boolean().refine((val) => val === true, {
       message: "You must accept the Terms of Use and Privacy Policy",
@@ -137,8 +152,13 @@ export const passwordRequirements: PasswordRequirement[] = [
   },
   {
     key: "minLength",
-    label: "At least 8 characters",
-    test: (password: string) => password.length >= 8,
+    label: "At least 12 characters",
+    test: (password: string) => password.length >= 12,
+  },
+  {
+    key: "noSpaces",
+    label: "No spaces",
+    test: (password: string) => !/\s/.test(password),
   },
 ]
 

@@ -5,6 +5,7 @@ const VEHICLE_WRITE_ROLES: readonly UserRole[] = ["super_admin", "admin", "manag
 const CARE_GROUP_WRITE_ROLES: readonly UserRole[] = ["admin"]
 const ANNOUNCEMENT_WRITE_ROLES: readonly UserRole[] = ["admin"]
 const AI_ACCESS_GLOBAL_ROLES: readonly UserRole[] = ["super_admin", "admin"]
+const TENANT_ADMINISTRATION_GLOBAL_ROLES: readonly UserRole[] = ["super_admin", "admin"]
 
 function hasGlobalRole(
   role: UserRole | null | undefined,
@@ -48,6 +49,13 @@ export function canManageAiAccess(
   return hasGlobalRole(role, AI_ACCESS_GLOBAL_ROLES) || tenantRole === "tenant_admin"
 }
 
+export function canManageTenantAdministration(
+  role: UserRole | null | undefined,
+  tenantRole: TenantRole | null | undefined
+): boolean {
+  return hasGlobalRole(role, TENANT_ADMINISTRATION_GLOBAL_ROLES) || tenantRole === "tenant_admin"
+}
+
 export function getAllowedInviteRoles(
   role: UserRole | null | undefined,
   tenantRole: TenantRole | null | undefined
@@ -56,12 +64,8 @@ export function getAllowedInviteRoles(
     return ["tenant_admin", "sub_admin", "staff"]
   }
 
-  if (tenantRole === "tenant_admin") {
+  if (role === "admin" || tenantRole === "tenant_admin") {
     return ["sub_admin", "staff"]
-  }
-
-  if (tenantRole === "sub_admin") {
-    return ["staff"]
   }
 
   return []
@@ -71,5 +75,5 @@ export function canManageInvites(
   role: UserRole | null | undefined,
   tenantRole: TenantRole | null | undefined
 ): boolean {
-  return getAllowedInviteRoles(role, tenantRole).length > 0
+  return canManageTenantAdministration(role, tenantRole)
 }

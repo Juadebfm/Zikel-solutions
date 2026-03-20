@@ -48,8 +48,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/mfa-verify"]
-const CREATE_ORG_ROUTE = "/onboarding/create-organization"
+const PUBLIC_ROUTES = ["/login", "/register", "/join", "/activate", "/forgot-password", "/reset-password", "/verify-email", "/mfa-verify"]
 
 const ROLE_DISPLAY: Record<UserRole, string> = {
   super_admin: "Super Admin",
@@ -65,6 +64,28 @@ function getPreferredTenantId(session: AuthSessionContext | null | undefined): s
 
   const activeMembership = session.memberships.find((membership) => membership.isActive)
   return activeMembership?.tenantId ?? session.memberships[0].tenantId
+}
+
+function hasActiveMembership(session: AuthSessionContext | null | undefined): boolean {
+  if (!session) {
+    return false
+  }
+
+  return session.memberships.some((membership) =>
+    membership.status ? membership.status === "active" : membership.isActive
+  )
+}
+
+function hasPendingApprovalMembership(session: AuthSessionContext | null | undefined): boolean {
+  if (!session) {
+    return false
+  }
+
+  return session.memberships.some((membership) => membership.status === "pending_approval")
+}
+
+function shouldRouteToPendingApproval(session: AuthSessionContext | null | undefined): boolean {
+  return hasPendingApprovalMembership(session) && !hasActiveMembership(session)
 }
 
 function isTenantContextError(error: unknown): boolean {
@@ -146,19 +167,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      if (mappedSession.memberships.length === 0 && !mappedSession.activeTenantId) {
-        router.push(CREATE_ORG_ROUTE)
+      if (shouldRouteToPendingApproval(mappedSession)) {
+        router.push("/pending-approval")
         return
       }
 
       if (!mappedSession.activeTenantId) {
         const preferredTenantId = getPreferredTenantId(mappedSession)
         if (preferredTenantId) {
-          const switched = await applyTenantSwitch(preferredTenantId, mappedSession)
-          if (!switched) {
-            router.push(CREATE_ORG_ROUTE)
-            return
-          }
+          await applyTenantSwitch(preferredTenantId, mappedSession)
         }
       }
 
@@ -242,10 +259,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
     const isMfaRoute = pathname.startsWith("/mfa-verify")
-    const isCreateOrgRoute = pathname.startsWith(CREATE_ORG_ROUTE)
-    const hasMemberships = Boolean((session?.memberships.length ?? 0) > 0 || session?.activeTenantId)
-    const hasActiveTenant = Boolean(session?.activeTenantId)
+    const isPendingApprovalRoute = pathname.startsWith("/pending-approval")
     const mfaPending = Boolean(user && session?.mfaRequired && !session?.mfaVerified)
+    const pendingApproval = shouldRouteToPendingApproval(session)
 
     if (!user && isMfaRoute) {
       router.replace("/login")
@@ -262,23 +278,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (user && !mfaPending && !hasMemberships && !isCreateOrgRoute) {
-      router.replace(CREATE_ORG_ROUTE)
+    if (user && !mfaPending && pendingApproval && !isPendingApprovalRoute) {
+      router.replace("/pending-approval")
       return
     }
 
-    if (user && isCreateOrgRoute && hasMemberships && hasActiveTenant) {
+    if (user && isPendingApprovalRoute && !pendingApproval) {
       router.replace("/my-summary")
       return
     }
 
     if (user && isMfaRoute && !mfaPending) {
-      router.replace(hasMemberships ? "/my-summary" : CREATE_ORG_ROUTE)
+      router.replace(pendingApproval ? "/pending-approval" : "/my-summary")
       return
     }
 
     if (user && isPublicRoute && !isMfaRoute) {
-      router.replace(hasMemberships ? "/my-summary" : CREATE_ORG_ROUTE)
+      router.replace(pendingApproval ? "/pending-approval" : "/my-summary")
     }
   }, [hasHydrated, isLoading, pathname, router, session, user])
 
