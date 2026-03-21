@@ -8,8 +8,9 @@ const VALIDATION_ERROR_CODES = new Set([
 ])
 
 const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
-  EMAIL_TAKEN: "This email is already registered. Try signing in instead.",
-  ORG_SLUG_TAKEN: "That organization link is already taken. Try a different organization name or slug.",
+  EMAIL_TAKEN: "An account with this email already exists. Log in or reset password.",
+  ORG_SLUG_TAKEN: "Organization name is already in use. Try another one.",
+  REGISTRATION_CONFLICT: "This signup conflicts with an existing account/org. Please retry or use a different email/org name.",
   OTP_INVALID: "The verification code is invalid or has expired.",
   OTP_COOLDOWN: "Please wait before requesting another code.",
   INVALID_CREDENTIALS: "Invalid email or password.",
@@ -33,13 +34,21 @@ export class ApiClientError extends Error {
   readonly status: number
   readonly code: string
   readonly details?: unknown
+  readonly flyRequestId?: string
 
-  constructor({ status, code, message, details }: { status: number; code: string; message: string; details?: unknown }) {
+  constructor({ status, code, message, details, flyRequestId }: {
+    status: number
+    code: string
+    message: string
+    details?: unknown
+    flyRequestId?: string
+  }) {
     super(message)
     this.name = "ApiClientError"
     this.status = status
     this.code = code
     this.details = details
+    this.flyRequestId = flyRequestId
   }
 }
 
@@ -122,13 +131,14 @@ export function getApiErrorMessage(error: unknown, fallback = "Something went wr
   return fallback
 }
 
-export function toApiClientError(payload: unknown, status: number, statusText: string): ApiClientError {
+export function toApiClientError(payload: unknown, status: number, statusText: string, flyRequestId?: string): ApiClientError {
   if (isApiFailurePayload(payload)) {
     return new ApiClientError({
       status,
       code: payload.error.code,
       message: payload.error.message,
       details: payload.error.details,
+      flyRequestId,
     })
   }
 
@@ -136,6 +146,7 @@ export function toApiClientError(payload: unknown, status: number, statusText: s
     status,
     code: status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
     message: statusText || "Request failed",
+    flyRequestId,
   })
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 
 import { StepIndicator, StepIndicatorCompact } from "@/components/auth/step-indicator"
@@ -11,6 +11,8 @@ import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
 import { useAuth } from "@/contexts/auth-context"
 import { getOtpDeliveryStatusMessage, getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { isApiClientError } from "@/lib/api/error"
+import { logApiError } from "@/lib/api/logger"
 import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry } from "@/types"
 
@@ -53,6 +55,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   const { completeAuth } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isRegistering, setIsRegistering] = useState(false)
+  const registerGuardRef = useRef(false)
   const [resendAvailableAt, setResendAvailableAt] = useState<string | null>(null)
   const [otpDeliveryStatus, setOtpDeliveryStatus] = useState<OtpDeliveryStatus | null>(null)
   const [otpDeliveryMessage, setOtpDeliveryMessage] = useState<string | null>(null)
@@ -88,14 +91,14 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
   // Step 3: Password - submit to API and move to verification
   const handlePasswordNext = async (passwordData: SignupStepData["step3"]) => {
-    if (isRegistering) {
+    // Ref-based guard prevents duplicate submissions even if state hasn't flushed yet
+    if (isRegistering || registerGuardRef.current) {
       return
     }
 
     setStepData("step3", passwordData)
     setError(null)
 
-    // Prepare signup data
     const signupData = {
       country: data.step1.country!,
       firstName: data.step2.firstName,
@@ -107,6 +110,7 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
     }
 
     try {
+      registerGuardRef.current = true
       setIsRegistering(true)
       const payload = await authService.register(signupData)
       setResendAvailableAt(payload.resendAvailableAt)
@@ -114,8 +118,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
       setOtpDeliveryMessage(getOtpDeliveryStatusMessage(payload.otpDeliveryStatus))
       nextStep()
     } catch (error) {
-      setError(getPublicAuthErrorMessage(error, "An error occurred. Please try again."))
+      logApiError(error, "register")
+      setError(getRegisterErrorMessage(error))
     } finally {
+      registerGuardRef.current = false
       setIsRegistering(false)
     }
   }
@@ -219,4 +225,31 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
       </p>
     </div>
   )
+}
+
+const REGISTER_ERROR_MESSAGES: Record<string, string> = {
+  EMAIL_TAKEN:
+    "An account with this email already exists. Log in or reset password.",
+  ORG_SLUG_TAKEN:
+    "Organization name is already in use. Try another one.",
+  REGISTRATION_CONFLICT:
+    "This signup conflicts with an existing account/org. Please retry or use a different email/org name.",
+}
+
+function getRegisterErrorMessage(error: unknown): string {
+  if (isApiClientError(error)) {
+    const mapped = REGISTER_ERROR_MESSAGES[error.code]
+    if (mapped) return mapped
+
+    // VALIDATION_ERROR: show the backend message directly
+    if (
+      error.code === "VALIDATION_ERROR" ||
+      error.code === "FST_ERR_VALIDATION" ||
+      error.code === "BAD_REQUEST"
+    ) {
+      return error.message || "Please check your input and try again."
+    }
+  }
+
+  return getPublicAuthErrorMessage(error, "An error occurred. Please try again.")
 }

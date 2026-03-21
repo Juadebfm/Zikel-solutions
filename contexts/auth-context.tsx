@@ -11,6 +11,7 @@ import {
 import { usePathname, useRouter } from "next/navigation"
 
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
+import { logApiError } from "@/lib/api/logger"
 import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import {
   clearPendingMfaRequest,
@@ -302,6 +303,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await completeAuth(payload)
         return { success: true, requiresMfa }
       } catch (error) {
+        logApiError(error, "login")
+
         if (
           isApiClientError(error) &&
           error.status === 403 &&
@@ -343,6 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const payload = await authService.challengeMfa()
       return { success: true, message: payload.message }
     } catch (error) {
+      logApiError(error, "mfa-challenge")
       return {
         success: false,
         message: getApiErrorMessage(error, "Unable to request MFA challenge."),
@@ -378,6 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           redirectTo: consumeMfaReturnPath() ?? "/my-summary",
         }
       } catch (error) {
+        logApiError(error, "mfa-verify")
         return {
           success: false,
           message: getApiErrorMessage(error, "MFA verification failed."),

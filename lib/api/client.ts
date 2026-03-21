@@ -40,6 +40,7 @@ export async function apiRequest<T, M = unknown>(
   options: ApiRequestOptions
 ): Promise<ApiSuccess<T, M>> {
   const response = await executeRequest<T, M>(options)
+  const flyRequestId = response.headers.get("fly-request-id") ?? undefined
 
   if (!response.ok) {
     const errorPayload = await parseJsonSafely(response)
@@ -68,7 +69,7 @@ export async function apiRequest<T, M = unknown>(
       // User dismissed modal without verifying — throw the original error
     }
 
-    throw toApiClientError(errorPayload, response.status, response.statusText)
+    throw toApiClientError(errorPayload, response.status, response.statusText, flyRequestId)
   }
 
   const payload = await parseJsonSafely(response)
