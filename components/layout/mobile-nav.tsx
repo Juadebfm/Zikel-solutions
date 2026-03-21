@@ -44,12 +44,16 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
     logout()
   }
 
-  // Filter nav items based on user role
+  // Filter nav items: permissions from /me/permissions are the primary gate.
   const visibleItems = navItems.filter((item) => {
+    const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
+
     const roleAllowed = !item.roles || item.roles.length === 0
       ? true
-      : Boolean(user?.role && item.roles.includes(user.role))
+      : isTenantAdminUser || Boolean(user?.role && item.roles.includes(user.role))
+
     const permissionAllowed = item.permission ? hasPermission(item.permission) : true
+
     const inviteFallbackAllowed =
       item.href === "/users" && canManageTenantAdministration(user?.role, session?.activeTenantRole)
 

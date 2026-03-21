@@ -75,7 +75,7 @@ const ypStatusBadge: Record<YoungPersonStatus, { bg: string; text: string }> = {
 }
 
 export function YoungPeopleTab() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<YPColumnKey[]>(defaultYPColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -90,7 +90,7 @@ export function YoungPeopleTab() {
   const youngPeopleErrorMessage = youngPeopleError
     ? getApiErrorMessage(youngPeopleError, "Unable to load young people.")
     : null
-  const canWriteYoungPeopleRecords = canWriteYoungPeople(user?.role)
+  const canWriteYoungPeopleRecords = canWriteYoungPeople(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allYP : allYP.filter((yp) => yp.status === statusTab)
 

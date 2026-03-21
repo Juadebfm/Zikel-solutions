@@ -52,10 +52,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const PUBLIC_ROUTES = ["/login", "/register", "/join", "/activate", "/forgot-password", "/reset-password", "/verify-email", "/mfa-verify"]
 
-const ROLE_DISPLAY: Record<UserRole, string> = {
+const GLOBAL_ROLE_DISPLAY: Record<UserRole, string> = {
   super_admin: "Super Admin",
   admin: "Administrator",
   manager: "Manager",
+  staff: "Staff",
+}
+
+const TENANT_ROLE_DISPLAY: Record<TenantRole, string> = {
+  tenant_admin: "Admin",
+  sub_admin: "Sub Admin",
   staff: "Staff",
 }
 
@@ -335,10 +341,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: "Unable to switch tenant. Please try again." }
       }
 
+      // Mandatory: re-fetch permissions after tenant switch (they are tenant-aware)
+      try {
+        const rolePermissions = await authService.getPermissions()
+        setPermissions(rolePermissions)
+      } catch {
+        setPermissions(null)
+      }
+
       router.refresh()
       return { success: true }
     },
-    [applyTenantSwitch, router]
+    [applyTenantSwitch, router, setPermissions]
   )
 
   const challengeMfa = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
@@ -375,6 +389,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Reset MFA banner dismissed state so it hides naturally
         useMfaStore.getState().dismissBanner()
 
+        // Re-fetch permissions to keep state in sync after MFA verify
+        try {
+          const rolePermissions = await authService.getPermissions()
+          setPermissions(rolePermissions)
+        } catch {
+          // Non-critical — permissions will sync on next page load
+        }
+
         await retryPendingMfaRequest()
 
         return {
@@ -389,7 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [setSessionContext, setTokens]
+    [setPermissions, setSessionContext, setTokens]
   )
 
   const logout = useCallback(async () => {
@@ -409,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = useCallback(
     (permission: keyof RolePermissions): boolean => {
+      // /me/permissions (from API) is the single source of truth
       if (permissions) {
         return permissions[permission]
       }
@@ -417,9 +440,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
 
+      // Fallback: tenant_admin gets admin-level permissions even if global role is staff
+      if (session?.activeTenantRole === "tenant_admin") {
+        return ROLE_PERMISSIONS.admin[permission]
+      }
+
       return ROLE_PERMISSIONS[user.role][permission]
     },
-    [permissions, user]
+    [permissions, session?.activeTenantRole, user]
   )
 
   const isRole = useCallback(
@@ -437,8 +465,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getRoleDisplay = useCallback((): string => {
     if (!user) return ""
-    return ROLE_DISPLAY[user.role]
-  }, [user])
+    // Prefer tenant role display over global user role
+    if (session?.activeTenantRole) {
+      return TENANT_ROLE_DISPLAY[session.activeTenantRole]
+    }
+    return GLOBAL_ROLE_DISPLAY[user.role]
+  }, [user, session?.activeTenantRole])
 
   return (
     <AuthContext.Provider

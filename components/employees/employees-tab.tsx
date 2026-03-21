@@ -76,7 +76,7 @@ const empStatusBadge: Record<EmployeeStatus, { bg: string; text: string }> = {
 }
 
 export function EmployeesTab() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<EmpColumnKey[]>(defaultEmpColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -92,7 +92,7 @@ export function EmployeesTab() {
   const employeesErrorMessage = employeesError
     ? getApiErrorMessage(employeesError, "Unable to load employees.")
     : null
-  const canWriteEmployeeRecords = canWriteEmployees(user?.role)
+  const canWriteEmployeeRecords = canWriteEmployees(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allEmployees : allEmployees.filter((e) => e.status === statusTab)
 

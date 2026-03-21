@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { user } = useAuth()
+  const { user, getRoleDisplay } = useAuth()
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -106,13 +106,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 {user ? `${user.firstName} ${user.lastName}` : "User"}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.role === "super_admin"
-                  ? "Super Admin"
-                  : user?.role === "admin"
-                    ? "Administrator"
-                    : user?.role === "manager"
-                      ? "Manager"
-                      : "Staff"}
+                {getRoleDisplay()}
               </p>
             </div>
             <Avatar className="h-10 w-10">

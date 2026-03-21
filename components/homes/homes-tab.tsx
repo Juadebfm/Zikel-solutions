@@ -75,7 +75,7 @@ const homeStatusBadge: Record<CareGroupHomeStatus, { bg: string; text: string }>
 }
 
 export function HomesTab() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [statusTab, setStatusTab] = useState<HomesStatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<HomeColumnKey[]>(defaultHomeColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -90,7 +90,7 @@ export function HomesTab() {
   const homesErrorMessage = homesError
     ? getApiErrorMessage(homesError, "Unable to load homes.")
     : null
-  const canWriteHomeRecords = canWriteHomes(user?.role)
+  const canWriteHomeRecords = canWriteHomes(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allHomes : allHomes.filter((h) => h.status === statusTab)
 

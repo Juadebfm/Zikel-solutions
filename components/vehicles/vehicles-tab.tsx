@@ -77,7 +77,7 @@ const vehStatusBadge: Record<VehicleStatus, { bg: string; text: string }> = {
 }
 
 export function VehiclesTab() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [visibleColumns, setVisibleColumns] = useState<VehColumnKey[]>(defaultVehColumns)
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
@@ -85,7 +85,7 @@ export function VehiclesTab() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState("20")
   const [showAddVehicle, setShowAddVehicle] = useState(false)
-  const canWriteVehicleRecords = canWriteVehicles(user?.role)
+  const canWriteVehicleRecords = canWriteVehicles(user?.role, session?.activeTenantRole)
 
   const {
     data: allVehicles = [],

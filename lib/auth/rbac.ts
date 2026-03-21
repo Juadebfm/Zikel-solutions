@@ -7,6 +7,15 @@ const ANNOUNCEMENT_WRITE_ROLES: readonly UserRole[] = ["admin"]
 const AI_ACCESS_GLOBAL_ROLES: readonly UserRole[] = ["super_admin", "admin"]
 const TENANT_ADMINISTRATION_GLOBAL_ROLES: readonly UserRole[] = ["super_admin", "admin"]
 
+/**
+ * Tenant admins inherit write capability regardless of their global user.role.
+ * This ensures that the first user on a tenant (who may be global "staff")
+ * still has full admin access within their tenant.
+ */
+function isTenantAdmin(tenantRole: TenantRole | null | undefined): boolean {
+  return tenantRole === "tenant_admin"
+}
+
 function hasGlobalRole(
   role: UserRole | null | undefined,
   allowedRoles: readonly UserRole[]
@@ -18,28 +27,28 @@ function hasGlobalRole(
   return allowedRoles.includes(role)
 }
 
-export function canWriteHomes(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
+export function canWriteHomes(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
 }
 
-export function canWriteEmployees(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
+export function canWriteEmployees(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
 }
 
-export function canWriteYoungPeople(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
+export function canWriteYoungPeople(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, HOME_EMPLOYEE_YOUNG_PEOPLE_WRITE_ROLES)
 }
 
-export function canWriteVehicles(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, VEHICLE_WRITE_ROLES)
+export function canWriteVehicles(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, VEHICLE_WRITE_ROLES)
 }
 
-export function canWriteCareGroups(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, CARE_GROUP_WRITE_ROLES)
+export function canWriteCareGroups(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, CARE_GROUP_WRITE_ROLES)
 }
 
-export function canWriteAnnouncements(role: UserRole | null | undefined): boolean {
-  return hasGlobalRole(role, ANNOUNCEMENT_WRITE_ROLES)
+export function canWriteAnnouncements(role: UserRole | null | undefined, tenantRole?: TenantRole | null): boolean {
+  return isTenantAdmin(tenantRole) || hasGlobalRole(role, ANNOUNCEMENT_WRITE_ROLES)
 }
 
 export function canManageAiAccess(

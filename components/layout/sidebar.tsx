@@ -29,7 +29,7 @@ import { canManageTenantAdministration } from "@/lib/auth/rbac"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, session, hasPermission, switchTenant, logout } = useAuth()
+  const { user, session, hasPermission, switchTenant, logout, getRoleDisplay } = useAuth()
   const [isSwitchingTenant, setIsSwitchingTenant] = useState(false)
   const [tenantError, setTenantError] = useState<string | null>(null)
 
@@ -37,12 +37,20 @@ export function Sidebar() {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
   }
 
-  // Filter nav items based on user role
+  // Filter nav items: permissions from /me/permissions are the primary gate.
+  // Role-based filtering still applies but tenant_admin bypasses global role checks.
   const visibleItems = navItems.filter((item) => {
+    const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
+
+    // Role gate: skip if no roles defined, or tenant_admin (inherits admin-level access)
     const roleAllowed = !item.roles || item.roles.length === 0
       ? true
-      : Boolean(user?.role && item.roles.includes(user.role))
+      : isTenantAdminUser || Boolean(user?.role && item.roles.includes(user.role))
+
+    // Permission gate: /me/permissions is the source of truth
     const permissionAllowed = item.permission ? hasPermission(item.permission) : true
+
+    // Fallback for /users: tenant admins can always manage users
     const inviteFallbackAllowed =
       item.href === "/users" && canManageTenantAdministration(user?.role, session?.activeTenantRole)
 
@@ -145,13 +153,7 @@ export function Sidebar() {
                     {user ? `${user.firstName} ${user.lastName}` : "User"}
                   </p>
                   <p className="text-xs text-sidebar-foreground/60 truncate">
-                    {user?.role === "super_admin"
-                      ? "Super Admin"
-                      : user?.role === "admin"
-                        ? "Administrator"
-                        : user?.role === "manager"
-                          ? "Manager"
-                          : "Staff"}
+                    {getRoleDisplay()}
                   </p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
