@@ -30,14 +30,14 @@ export const defaultStats: StatItem[] = [
     value: 2,
     icon: Clock,
     color: "red",
-    href: "/tasks?filter=overdue",
+    href: "/my-summary/overdue-tasks",
   },
   {
     label: "Tasks Due Today",
     value: 21,
     icon: CalendarCheck,
     color: "blue",
-    href: "/tasks?filter=today",
+    href: "/my-summary/due-today",
   },
   {
     label: "Pending Approval",
@@ -99,9 +99,10 @@ export const defaultStats: StatItem[] = [
 
 interface StatsOverviewProps {
   stats?: StatItem[]
+  loading?: boolean
 }
 
-export function StatsOverview({ stats = defaultStats }: StatsOverviewProps) {
+export function StatsOverview({ stats = defaultStats, loading }: StatsOverviewProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-2 sm:gap-3">
       {stats.map((stat) => (
@@ -112,6 +113,7 @@ export function StatsOverview({ stats = defaultStats }: StatsOverviewProps) {
           icon={stat.icon}
           color={stat.color}
           href={stat.href}
+          loading={loading}
         />
       ))}
     </div>

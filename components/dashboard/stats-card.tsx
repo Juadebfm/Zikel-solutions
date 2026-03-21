@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export type StatsColor =
   | "red"
@@ -22,6 +23,7 @@ interface StatsCardProps {
   icon: LucideIcon
   color: StatsColor
   href: string
+  loading?: boolean
 }
 
 const colorStyles: Record<StatsColor, { border: string; label: string; icon: string; value: string }> = {
@@ -43,8 +45,21 @@ export function StatsCard({
   icon: Icon,
   color,
   href,
+  loading,
 }: StatsCardProps) {
   const styles = colorStyles[color]
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border-2 border-gray-200 bg-white p-3 sm:p-4">
+        <Skeleton className="h-3 w-16 mb-2 sm:mb-3" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Skeleton className="h-5 w-5 rounded" />
+          <Skeleton className="h-7 w-10" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <Link href={href}>

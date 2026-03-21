@@ -439,13 +439,7 @@ export default function MySummaryPage() {
         </div>
       )}
 
-      {isPageLoading && (
-        <div className="p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
-          Loading summary data...
-        </div>
-      )}
-
-      <StatsOverview stats={stats} />
+      <StatsOverview stats={stats} loading={statsQuery.isLoading} />
 
       <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
 

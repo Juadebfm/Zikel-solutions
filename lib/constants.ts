@@ -59,7 +59,7 @@ export const dashboardStatsConfig = [
     textColor: "text-red-600",
     bgLight: "bg-red-50",
     icon: AlertCircle,
-    href: "/tasks?status=overdue",
+    href: "/my-summary/overdue-tasks",
   },
   {
     label: "Tasks Due Today",
@@ -68,7 +68,7 @@ export const dashboardStatsConfig = [
     textColor: "text-blue-600",
     bgLight: "bg-blue-50",
     icon: ListTodo,
-    href: "/tasks?status=due-today",
+    href: "/my-summary/due-today",
   },
   {
     label: "Pending Approval",

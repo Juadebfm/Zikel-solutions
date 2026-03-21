@@ -47,6 +47,44 @@ export function useSummaryTasksToApprove(params?: { page?: number; pageSize?: nu
   })
 }
 
+export function useSummaryOverdueTasks(params?: {
+  page?: number
+  pageSize?: number
+  search?: string
+  formGroup?: string
+}) {
+  const resolvedParams = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    search: params?.search,
+    formGroup: params?.formGroup,
+  }
+
+  return useQuery({
+    queryKey: queryKeys.summary.overdueTasks(resolvedParams),
+    queryFn: () => summaryService.getOverdueTasks(resolvedParams),
+  })
+}
+
+export function useSummaryDueTodayTasks(params?: {
+  page?: number
+  pageSize?: number
+  search?: string
+  formGroup?: string
+}) {
+  const resolvedParams = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    search: params?.search,
+    formGroup: params?.formGroup,
+  }
+
+  return useQuery({
+    queryKey: queryKeys.summary.dueTodayTasks(resolvedParams),
+    queryFn: () => summaryService.getDueTodayTasks(resolvedParams),
+  })
+}
+
 export function useSummaryProvisions() {
   return useQuery({
     queryKey: queryKeys.summary.provisions,

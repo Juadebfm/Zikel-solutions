@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { OTPInput } from "@/components/auth/otp-input"
 import { useAuth } from "@/contexts/auth-context"
 import { useMfaStore } from "@/stores/mfa-store"
+import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { useToastStore } from "@/components/shared/toast"
 
 export function MfaModal() {
@@ -49,6 +50,20 @@ export function MfaModal() {
       if (cancelled) return
 
       if (!result.success) {
+        // If BE says MFA is not required, dismiss the modal and sync session
+        if (result.code === "MFA_NOT_REQUIRED") {
+          const current = useAuthSessionStore.getState().session
+          if (current) {
+            useAuthSessionStore.getState().setSessionContext({
+              ...current,
+              mfaRequired: false,
+            })
+          }
+          pendingWrite?.resolve({ success: true })
+          closeMfaModal()
+          setIsSendingCode(false)
+          return
+        }
         setError(mapChallengeError(result.message))
       } else {
         setSuccessMessage(mapDeliveryMessage(result.message))
@@ -98,6 +113,19 @@ export function MfaModal() {
 
     const result = await challengeMfa()
     if (!result.success) {
+      if (result.code === "MFA_NOT_REQUIRED") {
+        const current = useAuthSessionStore.getState().session
+        if (current) {
+          useAuthSessionStore.getState().setSessionContext({
+            ...current,
+            mfaRequired: false,
+          })
+        }
+        pendingWrite?.resolve({ success: true })
+        closeMfaModal()
+        setIsSendingCode(false)
+        return
+      }
       setError(mapChallengeError(result.message))
     } else {
       setSuccessMessage(mapDeliveryMessage(result.message))

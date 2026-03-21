@@ -456,20 +456,27 @@ function syncMfaRequirementFromError(errorPayload: unknown): void {
     return
   }
 
-  if (errorPayload.error.code !== "MFA_REQUIRED") {
-    return
-  }
-
   const session = getAuthSessionState()
   if (!session.session) {
     return
   }
 
-  session.setSessionContext({
-    ...session.session,
-    mfaRequired: true,
-    mfaVerified: false,
-  })
+  if (errorPayload.error.code === "MFA_REQUIRED") {
+    session.setSessionContext({
+      ...session.session,
+      mfaRequired: true,
+      mfaVerified: false,
+    })
+    return
+  }
+
+  // Backend says MFA is not required — sync session so banner/modal dismiss
+  if (errorPayload.error.code === "MFA_NOT_REQUIRED") {
+    session.setSessionContext({
+      ...session.session,
+      mfaRequired: false,
+    })
+  }
 }
 
 function storePendingMfaRequest(options: ApiRequestOptions, errorPayload: unknown): void {

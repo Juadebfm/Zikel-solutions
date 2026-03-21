@@ -13,6 +13,10 @@ export const queryKeys = {
       ["summary", "todos", params] as const,
     tasksToApprove: (params: { page: number; pageSize: number }) =>
       ["summary", "tasks-to-approve", params] as const,
+    overdueTasks: (params: { page: number; pageSize: number; search?: string; formGroup?: string }) =>
+      ["summary", "overdue-tasks", params] as const,
+    dueTodayTasks: (params: { page: number; pageSize: number; search?: string; formGroup?: string }) =>
+      ["summary", "due-today-tasks", params] as const,
     provisions: ["summary", "provisions"] as const,
   },
   dashboard: {

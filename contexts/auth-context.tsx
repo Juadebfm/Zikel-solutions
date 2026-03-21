@@ -40,7 +40,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
   switchTenant: (tenantId: string) => Promise<{ success: boolean; message?: string }>
-  challengeMfa: () => Promise<{ success: boolean; message?: string }>
+  challengeMfa: () => Promise<{ success: boolean; message?: string; code?: string }>
   verifyMfa: (code: string) => Promise<{ success: boolean; message?: string; redirectTo?: string }>
   logout: () => Promise<void>
   hasPermission: (permission: keyof RolePermissions) => boolean
@@ -214,6 +214,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true)
 
+      // Refresh tokens once on boot to sync MFA state from backend.
+      // Existing users may have stale JWTs with outdated mfaRequired/mfaVerified.
+      try {
+        const currentRefreshToken = useAuthSessionStore.getState().refreshToken
+        if (currentRefreshToken) {
+          const refreshed = await authService.refresh(currentRefreshToken)
+          if (isCancelled) return
+
+          setTokens({
+            accessToken: refreshed.tokens.accessToken,
+            refreshToken: refreshed.tokens.refreshToken ?? currentRefreshToken,
+          })
+
+          if (refreshed.session) {
+            setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
+          }
+        }
+      } catch {
+        // Non-critical — continue with existing tokens. If they are truly
+        // expired the next API call will trigger a refresh or logout.
+      }
+
       try {
         const currentSession = useAuthSessionStore.getState().session
         if (currentSession && !currentSession.activeTenantId && currentSession.memberships.length > 0) {
@@ -252,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isCancelled = true
     }
-  }, [accessToken, applyTenantSwitch, clearSession, hasHydrated, setPermissions, setUser])
+  }, [accessToken, applyTenantSwitch, clearSession, hasHydrated, setPermissions, setSessionContext, setTokens, setUser])
 
   useEffect(() => {
     if (!hasHydrated || isLoading) {
@@ -355,15 +377,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applyTenantSwitch, router, setPermissions]
   )
 
-  const challengeMfa = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+  const challengeMfa = useCallback(async (): Promise<{ success: boolean; message?: string; code?: string }> => {
     try {
       const payload = await authService.challengeMfa()
       return { success: true, message: payload.message }
     } catch (error) {
       logApiError(error, "mfa-challenge")
+
+      // Surface the error code so callers can handle MFA_NOT_REQUIRED
+      const code = isApiClientError(error) ? error.code : undefined
       return {
         success: false,
         message: getApiErrorMessage(error, "Unable to request MFA challenge."),
+        code,
       }
     }
   }, [])
@@ -405,6 +431,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         logApiError(error, "mfa-verify")
+
+        // If BE says MFA is not required, treat as success — sync session and continue
+        if (isApiClientError(error) && error.code === "MFA_NOT_REQUIRED") {
+          const current = useAuthSessionStore.getState().session
+          if (current) {
+            setSessionContext({ ...current, mfaRequired: false })
+          }
+          useMfaStore.getState().dismissBanner()
+          return { success: true, redirectTo: consumeMfaReturnPath() ?? "/my-summary" }
+        }
+
         return {
           success: false,
           message: getApiErrorMessage(error, "MFA verification failed."),

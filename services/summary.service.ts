@@ -66,6 +66,18 @@ export interface HomeProvision {
   shifts: ProvisionShift[]
 }
 
+export interface OverdueTask {
+  id: string
+  taskRef: string
+  title: string
+  formGroup: string
+  status: string
+  relatesTo: string
+  taskDate: string
+}
+
+export type DueTodayTask = OverdueTask
+
 export interface PaginatedResult<T> {
   items: T[]
   meta: ApiMeta
@@ -154,6 +166,52 @@ export const summaryService = {
     })
 
     return response.data
+  },
+
+  async getOverdueTasks(params?: {
+    page?: number
+    pageSize?: number
+    search?: string
+    formGroup?: string
+  }): Promise<PaginatedResult<OverdueTask>> {
+    const response = await apiRequest<OverdueTask[], ApiMeta>({
+      path: "/summary/overdue-tasks",
+      auth: true,
+      query: {
+        page: params?.page ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        search: params?.search,
+        formGroup: params?.formGroup,
+      },
+    })
+
+    return {
+      items: response.data,
+      meta: response.meta ?? DEFAULT_META,
+    }
+  },
+
+  async getDueTodayTasks(params?: {
+    page?: number
+    pageSize?: number
+    search?: string
+    formGroup?: string
+  }): Promise<PaginatedResult<DueTodayTask>> {
+    const response = await apiRequest<DueTodayTask[], ApiMeta>({
+      path: "/summary/due-today-tasks",
+      auth: true,
+      query: {
+        page: params?.page ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        search: params?.search,
+        formGroup: params?.formGroup,
+      },
+    })
+
+    return {
+      items: response.data,
+      meta: response.meta ?? DEFAULT_META,
+    }
   },
 
   async getProvisions(): Promise<HomeProvision[]> {
