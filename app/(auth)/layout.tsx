@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/contexts/language-context"
 import { LanguageSelector } from "@/components/auth/language-selector"
 import { BrandedPanel } from "@/components/auth/branded-panel"
 import { LEGAL_URLS, isExternalUrl } from "@/lib/config/legal"
+import { BrandMark } from "@/components/shared/brand-mark"
 import { cn } from "@/lib/utils"
 
 export default function AuthLayout({
@@ -44,8 +45,14 @@ export default function AuthLayout({
             }}
           />
 
-          {/* Language Selector - Top Right */}
-          <div className="absolute top-4 right-4 z-20">
+          {/* Mobile Header: Logo (left) + Language (right) */}
+          <div className="flex items-center justify-between px-6 sm:px-12 pt-4 lg:hidden relative z-20">
+            <BrandMark size={36} priority className="rounded-lg overflow-hidden" />
+            <LanguageSelector variant="outline" />
+          </div>
+
+          {/* Language Selector - Top Right (desktop only) */}
+          <div className="absolute top-4 right-4 z-20 hidden lg:block">
             <LanguageSelector variant="outline" />
           </div>
 
@@ -58,8 +65,8 @@ export default function AuthLayout({
             {/* Main Content */}
             <div
               className={cn(
-                "relative flex-1 flex flex-col px-6 sm:px-12 lg:px-16 xl:px-20 py-12 pt-16",
-                isRegisterRoute ? "justify-start" : "justify-center"
+                "relative flex-1 flex flex-col px-6 sm:px-12 lg:px-16 xl:px-20 py-6 lg:py-12 lg:pt-16",
+                isRegisterRoute ? "justify-center lg:justify-start" : "justify-center"
               )}
             >
               {children}
@@ -67,55 +74,53 @@ export default function AuthLayout({
 
             {/* Footer */}
             <div className="relative px-6 sm:px-12 lg:px-16 xl:px-20 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-sm lg:bg-white lg:backdrop-blur-none">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
                   <span className="text-xs text-gray-400">
                     &copy; {new Date().getFullYear()} Zikel Solutions
                   </span>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 hidden md:inline">|</span>
                   <a
                     href="/help"
-                    className="text-gray-500 hover:text-gray-700 text-xs"
+                    className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
                   >
                     Help Center
                   </a>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 hidden md:inline">|</span>
                   {isExternalUrl(termsUrl) ? (
                     <a
                       href={termsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-gray-700 text-xs"
+                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
                     >
                       Terms of Service
                     </a>
                   ) : (
                     <a
                       href={termsUrl}
-                      className="text-gray-500 hover:text-gray-700 text-xs"
+                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
                     >
                       Terms of Service
                     </a>
                   )}
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 hidden md:inline">|</span>
                   {isExternalUrl(privacyUrl) ? (
                     <a
                       href={privacyUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-gray-700 text-xs"
+                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
                     >
                       Privacy Policy
                     </a>
                   ) : (
                     <a
                       href={privacyUrl}
-                      className="text-gray-500 hover:text-gray-700 text-xs"
+                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
                     >
                       Privacy Policy
                     </a>
                   )}
-                </div>
               </div>
             </div>
           </div>

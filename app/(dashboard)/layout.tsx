@@ -5,6 +5,9 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageLoading } from "@/components/shared/page-loading"
+import { Toast } from "@/components/shared/toast"
+import { MfaBanner } from "@/components/mfa/mfa-banner"
+import { MfaModal } from "@/components/mfa/mfa-modal"
 import { useAuth } from "@/contexts/auth-context"
 
 export default function DashboardLayout({
@@ -38,8 +41,17 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="lg:pl-64">
         <Header onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6">
+          <MfaBanner />
+          {children}
+        </main>
       </div>
+
+      {/* Global MFA modal — triggered by API 403 or banner CTA */}
+      <MfaModal />
+
+      {/* Global toast notifications */}
+      <Toast />
     </div>
   )
 }

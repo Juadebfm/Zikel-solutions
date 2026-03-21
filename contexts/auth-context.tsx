@@ -21,6 +21,7 @@ import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { authService, type LoginPayload } from "@/services/auth.service"
 import type { AuthSessionContext, RolePermissions, TenantRole, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
+import { useMfaStore } from "@/stores/mfa-store"
 
 interface LoginResult {
   success: boolean
@@ -161,12 +162,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions: null,
       })
 
-      const mfaPending = Boolean(payload.session?.mfaRequired && !payload.session?.mfaVerified)
-      if (mfaPending) {
-        router.push("/mfa-verify")
-        return
-      }
-
       if (shouldRouteToPendingApproval(mappedSession)) {
         router.push("/pending-approval")
         return
@@ -260,7 +255,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
     const isMfaRoute = pathname.startsWith("/mfa-verify")
     const isPendingApprovalRoute = pathname.startsWith("/pending-approval")
-    const mfaPending = Boolean(user && session?.mfaRequired && !session?.mfaVerified)
     const pendingApproval = shouldRouteToPendingApproval(session)
 
     if (!user && isMfaRoute) {
@@ -273,12 +267,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (mfaPending && !isMfaRoute) {
-      router.replace("/mfa-verify")
-      return
-    }
+    // MFA pending users are allowed into the dashboard (read-only).
+    // The MFA banner and modal handle the UX for completing MFA.
 
-    if (user && !mfaPending && pendingApproval && !isPendingApprovalRoute) {
+    if (user && pendingApproval && !isPendingApprovalRoute) {
       router.replace("/pending-approval")
       return
     }
@@ -288,7 +280,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (user && isMfaRoute && !mfaPending) {
+    // Redirect authenticated users away from MFA page to dashboard
+    // (MFA is now handled via in-dashboard modal, not a separate page)
+    if (user && isMfaRoute) {
       router.replace(pendingApproval ? "/pending-approval" : "/my-summary")
       return
     }
@@ -373,6 +367,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
           }
         }
+
+        // Reset MFA banner dismissed state so it hides naturally
+        useMfaStore.getState().dismissBanner()
 
         await retryPendingMfaRequest()
 

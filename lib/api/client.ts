@@ -2,6 +2,7 @@ import { API_CONFIG } from "@/lib/api/config"
 import { ApiClientError, toApiClientError } from "@/lib/api/error"
 import type { ApiResponse, ApiSuccess } from "@/lib/api/types"
 import { getAuthSessionState } from "@/stores/auth-session-store"
+import { useMfaStore } from "@/stores/mfa-store"
 
 interface QueryParams {
   [key: string]: string | number | boolean | null | undefined
@@ -33,6 +34,8 @@ let pendingMfaRequest: ApiRequestOptions | null = null
 
 const MFA_RETURN_PATH_STORAGE_KEY = "nexus-mfa-return-path"
 
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
+
 export async function apiRequest<T, M = unknown>(
   options: ApiRequestOptions
 ): Promise<ApiSuccess<T, M>> {
@@ -43,6 +46,28 @@ export async function apiRequest<T, M = unknown>(
     if (options.auth) {
       syncMfaRequirementFromError(errorPayload)
     }
+
+    // Intercept 403 MFA_REQUIRED on write methods: open MFA modal,
+    // wait for verification, then auto-retry the blocked request.
+    if (
+      options.auth &&
+      response.status === 403 &&
+      isApiFailurePayload(errorPayload) &&
+      errorPayload.error.code === "MFA_REQUIRED" &&
+      WRITE_METHODS.has((options.method ?? "GET").toUpperCase()) &&
+      options.retryOnMfaRequired !== false
+    ) {
+      const mfaResult = await promptMfaModal()
+      if (mfaResult.success) {
+        // MFA verified — retry the original request once
+        return apiRequest<T, M>({
+          ...options,
+          retryOnMfaRequired: false,
+        })
+      }
+      // User dismissed modal without verifying — throw the original error
+    }
+
     throw toApiClientError(errorPayload, response.status, response.statusText)
   }
 
@@ -65,6 +90,16 @@ export async function apiRequest<T, M = unknown>(
     status: response.status,
     code: "INVALID_RESPONSE",
     message: "Unexpected response format from server",
+  })
+}
+
+/**
+ * Opens the MFA modal and returns a promise that resolves when
+ * the user completes or dismisses the modal.
+ */
+function promptMfaModal(): Promise<{ success: boolean }> {
+  return new Promise((resolve) => {
+    useMfaStore.getState().openMfaModal({ resolve })
   })
 }
 

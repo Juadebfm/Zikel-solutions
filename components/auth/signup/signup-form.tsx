@@ -3,13 +3,12 @@
 import { useState } from "react"
 import Link from "next/link"
 
-import { StepIndicator } from "@/components/auth/step-indicator"
+import { StepIndicator, StepIndicatorCompact } from "@/components/auth/step-indicator"
 import { StepCountry } from "./step-country"
 import { StepBasicInfo } from "./step-basic-info"
 import { StepPassword } from "./step-password"
 import { StepVerification } from "./step-verification"
 import { useFormSteps } from "@/hooks/use-form-steps"
-import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
 import { getOtpDeliveryStatusMessage, getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
@@ -153,14 +152,10 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
   return (
     <div className="w-full">
-      {/* Logo - Mobile */}
-      <div className="flex justify-center mb-6 lg:hidden">
-        <BrandMark size={48} priority animated />
-      </div>
-
       {/* Step Indicator */}
       <div className="max-w-md mx-auto mb-8">
-        <StepIndicator steps={SIGNUP_STEPS} currentStep={currentStep} />
+        <StepIndicator steps={SIGNUP_STEPS} currentStep={currentStep} className="hidden sm:flex" />
+        <StepIndicatorCompact currentStep={currentStep} totalSteps={SIGNUP_STEPS.length} className="flex sm:hidden justify-center" />
       </div>
 
       {/* Global Error */}

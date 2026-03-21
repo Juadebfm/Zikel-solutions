@@ -59,7 +59,7 @@ export function BrandMark({
         alt="Zikel Solutions"
         width={size}
         height={size}
-        className={cn("rounded-xl", imageClassName)}
+        className={cn("rounded-lg", imageClassName)}
         priority={priority}
       />
     </motion.div>

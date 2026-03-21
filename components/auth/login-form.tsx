@@ -17,7 +17,6 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
-import { BrandMark } from "@/components/shared/brand-mark"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
 import { loginSchema, type LoginFormValues } from "@/lib/validators"
@@ -54,11 +53,6 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* Logo - Mobile */}
-      <div className="flex justify-center mb-8 lg:hidden">
-        <BrandMark size={48} priority animated />
-      </div>
-
       {/* Form Card */}
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         {/* Header */}

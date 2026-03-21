@@ -79,7 +79,7 @@ export function StepCountry({ value, onNext }: StepCountryProps) {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full h-12 py-3.5 mt-1.5 border-gray-200 rounded-lg">
+                      <SelectTrigger className="w-full h-12 py-6 mt-1.5 border-gray-200 rounded-lg">
                         <SelectValue placeholder={t("auth.signup.step1.countryPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
