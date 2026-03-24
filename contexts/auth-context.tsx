@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useAuthSessionStore((state) => state.clearSession)
 
   const [isLoading, setIsLoading] = useState(true)
+  const hasBootstrapped = useRef(false)
 
   const applyTenantSwitch = useCallback(
     async (tenantId: string, fallbackSession?: AuthSessionContext | null): Promise<boolean> => {
@@ -200,24 +202,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (!hasHydrated || hasBootstrapped.current) {
       return
     }
 
     let isCancelled = false
 
     const bootstrap = async () => {
-      if (!accessToken) {
+      // Read tokens directly from store to avoid stale closure values
+      const storeState = useAuthSessionStore.getState()
+
+      if (!storeState.accessToken) {
         setIsLoading(false)
         return
       }
 
+      // Fast path: if the session has been idle longer than the client-side
+      // max-age, skip all network calls and go straight to login.
+      if (storeState.isSessionExpired()) {
+        clearSession()
+        setIsLoading(false)
+        return
+      }
+
+      hasBootstrapped.current = true
       setIsLoading(true)
 
       // Refresh tokens once on boot to sync MFA state from backend.
       // Existing users may have stale JWTs with outdated mfaRequired/mfaVerified.
       try {
-        const currentRefreshToken = useAuthSessionStore.getState().refreshToken
+        const currentRefreshToken = storeState.refreshToken
         if (currentRefreshToken) {
           const refreshed = await authService.refresh(currentRefreshToken)
           if (isCancelled) return
@@ -232,8 +246,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {
-        // Non-critical — continue with existing tokens. If they are truly
-        // expired the next API call will trigger a refresh or logout.
+        // Refresh failed — tokens are expired. Clear session immediately
+        // instead of continuing with stale tokens (which would trigger
+        // cascading 401s from profile/permissions calls).
+        clearSession()
+        setIsLoading(false)
+        return
       }
 
       try {
@@ -274,7 +292,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isCancelled = true
     }
-  }, [accessToken, applyTenantSwitch, clearSession, hasHydrated, setPermissions, setSessionContext, setTokens, setUser])
+  // Bootstrap runs once after hydration — reads tokens from store directly
+  // rather than depending on accessToken (which would cause an infinite loop
+  // since refresh updates the token, re-triggering this effect).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated])
 
   useEffect(() => {
     if (!hasHydrated || isLoading) {
@@ -462,6 +484,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearPendingMfaRequest()
       consumeMfaReturnPath()
       clearSession()
+      hasBootstrapped.current = false
       router.push("/login")
     }
   }, [clearSession, refreshToken, router])
