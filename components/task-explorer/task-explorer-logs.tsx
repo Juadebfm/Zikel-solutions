@@ -128,8 +128,8 @@ export function TaskExplorerLogs({ filters }: TaskExplorerLogsProps) {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`, { data: filteredLogs })
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export functionality not yet available
   }
 
   if (filteredLogs.length === 0) {

@@ -161,8 +161,8 @@ export function EmpSettingsTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export emp settings as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = settingsColumns.filter((col) => visibleColumns.includes(col.key))

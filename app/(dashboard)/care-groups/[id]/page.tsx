@@ -128,26 +128,11 @@ export default function CareGroupDetailPage() {
   const resolvedPostcode = postcode ?? careGroup?.postcode ?? ""
 
   const handleSave = () => {
-    console.log("Save care group", {
-      name: resolvedName,
-      type: resolvedType,
-      description: resolvedDescription,
-      website: resolvedWebsite,
-      ipRestriction: resolvedIpRestriction,
-      contact: resolvedContact,
-      phone: resolvedPhone,
-      fax: resolvedFax,
-      email: resolvedEmail,
-      addressLine1: resolvedAddressLine1,
-      addressLine2: resolvedAddressLine2,
-      city: resolvedCity,
-      countryRegion: resolvedCountryRegion,
-      postcode: resolvedPostcode,
-    })
+    // Save not yet implemented
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   if (isCareGroupLoading) {
@@ -645,11 +630,11 @@ function StakeholdersTab({ stakeholders }: StakeholdersTabProps) {
   const paginated = stakeholders.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
 
   const handleAdd = () => {
-    console.log("Add stakeholder")
+    // Add stakeholder not yet implemented
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export stakeholders as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   return (
@@ -945,8 +930,8 @@ function HomesTab({ homes }: HomesTabProps) {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export homes as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = homeColumns.filter((col) => visibleColumns.includes(col.key))

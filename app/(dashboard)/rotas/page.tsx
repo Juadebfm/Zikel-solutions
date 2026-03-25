@@ -22,11 +22,11 @@ export default function RotasPage() {
       <AccessBanner show={!allowed} />
 
       <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Create rota"))}>
+        <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Plus className="h-4 w-4" />
           Create Rota
         </Button>
-        <Button variant="outline" className="gap-2" onClick={() => guard(() => console.log("Edit rota"))}>
+        <Button variant="outline" className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Pencil className="h-4 w-4" />
           Edit
         </Button>

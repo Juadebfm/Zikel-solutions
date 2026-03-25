@@ -23,7 +23,7 @@ export default function DailyLogsPage() {
 
       {allowed ? (
         <div className="flex gap-2">
-          <Button className="gap-2" onClick={() => guard(() => console.log("Approve log"))}>
+          <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
             <CheckCircle className="h-4 w-4" />
             Approve Selected
           </Button>

@@ -164,8 +164,8 @@ export function HomesTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export homes as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = homeColumns.filter((col) => visibleColumns.includes(col.key))

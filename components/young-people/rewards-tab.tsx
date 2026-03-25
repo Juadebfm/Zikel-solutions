@@ -129,8 +129,8 @@ export function RewardsTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export rewards as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = rewardColumns.filter((col) => visibleColumns.includes(col.key))

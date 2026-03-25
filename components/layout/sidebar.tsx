@@ -40,6 +40,8 @@ export function Sidebar() {
   // Filter nav items: permissions from /me/permissions are the primary gate.
   // Role-based filtering still applies but tenant_admin bypasses global role checks.
   const visibleItems = navItems.filter((item) => {
+    if (item.hidden) return false
+
     const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
 
     // Role gate: skip if no roles defined, or tenant_admin (inherits admin-level access)

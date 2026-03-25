@@ -33,6 +33,8 @@ export interface NavItemConfig {
   roles?: UserRole[]
   /** Permission gate for this nav item. */
   permission?: keyof RolePermissions
+  /** Hide from nav until implementation is complete. */
+  hidden?: boolean
 }
 
 /**
@@ -53,15 +55,15 @@ export const navItems: NavItemConfig[] = [
   { label: "Young People", href: "/young-people", icon: UserCircle },
   { label: "Employees", href: "/employees", icon: Briefcase },
   { label: "Vehicles", href: "/vehicles", icon: Car },
-  { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Daily Logs", href: "/daily-logs", icon: FileText },
-  { label: "Rotas", href: "/rotas", icon: Clock, permission: "canManageSettings" },
-  { label: "Bespoke Reporting", href: "/reports", icon: PieChart, permission: "canViewReports" },
-  { label: "Uploads", href: "/uploads", icon: Upload },
-  { label: "Sensitive Data", href: "/sensitive-data", icon: Shield, permission: "canManageSettings" },
-  { label: "Forms & Procedures", href: "/forms", icon: ClipboardList, permission: "canManageSettings" },
-  { label: "Documents", href: "/documents", icon: FolderOpen, permission: "canManageSettings" },
-  { label: "Regions", href: "/regions", icon: MapPin, permission: "canManageSettings" },
+  { label: "Calendar", href: "/calendar", icon: Calendar, hidden: true },
+  { label: "Daily Logs", href: "/daily-logs", icon: FileText, hidden: true },
+  { label: "Rotas", href: "/rotas", icon: Clock, permission: "canManageSettings", hidden: true },
+  { label: "Bespoke Reporting", href: "/reports", icon: PieChart, permission: "canViewReports", hidden: true },
+  { label: "Uploads", href: "/uploads", icon: Upload, hidden: true },
+  { label: "Sensitive Data", href: "/sensitive-data", icon: Shield, permission: "canManageSettings", hidden: true },
+  { label: "Forms & Procedures", href: "/forms", icon: ClipboardList, permission: "canManageSettings", hidden: true },
+  { label: "Documents", href: "/documents", icon: FolderOpen, permission: "canManageSettings", hidden: true },
+  { label: "Regions", href: "/regions", icon: MapPin, permission: "canManageSettings", hidden: true },
   { label: "Users", href: "/users", icon: UserCog, permission: "canManageUsers" },
   {
     label: "Audit",
@@ -70,7 +72,7 @@ export const navItems: NavItemConfig[] = [
     roles: ["admin", "super_admin"],
     permission: "canManageSettings",
   },
-  { label: "Groupings", href: "/groupings", icon: Layers, permission: "canManageSettings" },
-  { label: "Bulk Exports", href: "/bulk-exports", icon: Download, permission: "canExportData" },
-  { label: "System Settings", href: "/system-settings", icon: Settings, permission: "canManageSettings" },
+  { label: "Groupings", href: "/groupings", icon: Layers, permission: "canManageSettings", hidden: true },
+  { label: "Bulk Exports", href: "/bulk-exports", icon: Download, permission: "canExportData", hidden: true },
+  { label: "System Settings", href: "/system-settings", icon: Settings, permission: "canManageSettings", hidden: true },
 ]

@@ -13,10 +13,12 @@ export const queryKeys = {
       ["summary", "todos", params] as const,
     tasksToApprove: (params: { page: number; pageSize: number }) =>
       ["summary", "tasks-to-approve", params] as const,
+    taskToApproveDetail: (taskId: string) =>
+      ["summary", "tasks-to-approve", "detail", taskId] as const,
+    taskReview: (taskId: string) =>
+      ["summary", "tasks-to-approve", "review", taskId] as const,
     overdueTasks: (params: { page: number; pageSize: number; search?: string; formGroup?: string }) =>
       ["summary", "overdue-tasks", params] as const,
-    dueTodayTasks: (params: { page: number; pageSize: number; search?: string; formGroup?: string }) =>
-      ["summary", "due-today-tasks", params] as const,
     provisions: ["summary", "provisions"] as const,
   },
   dashboard: {
@@ -113,9 +115,9 @@ export const queryKeys = {
       youngPeople: (category: string) => ["backend", "audit", "young-people", category] as const,
       vehicle: (category: string) => ["backend", "audit", "vehicle", category] as const,
     },
-    taskExplorer: {
-      logs: ["backend", "task-explorer", "logs"] as const,
-      forms: ["backend", "task-explorer", "forms"] as const,
+    tasks: {
+      list: ["backend", "tasks", "list"] as const,
+      detail: (id: string) => ["backend", "tasks", "detail", id] as const,
     },
   },
 } as const

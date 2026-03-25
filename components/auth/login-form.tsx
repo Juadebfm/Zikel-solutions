@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Loader2, Mail } from "lucide-react"
@@ -25,8 +25,17 @@ export function LoginForm() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const { login, isLoading } = useAuth()
   const { t } = useLanguage()
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownSeconds])
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -38,6 +47,7 @@ export function LoginForm() {
   })
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (cooldownSeconds > 0) return
     setError(null)
 
     const result = await login(data.email, data.password)
@@ -47,9 +57,15 @@ export function LoginForm() {
     }
 
     if (!result.success) {
-      setError(result.message || "Invalid email or password. Please try again.")
+      const message = result.message || "Invalid email or password. Please try again."
+      if (message.toLowerCase().includes("too many") || message.toLowerCase().includes("rate")) {
+        setCooldownSeconds(30)
+      }
+      setError(message)
     }
   }
+
+  const isDisabled = isLoading || cooldownSeconds > 0
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -145,10 +161,12 @@ export function LoginForm() {
             <Button
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
-              disabled={isLoading}
+              disabled={isDisabled}
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : cooldownSeconds > 0 ? (
+                `Try again in ${cooldownSeconds}s`
               ) : (
                 t("auth.login.loginButton")
               )}

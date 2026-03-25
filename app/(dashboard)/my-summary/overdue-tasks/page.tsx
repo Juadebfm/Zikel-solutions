@@ -102,8 +102,8 @@ export default function OverdueTasksPage() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`, { data: filteredTasks })
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export functionality not yet available
   }
 
   return (

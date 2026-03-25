@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -18,7 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { getCooldownSecondsFromError, getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { isApiClientError } from "@/lib/api/error"
 import { authService } from "@/services/auth.service"
 
 const resetPasswordSchema = z
@@ -57,6 +58,15 @@ export default function ResetPasswordPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownSeconds])
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -69,6 +79,7 @@ export default function ResetPasswordPage() {
   })
 
   const onSubmit = async (data: ResetPasswordFormData) => {
+    if (cooldownSeconds > 0) return
     setSubmitError(null)
 
     setIsLoading(true)
@@ -84,6 +95,10 @@ export default function ResetPasswordPage() {
       )
       setIsSubmitted(true)
     } catch (error) {
+      if (isApiClientError(error) && (error.status === 429 || error.code === "RATE_LIMIT_EXCEEDED")) {
+        const seconds = getCooldownSecondsFromError(error)
+        setCooldownSeconds(seconds)
+      }
       setSubmitError(getPublicAuthErrorMessage(error, "Failed to reset password. Please try again."))
     } finally {
       setIsLoading(false)
@@ -250,10 +265,12 @@ export default function ResetPasswordPage() {
             <Button
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium"
-              disabled={isLoading}
+              disabled={isLoading || cooldownSeconds > 0}
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : cooldownSeconds > 0 ? (
+                `Try again in ${cooldownSeconds}s`
               ) : (
                 "Reset Password"
               )}

@@ -6,7 +6,6 @@ import {
   type CreateTenantInviteLinkInput,
   type CreateTenantStaffInput,
   type CreateTenantInviteInput,
-  type CreateSelfServeTenantInput,
   type UpdateTenantMembershipInput,
 } from "@/services/tenants.service"
 
@@ -186,9 +185,3 @@ export function useAcceptTenantInvite() {
   })
 }
 
-export function useCreateSelfServeTenant() {
-  return useMutation({
-    mutationFn: (input: CreateSelfServeTenantInput) =>
-      tenantsService.createSelfServeTenant(input),
-  })
-}

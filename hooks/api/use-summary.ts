@@ -4,6 +4,7 @@ import { queryKeys } from "@/lib/query-keys"
 import {
   summaryService,
   type BatchProcessPayload,
+  type ReviewEventPayload,
 } from "@/services/summary.service"
 
 export function useSummaryStats() {
@@ -47,6 +48,14 @@ export function useSummaryTasksToApprove(params?: { page?: number; pageSize?: nu
   })
 }
 
+export function useSummaryTaskToApproveDetail(taskId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.summary.taskToApproveDetail(taskId),
+    queryFn: () => summaryService.getTaskToApproveDetail(taskId),
+    enabled: enabled && Boolean(taskId),
+  })
+}
+
 export function useSummaryOverdueTasks(params?: {
   page?: number
   pageSize?: number
@@ -63,25 +72,6 @@ export function useSummaryOverdueTasks(params?: {
   return useQuery({
     queryKey: queryKeys.summary.overdueTasks(resolvedParams),
     queryFn: () => summaryService.getOverdueTasks(resolvedParams),
-  })
-}
-
-export function useSummaryDueTodayTasks(params?: {
-  page?: number
-  pageSize?: number
-  search?: string
-  formGroup?: string
-}) {
-  const resolvedParams = {
-    page: params?.page ?? 1,
-    pageSize: params?.pageSize ?? 20,
-    search: params?.search,
-    formGroup: params?.formGroup,
-  }
-
-  return useQuery({
-    queryKey: queryKeys.summary.dueTodayTasks(resolvedParams),
-    queryFn: () => summaryService.getDueTodayTasks(resolvedParams),
   })
 }
 
@@ -115,6 +105,24 @@ export function useApproveSummaryTask() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["summary", "tasks-to-approve"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.summary.stats }),
+      ])
+    },
+  })
+}
+
+export function useRecordSummaryTaskReviewEvent() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ taskId, payload }: { taskId: string; payload: ReviewEventPayload }) =>
+      summaryService.recordTaskReviewEvent(taskId, payload),
+    onSuccess: async (_data, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["summary", "tasks-to-approve"] }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.summary.taskToApproveDetail(variables.taskId),
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.summary.stats }),
       ])
     },

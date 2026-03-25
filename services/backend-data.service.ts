@@ -454,17 +454,17 @@ export const backendDataService = {
   },
 
   async listTaskExplorerLogs(): Promise<TaskExplorerLogEntry[]> {
-    const rows = await safeList("/tasks/explorer/logs")
+    const rows = await safeList("/tasks", { page: 1, pageSize: 500 })
 
     return rows.map((row, index) => ({
       id: pickString(row, ["id"], `log-${index + 1}`),
-      taskId: Number(row.taskId ?? index + 1),
+      taskId: Number(row.taskId ?? row.id ?? index + 1),
       title: pickString(row, ["title"], ""),
-      formGroup: pickString(row, ["formGroup"], ""),
-      relatesTo: pickString(row, ["relatesTo"], ""),
+      formGroup: pickString(row, ["formGroup", "form", "category"], ""),
+      relatesTo: pickString(row, ["relatesTo", "relation"], ""),
       relatesToIcon: (pickString(row, ["relatesToIcon"], "home") as "person" | "home"),
-      homeOrSchool: pickString(row, ["homeOrSchool"], ""),
-      taskDate: pickString(row, ["taskDate"], ""),
+      homeOrSchool: pickString(row, ["homeOrSchool", "homeName"], ""),
+      taskDate: pickString(row, ["taskDate", "dueDate"], ""),
       status: (pickString(row, ["status"], "draft") as TaskExplorerLogEntry["status"]),
       originallyRecordedAt: pickString(row, ["originallyRecordedAt", "createdAt"], ""),
       originallyRecordedBy: pickString(row, ["originallyRecordedBy", "createdBy"], ""),
@@ -472,11 +472,17 @@ export const backendDataService = {
   },
 
   async listTaskExplorerFormSubmissions(): Promise<Array<{ name: string; count: number; color: string }>> {
-    const rows = await safeList("/tasks/explorer/forms")
-    return rows.map((row, index) => ({
-      name: pickString(row, ["name"], `Form ${index + 1}`),
-      count: Number(row.count ?? 0) || 0,
-      color: pickString(row, ["color"], "#f97316"),
+    const FORM_COLORS = ["#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#f59e0b", "#ec4899"]
+    const logs = await this.listTaskExplorerLogs()
+    const counts = new Map<string, number>()
+    for (const log of logs) {
+      const group = log.formGroup || "Uncategorized"
+      counts.set(group, (counts.get(group) ?? 0) + 1)
+    }
+    return Array.from(counts.entries()).map(([name, count], index) => ({
+      name,
+      count,
+      color: FORM_COLORS[index % FORM_COLORS.length],
     }))
   },
 

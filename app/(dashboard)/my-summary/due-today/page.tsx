@@ -217,8 +217,8 @@ export default function DueTodayPage() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`, { data: filteredTasks })
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export functionality not yet available
   }
 
   const bucketTabs: { label: string; value: "all" | DueBucket }[] = [

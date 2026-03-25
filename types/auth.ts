@@ -130,10 +130,7 @@ export interface SignupStepData {
     surname: string
     organizationName: string
     organizationSlug: string
-    gender: Gender | null
     email: string
-    phone: string
-    phoneCountryCode: string
   }
   step3: {
     password: string

@@ -152,15 +152,15 @@ export function VehicleSettingsTab() {
     setPage(0)
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export vehicle settings as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const handleAdd = () => {
     if (isCustomFields) {
       setShowCreateField(true)
     } else {
-      console.log(`Add new ${activeCategory} item`)
+      // Add not yet implemented
     }
   }
 

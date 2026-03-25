@@ -22,7 +22,7 @@ export default function UploadsPage() {
       <AccessBanner show={!allowed} />
 
       <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Upload file"))}>
+        <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Upload className="h-4 w-4" />
           Upload File
         </Button>

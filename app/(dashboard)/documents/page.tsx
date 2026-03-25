@@ -22,15 +22,15 @@ export default function DocumentsPage() {
       <AccessBanner show={!allowed} />
 
       <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Add document"))}>
+        <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Plus className="h-4 w-4" />
           Add Document
         </Button>
-        <Button variant="outline" className="gap-2" onClick={() => guard(() => console.log("Edit document"))}>
+        <Button variant="outline" className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Pencil className="h-4 w-4" />
           Edit
         </Button>
-        <Button variant="outline" className="gap-2 text-red-600 hover:text-red-700" onClick={() => guard(() => console.log("Delete document"))}>
+        <Button variant="outline" className="gap-2 text-red-600 hover:text-red-700" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Trash2 className="h-4 w-4" />
           Delete
         </Button>

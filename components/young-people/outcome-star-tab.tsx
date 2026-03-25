@@ -127,8 +127,8 @@ export function OutcomeStarTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export outcome stars as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = osColumns.filter((col) => visibleColumns.includes(col.key))

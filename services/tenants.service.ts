@@ -1,5 +1,4 @@
 import { apiRequest } from "@/lib/api/client"
-import { isApiClientError } from "@/lib/api/error"
 import type { ApiMeta } from "@/lib/api/types"
 import type { TenantRole } from "@/types"
 
@@ -245,33 +244,6 @@ export interface CreateTenantStaffResult {
   membership: TenantMembershipRecord | null
 }
 
-export interface CreateSelfServeTenantInput {
-  name: string
-}
-
-export interface CreateSelfServeTenantResult {
-  message: string
-  tenantId: string | null
-}
-
-function shouldRetrySelfServeWithLegacyBody(error: unknown): boolean {
-  if (!isApiClientError(error)) {
-    return false
-  }
-
-  if (error.status !== 400 && error.status !== 422) {
-    return false
-  }
-
-  const code = error.code.toUpperCase()
-  return (
-    code === "FST_ERR_VALIDATION" ||
-    code === "VALIDATION_ERROR" ||
-    code === "BAD_REQUEST" ||
-    code === "REQUEST_FAILED" ||
-    code.includes("VALIDATION")
-  )
-}
 
 function mapInvite(record: JsonRecord): TenantInvite {
   return {
@@ -612,49 +584,6 @@ export const tenantsService = {
     }
   },
 
-  async createSelfServeTenant(
-    input: CreateSelfServeTenantInput
-  ): Promise<CreateSelfServeTenantResult> {
-    let responseData: unknown
-
-    try {
-      const response = await apiRequest<unknown>({
-        path: "/tenants/self-serve",
-        method: "POST",
-        auth: true,
-        body: { name: input.name },
-      })
-      responseData = response.data
-    } catch (error) {
-      if (!shouldRetrySelfServeWithLegacyBody(error)) {
-        throw error
-      }
-
-      const legacyResponse = await apiRequest<unknown>({
-        path: "/tenants/self-serve",
-        method: "POST",
-        auth: true,
-        body: { tenantName: input.name },
-      })
-      responseData = legacyResponse.data
-    }
-
-    const dataRecord = asRecord(responseData)
-    const tenantRecord = asRecord(dataRecord?.tenant)
-    const membershipRecord = asRecord(dataRecord?.membership)
-
-    const tenantId =
-      pickNullableString(dataRecord ?? {}, ["tenantId", "id"]) ||
-      pickNullableString(tenantRecord ?? {}, ["id", "tenantId"]) ||
-      pickNullableString(membershipRecord ?? {}, ["tenantId"])
-
-    return {
-      message: dataRecord
-        ? pickString(dataRecord, ["message"], "Organization created successfully.")
-        : "Organization created successfully.",
-      tenantId,
-    }
-  },
 }
 
 export default tenantsService

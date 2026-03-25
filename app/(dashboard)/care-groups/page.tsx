@@ -137,8 +137,8 @@ export default function CareGroupsPage() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export as ${format}`, { visibleColumns, data: filtered })
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = allColumns.filter((col) => visibleColumns.includes(col.key))

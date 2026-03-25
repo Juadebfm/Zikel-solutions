@@ -29,9 +29,11 @@ import type { AskAiResponse } from "@/services/ai.service"
 import {
   useApproveSummaryTask,
   useProcessSummaryBatch,
+  useRecordSummaryTaskReviewEvent,
   useSummaryProvisions,
   useSummaryStats,
   useSummaryTasksToApprove,
+  useSummaryTaskToApproveDetail,
   useSummaryTodos,
 } from "@/hooks/api/use-summary"
 
@@ -87,14 +89,19 @@ export default function MySummaryPage() {
   } | null>(null)
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([])
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
+  const [reviewedTaskIds, setReviewedTaskIds] = useState<Set<string>>(new Set())
 
   const statsQuery = useSummaryStats()
   const todosQuery = useSummaryTodos({ page: 1, pageSize: 20, sortBy: "dueDate", sortOrder: "asc" })
   const tasksToApproveQuery = useSummaryTasksToApprove({ page: 1, pageSize: 20 }, allowed)
   const provisionsQuery = useSummaryProvisions()
 
+  const taskDetailQuery = useSummaryTaskToApproveDetail(detailTaskId ?? "", detailTaskId !== null)
+
   const processBatchMutation = useProcessSummaryBatch()
   const approveTaskMutation = useApproveSummaryTask()
+  const recordReviewMutation = useRecordSummaryTaskReviewEvent()
   const askAiMutation = useAskAi()
 
   useEffect(() => {
@@ -162,6 +169,7 @@ export default function MySummaryPage() {
         relatedTo: item.relation,
         dueDate: formatDate(item.dueDate),
         status: toApprovalStatus(item.approvalStatus, item.priority),
+        reviewed: item.reviewedByCurrentUser === true || reviewedTaskIds.has(item.id),
         submitter: {
           name: submitter,
           initials: toInitials(submitter),
@@ -169,7 +177,9 @@ export default function MySummaryPage() {
         },
       }
     })
-  }, [tasksToApproveQuery.data?.items])
+  }, [tasksToApproveQuery.data?.items, reviewedTaskIds])
+
+  const allTasksReviewed = approvalTasks.length > 0 && approvalTasks.every((t) => t.reviewed)
 
   const homeProvisions = useMemo<HomeProvision[]>(() => {
     return (provisionsQuery.data ?? []).map((home) => ({
@@ -240,12 +250,6 @@ export default function MySummaryPage() {
 
     return Object.keys(context).length > 0 ? context : undefined
   }, [statsQuery.data, todosQuery.data, tasksToApproveQuery.data])
-
-  const isPageLoading =
-    statsQuery.isLoading ||
-    todosQuery.isLoading ||
-    provisionsQuery.isLoading ||
-    (allowed && tasksToApproveQuery.isLoading)
 
   const pageErrorMessage =
     getErrorMessage(statsQuery.error) ||
@@ -347,12 +351,28 @@ export default function MySummaryPage() {
   }
 
   const handleViewApproval = (id: string) => {
-    // Task details route is not in the current live backend scope.
-    // Keep hook point for when task module is registered.
-    void id
+    setDetailTaskId(id)
+    if (!reviewedTaskIds.has(id)) {
+      recordReviewMutation.mutate(
+        { taskId: id, payload: { action: "view_detail" } },
+        {
+          onSuccess: () => {
+            setReviewedTaskIds((prev) => new Set(prev).add(id))
+          },
+        }
+      )
+    }
   }
 
   const handleApproveTask = (id: string) => {
+    if (!reviewedTaskIds.has(id)) {
+      setApprovalFeedback({
+        type: "error",
+        message: "You must review this task before approving. Click \"View\" first.",
+      })
+      return
+    }
+
     guard(() => {
       setApprovalFeedback(null)
       approveTaskMutation.mutate(
@@ -376,6 +396,14 @@ export default function MySummaryPage() {
   }
 
   const handleProcessBatch = () => {
+    if (!allTasksReviewed) {
+      setApprovalFeedback({
+        type: "error",
+        message: "All tasks must be reviewed before batch processing. Click \"View\" on each task first.",
+      })
+      return
+    }
+
     guard(() => {
       if (processBatchMutation.isPending) {
         return
@@ -462,10 +490,92 @@ export default function MySummaryPage() {
           onView={handleViewApproval}
           onApprove={allowed ? handleApproveTask : undefined}
           onProcessBatch={allowed ? handleProcessBatch : undefined}
+          allReviewed={allTasksReviewed}
         />
       </div>
 
       <Provisions homes={homeProvisions} />
+
+      {/* Task Detail Modal */}
+      <Dialog open={detailTaskId !== null} onOpenChange={(open) => { if (!open) setDetailTaskId(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Task Detail</DialogTitle>
+            <DialogDescription>
+              Review the task details before approving.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {taskDetailQuery.isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : taskDetailQuery.data ? (
+              <>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Title</span>
+                    <span className="font-medium text-right">{taskDetailQuery.data.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Related To</span>
+                    <span className="font-medium">{taskDetailQuery.data.relation}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Priority</span>
+                    <span className="font-medium">{taskDetailQuery.data.priority}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Status</span>
+                    <Badge variant="outline">{taskDetailQuery.data.approvalStatus}</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Assignee</span>
+                    <span className="font-medium">{taskDetailQuery.data.assignee}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Due Date</span>
+                    <span className="font-medium">{formatDate(taskDetailQuery.data.dueDate)}</span>
+                  </div>
+                  {taskDetailQuery.data.labels.length > 0 && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-gray-500">Labels</span>
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {taskDetailQuery.data.labels.map((label) => (
+                          <Badge key={label} variant="outline" className="text-xs">{label}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {taskDetailQuery.data.reviewedByCurrentUser && (
+                    <div className="p-2 rounded bg-emerald-50 text-emerald-700 text-xs">
+                      You have reviewed this task{taskDetailQuery.data.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.reviewedAt)}` : ""}.
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : taskDetailQuery.error ? (
+              <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                {getErrorMessage(taskDetailQuery.error) ?? "Failed to load task details."}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailTaskId(null)}>Close</Button>
+            {detailTaskId && allowed && reviewedTaskIds.has(detailTaskId) && (
+              <Button
+                onClick={() => {
+                  handleApproveTask(detailTaskId)
+                  setDetailTaskId(null)
+                }}
+                disabled={approveTaskMutation.isPending}
+              >
+                Approve
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAskAiOpen} onOpenChange={setIsAskAiOpen}>
         <DialogContent className="sm:max-w-3xl p-0 overflow-hidden gap-0">
@@ -731,6 +841,10 @@ function getAskAiErrorMessage(error: unknown): string {
 
 function getTaskApprovalErrorMessage(error: unknown): string {
   if (isApiClientError(error)) {
+    if (error.code === "REVIEW_REQUIRED_BEFORE_ACKNOWLEDGE") {
+      return "You must review this task before approving. Click \"View\" first."
+    }
+
     if (error.code === "TASK_APPROVAL_STATE_FORBIDDEN") {
       return "This task cannot be approved in its current state."
     }
@@ -741,6 +855,10 @@ function getTaskApprovalErrorMessage(error: unknown): string {
 
     if (error.code === "INVALID_TASK_STATE") {
       return "This task is not in an approvable state."
+    }
+
+    if (error.code === "MFA_REQUIRED") {
+      return "Additional verification (MFA) is required to approve this task."
     }
   }
 

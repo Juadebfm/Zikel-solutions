@@ -106,6 +106,43 @@ function getFriendlyValidationMessage(message: string, details: unknown): string
   return null
 }
 
+export function getCooldownSecondsFromError(error: unknown): number {
+  if (!isApiClientError(error)) {
+    return 0
+  }
+
+  if (error.status !== 429 && error.code !== "RATE_LIMIT_EXCEEDED") {
+    return 0
+  }
+
+  if (!error.details || typeof error.details !== "object") {
+    return 30
+  }
+
+  const details = error.details as Record<string, unknown>
+  const candidates = [
+    details.retryAfter,
+    details.retryAfterSeconds,
+    details.cooldown,
+    details.waitSeconds,
+    details.resetIn,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+      return Math.ceil(candidate)
+    }
+    if (typeof candidate === "string") {
+      const parsed = Number.parseFloat(candidate)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return Math.ceil(parsed)
+      }
+    }
+  }
+
+  return 30
+}
+
 export function getPublicAuthErrorMessage(
   error: unknown,
   fallback = "Something went wrong. Please try again."

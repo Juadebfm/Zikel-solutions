@@ -22,11 +22,11 @@ export default function ReportsPage() {
       <AccessBanner show={!allowed} />
 
       <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Generate report"))}>
+        <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <PieChart className="h-4 w-4" />
           Generate Report
         </Button>
-        <Button variant="outline" className="gap-2" onClick={() => guard(() => console.log("Export report"))}>
+        <Button variant="outline" className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Download className="h-4 w-4" />
           Export
         </Button>

@@ -90,8 +90,8 @@ export function VehicleAuditTab() {
     setPage(0)
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export vehicle audits as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   return (

@@ -107,14 +107,14 @@ export function useOutcomeStars() {
 
 export function useTaskExplorerLogs() {
   return useQuery({
-    queryKey: queryKeys.backend.taskExplorer.logs,
+    queryKey: queryKeys.backend.tasks.list,
     queryFn: () => backendDataService.listTaskExplorerLogs(),
   })
 }
 
 export function useTaskExplorerFormSubmissions() {
   return useQuery({
-    queryKey: queryKeys.backend.taskExplorer.forms,
+    queryKey: [...queryKeys.backend.tasks.list, "form-submissions"],
     queryFn: () => backendDataService.listTaskExplorerFormSubmissions(),
   })
 }

@@ -22,7 +22,7 @@ export default function BulkExportsPage() {
       <AccessBanner show={!allowed} />
 
       <div className="flex gap-2">
-        <Button className="gap-2" onClick={() => guard(() => console.log("Export data"))}>
+        <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Download className="h-4 w-4" />
           Export Data
         </Button>

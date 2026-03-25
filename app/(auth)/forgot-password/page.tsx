@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -16,7 +16,8 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
-import { getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { getCooldownSecondsFromError, getPublicAuthErrorMessage } from "@/lib/auth/otp"
+import { isApiClientError } from "@/lib/api/error"
 import { authService } from "@/services/auth.service"
 
 const forgotPasswordSchema = z.object({
@@ -33,6 +34,15 @@ export default function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState("")
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownSeconds])
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -42,6 +52,7 @@ export default function ForgotPasswordPage() {
   })
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
+    if (cooldownSeconds > 0) return
     setSubmitError(null)
 
     setIsLoading(true)
@@ -50,6 +61,10 @@ export default function ForgotPasswordPage() {
       setSubmittedEmail(data.email.trim())
       setIsSubmitted(true)
     } catch (error) {
+      if (isApiClientError(error) && (error.status === 429 || error.code === "RATE_LIMIT_EXCEEDED")) {
+        const seconds = getCooldownSecondsFromError(error)
+        setCooldownSeconds(seconds)
+      }
       setSubmitError(getPublicAuthErrorMessage(error, "Failed to send reset instructions. Please try again."))
     } finally {
       setIsLoading(false)
@@ -136,10 +151,12 @@ export default function ForgotPasswordPage() {
             <Button
               type="submit"
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium"
-              disabled={isLoading}
+              disabled={isLoading || cooldownSeconds > 0}
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : cooldownSeconds > 0 ? (
+                `Try again in ${cooldownSeconds}s`
               ) : (
                 "Send Reset Instructions"
               )}

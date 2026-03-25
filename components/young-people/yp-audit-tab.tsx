@@ -145,8 +145,8 @@ export function YPAuditTab() {
     })
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export YP audit as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = auditColumns.filter((col) => visibleColumns.includes(col.key))

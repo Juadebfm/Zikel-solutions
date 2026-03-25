@@ -175,8 +175,8 @@ export function YoungPeopleTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export young people as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = ypColumns.filter((col) => visibleColumns.includes(col.key))

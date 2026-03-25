@@ -32,6 +32,33 @@ export interface SummaryTaskToApprove {
   priority: string
   assignee: string
   dueDate: string
+  reviewedByCurrentUser?: boolean
+  reviewedAt?: string | null
+}
+
+export interface SummaryTaskToApproveDetail {
+  id: string
+  title: string
+  relation: string
+  status: string
+  approvalStatus: string
+  priority: string
+  assignee: string
+  dueDate: string
+  reviewedByCurrentUser: boolean
+  reviewedAt: string | null
+  renderPayload: Record<string, unknown> | null
+  labels: string[]
+  meta: Record<string, unknown> | null
+}
+
+export interface ReviewEventPayload {
+  action: "view_detail" | "review" | "acknowledge"
+}
+
+export interface ReviewEventResult {
+  success: boolean
+  reviewedAt: string | null
 }
 
 export interface BatchProcessPayload {
@@ -76,7 +103,6 @@ export interface OverdueTask {
   taskDate: string
 }
 
-export type DueTodayTask = OverdueTask
 
 export interface PaginatedResult<T> {
   items: T[]
@@ -168,6 +194,29 @@ export const summaryService = {
     return response.data
   },
 
+  async getTaskToApproveDetail(taskId: string): Promise<SummaryTaskToApproveDetail> {
+    const response = await apiRequest<SummaryTaskToApproveDetail>({
+      path: `/summary/tasks-to-approve/${taskId}`,
+      auth: true,
+    })
+
+    return response.data
+  },
+
+  async recordTaskReviewEvent(
+    taskId: string,
+    payload: ReviewEventPayload
+  ): Promise<ReviewEventResult> {
+    const response = await apiRequest<ReviewEventResult>({
+      path: `/summary/tasks-to-approve/${taskId}/review-events`,
+      method: "POST",
+      auth: true,
+      body: payload,
+    })
+
+    return response.data
+  },
+
   async getOverdueTasks(params?: {
     page?: number
     pageSize?: number
@@ -176,29 +225,6 @@ export const summaryService = {
   }): Promise<PaginatedResult<OverdueTask>> {
     const response = await apiRequest<OverdueTask[], ApiMeta>({
       path: "/summary/overdue-tasks",
-      auth: true,
-      query: {
-        page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
-        search: params?.search,
-        formGroup: params?.formGroup,
-      },
-    })
-
-    return {
-      items: response.data,
-      meta: response.meta ?? DEFAULT_META,
-    }
-  },
-
-  async getDueTodayTasks(params?: {
-    page?: number
-    pageSize?: number
-    search?: string
-    formGroup?: string
-  }): Promise<PaginatedResult<DueTodayTask>> {
-    const response = await apiRequest<DueTodayTask[], ApiMeta>({
-      path: "/summary/due-today-tasks",
       auth: true,
       query: {
         page: params?.page ?? 1,

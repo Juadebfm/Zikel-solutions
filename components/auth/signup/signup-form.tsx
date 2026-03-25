@@ -31,10 +31,7 @@ const initialData: SignupStepData = {
     surname: "",
     organizationName: "",
     organizationSlug: "",
-    gender: null,
     email: "",
-    phone: "",
-    phoneCountryCode: "",
   },
   step3: {
     password: "",
@@ -77,9 +74,6 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
   // Step 1: Country selection
   const handleCountryNext = (country: SupportedCountry) => {
     setStepData("step1", { country })
-    // Set default phone code based on country
-    const phoneCode = country === "UK" ? "+44" : "+234"
-    setStepData("step2", { ...data.step2, phoneCountryCode: phoneCode })
     nextStep()
   }
 
@@ -182,7 +176,6 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
       {currentStep === 2 && data.step1.country && (
         <StepBasicInfo
           data={data.step2}
-          country={data.step1.country}
           onNext={handleBasicInfoNext}
           onBack={prevStep}
         />

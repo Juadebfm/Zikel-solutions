@@ -1,6 +1,6 @@
 "use client"
 
-import { ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react"
+import { ClipboardCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,7 @@ export interface ApprovalTask {
   relatedTo: string
   dueDate: string
   status: "sent-for-approval" | "needs-review" | "urgent"
+  reviewed: boolean
   submitter: {
     name: string
     initials: string
@@ -28,6 +29,7 @@ interface TasksToApproveProps {
   onApprove?: (id: string) => void
   onProcessBatch?: () => void
   pageSize?: number
+  allReviewed?: boolean
 }
 
 const statusConfig = {
@@ -42,6 +44,7 @@ export function TasksToApprove({
   onApprove,
   onProcessBatch,
   pageSize = 3,
+  allReviewed = false,
 }: TasksToApproveProps) {
   const [page, setPage] = useState(0)
   const totalPages = Math.ceil(items.length / pageSize)
@@ -60,6 +63,7 @@ export function TasksToApprove({
           variant="link"
           className="text-primary p-0 h-auto text-xs sm:text-sm shrink-0"
           onClick={onProcessBatch}
+          disabled={!allReviewed || items.length === 0}
         >
           Process Batch
         </Button>
@@ -73,6 +77,7 @@ export function TasksToApprove({
           ) : (
             paginatedItems.map((item) => {
               const status = statusConfig[item.status]
+              const canApprove = onApprove && item.reviewed
               return (
                 <div
                   key={item.id}
@@ -99,6 +104,12 @@ export function TasksToApprove({
                       <Badge variant="outline" className={cn("text-[10px] shrink-0", status.className)}>
                         {status.label}
                       </Badge>
+                      {item.reviewed && (
+                        <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Eye className="h-2.5 w-2.5 mr-0.5" />
+                          Reviewed
+                        </Badge>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -107,7 +118,7 @@ export function TasksToApprove({
                       >
                         View
                       </Button>
-                      {onApprove && (
+                      {canApprove && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -126,6 +137,12 @@ export function TasksToApprove({
                     <Badge variant="outline" className={cn("text-[10px] shrink-0", status.className)}>
                       {status.label}
                     </Badge>
+                    {item.reviewed && (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <Eye className="h-2.5 w-2.5 mr-0.5" />
+                        Reviewed
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -134,7 +151,7 @@ export function TasksToApprove({
                     >
                       View
                     </Button>
-                    {onApprove && (
+                    {canApprove && (
                       <Button
                         variant="ghost"
                         size="sm"

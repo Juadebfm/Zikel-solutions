@@ -2,8 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import {
+  Building2,
+  Check,
   HelpCircle,
+  Loader2,
   LogOut,
   Settings,
   X,
@@ -29,7 +33,9 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname()
-  const { user, session, hasPermission, logout } = useAuth()
+  const { user, session, hasPermission, switchTenant, logout } = useAuth()
+  const [isSwitchingTenant, setIsSwitchingTenant] = useState(false)
+  const [tenantError, setTenantError] = useState<string | null>(null)
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -44,8 +50,26 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
     logout()
   }
 
+  const handleTenantSwitch = async (tenantId: string) => {
+    if (tenantId === activeTenantId || isSwitchingTenant) return
+
+    setTenantError(null)
+    setIsSwitchingTenant(true)
+
+    const result = await switchTenant(tenantId)
+    if (!result.success) {
+      setTenantError(result.message ?? "Unable to switch tenant.")
+    } else {
+      onOpenChange(false)
+    }
+
+    setIsSwitchingTenant(false)
+  }
+
   // Filter nav items: permissions from /me/permissions are the primary gate.
   const visibleItems = navItems.filter((item) => {
+    if (item.hidden) return false
+
     const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
 
     const roleAllowed = !item.roles || item.roles.length === 0
@@ -59,6 +83,15 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
     return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })
+
+  const memberships = session?.memberships ?? []
+  const activeTenantId = session?.activeTenantId ?? null
+  const canSwitchTenant = memberships.length > 1
+
+  const activeTenantName =
+    memberships.find((m) => m.tenantId === activeTenantId)?.tenantName ??
+    activeTenantId ??
+    "No active tenant"
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -77,6 +110,49 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
             </Button>
           </div>
         </SheetHeader>
+
+        {/* Tenant Switcher */}
+        <div className="px-3 py-3 border-b border-sidebar-border shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <Building2 className="h-4 w-4 text-sidebar-foreground/60 shrink-0" />
+            <p className="text-xs text-sidebar-foreground/80 truncate font-medium">{activeTenantName}</p>
+          </div>
+          {canSwitchTenant && (
+            <div className="mt-1 space-y-0.5">
+              <p className="px-3 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 font-medium">
+                Switch tenant
+              </p>
+              {memberships.map((membership) => {
+                const isActive = membership.tenantId === activeTenantId
+                return (
+                  <button
+                    key={membership.id}
+                    onClick={() => void handleTenantSwitch(membership.tenantId)}
+                    disabled={isSwitchingTenant || isActive}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
+                      isActive
+                        ? "text-sidebar-foreground/60"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
+                    )}
+                  >
+                    {isSwitchingTenant && !isActive ? (
+                      <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                    ) : isActive ? (
+                      <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Building2 className="h-3 w-3 shrink-0" />
+                    )}
+                    <span className="truncate">{membership.tenantName ?? membership.tenantId}</span>
+                  </button>
+                )
+              })}
+              {tenantError && (
+                <p className="px-3 text-[10px] text-red-400">{tenantError}</p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Scrollable nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">

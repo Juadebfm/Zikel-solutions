@@ -152,8 +152,8 @@ export function YPSettingsTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export YP settings as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = settingsColumns.filter((col) => visibleColumns.includes(col.key))

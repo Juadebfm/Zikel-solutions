@@ -176,8 +176,8 @@ export function VehiclesTab() {
     }
   }
 
-  const handleExport = (format: "pdf" | "excel") => {
-    console.log(`Export vehicles as ${format}`)
+  const handleExport = (_format: "pdf" | "excel") => {
+    // Export not yet implemented
   }
 
   const visibleColumnDefs = vehColumns.filter((col) => visibleColumns.includes(col.key))
