@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/client"
 import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { authService, type LoginPayload } from "@/services/auth.service"
+import { summaryService } from "@/services/summary.service"
 import type { AuthSessionContext, RolePermissions, TenantRole, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
 import { useMfaStore } from "@/stores/mfa-store"
@@ -38,8 +39,10 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   permissions: RolePermissions | null
+  hasPendingAcknowledgements: boolean
   login: (email: string, password: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
+  refreshAcknowledgementsGate: () => Promise<boolean>
   switchTenant: (tenantId: string) => Promise<{ success: boolean; message?: string }>
   challengeMfa: () => Promise<{ success: boolean; message?: string; code?: string }>
   verifyMfa: (code: string) => Promise<{ success: boolean; message?: string; redirectTo?: string }>
@@ -112,7 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useAuthSessionStore((state) => state.user)
   const session = useAuthSessionStore((state) => state.session)
   const permissions = useAuthSessionStore((state) => state.permissions)
-  const accessToken = useAuthSessionStore((state) => state.accessToken)
   const refreshToken = useAuthSessionStore((state) => state.refreshToken)
   const hasHydrated = useAuthSessionStore((state) => state.hasHydrated)
   const setSession = useAuthSessionStore((state) => state.setSession)
@@ -123,7 +125,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useAuthSessionStore((state) => state.clearSession)
 
   const [isLoading, setIsLoading] = useState(true)
+  const [hasPendingAcknowledgements, setHasPendingAcknowledgements] = useState(false)
+  const [isCheckingAcknowledgements, setIsCheckingAcknowledgements] = useState(false)
   const hasBootstrapped = useRef(false)
+  const mfaGateActive = useMfaStore((state) => state.mfaGateActive)
+  const activateMfaGate = useMfaStore((state) => state.activateMfaGate)
+  const deactivateMfaGate = useMfaStore((state) => state.deactivateMfaGate)
+  const needsMfa = Boolean(user && session?.mfaRequired && !session?.mfaVerified)
+
+  const refreshAcknowledgementsGate = useCallback(async (): Promise<boolean> => {
+    setIsCheckingAcknowledgements(true)
+
+    try {
+      const [statsPayload, pendingPayload] = await Promise.all([
+        summaryService.getStats(),
+        summaryService.getTasksToApprove(),
+      ])
+
+      const hasPending =
+        (statsPayload.pendingApproval ?? 0) > 0 || (pendingPayload.items?.length ?? 0) > 0
+
+      setHasPendingAcknowledgements(hasPending)
+      return hasPending
+    } catch {
+      setHasPendingAcknowledgements(false)
+      return false
+    } finally {
+      setIsCheckingAcknowledgements(false)
+    }
+  }, [])
 
   const applyTenantSwitch = useCallback(
     async (tenantId: string, fallbackSession?: AuthSessionContext | null): Promise<boolean> => {
@@ -162,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const mappedSession = authService.mapAuthApiSessionToAppSession(payload.session)
       clearPendingMfaRequest()
       consumeMfaReturnPath()
+      deactivateMfaGate()
 
       setSession({
         user: mappedUser,
@@ -196,9 +227,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions(ROLE_PERMISSIONS[mappedUser.role])
       }
 
-      router.push(redirectTo)
+      const hasPending = await refreshAcknowledgementsGate()
+      router.push(hasPending ? "/acknowledgements" : redirectTo)
     },
-    [applyTenantSwitch, router, setPermissions, setSession, setUser]
+    [
+      applyTenantSwitch,
+      deactivateMfaGate,
+      refreshAcknowledgementsGate,
+      router,
+      setPermissions,
+      setSession,
+      setUser,
+    ]
   )
 
   useEffect(() => {
@@ -272,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(authService.mapMeProfileToAppUser(profile))
         setPermissions(rolePermissions)
+        await refreshAcknowledgementsGate()
       } catch (error) {
         if (!isCancelled) {
           if (isTenantContextError(error)) {
@@ -296,7 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // rather than depending on accessToken (which would cause an infinite loop
   // since refresh updates the token, re-triggering this effect).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated])
+  }, [hasHydrated, refreshAcknowledgementsGate])
 
   useEffect(() => {
     if (!hasHydrated || isLoading) {
@@ -306,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
     const isMfaRoute = pathname.startsWith("/mfa-verify")
     const isPendingApprovalRoute = pathname.startsWith("/pending-approval")
+    const isAcknowledgementsRoute = pathname.startsWith("/acknowledgements")
     const pendingApproval = shouldRouteToPendingApproval(session)
 
     if (!user && isMfaRoute) {
@@ -318,9 +360,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // MFA pending users are allowed into the dashboard (read-only).
-    // The MFA banner and modal handle the UX for completing MFA.
-
     if (user && pendingApproval && !isPendingApprovalRoute) {
       router.replace("/pending-approval")
       return
@@ -331,17 +370,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    if (
+      user &&
+      !pendingApproval &&
+      hasPendingAcknowledgements &&
+      !isAcknowledgementsRoute &&
+      !isCheckingAcknowledgements
+    ) {
+      router.replace("/acknowledgements")
+      return
+    }
+
+    if (
+      user &&
+      isAcknowledgementsRoute &&
+      !pendingApproval &&
+      !hasPendingAcknowledgements &&
+      !isCheckingAcknowledgements
+    ) {
+      router.replace("/my-summary")
+      return
+    }
+
     // Redirect authenticated users away from MFA page to dashboard
     // (MFA is now handled via in-dashboard modal, not a separate page)
     if (user && isMfaRoute) {
-      router.replace(pendingApproval ? "/pending-approval" : "/my-summary")
+      if (pendingApproval) {
+        router.replace("/pending-approval")
+      } else if (hasPendingAcknowledgements) {
+        router.replace("/acknowledgements")
+      } else {
+        router.replace("/my-summary")
+      }
       return
     }
 
     if (user && isPublicRoute && !isMfaRoute) {
-      router.replace(pendingApproval ? "/pending-approval" : "/my-summary")
+      if (pendingApproval) {
+        router.replace("/pending-approval")
+      } else if (hasPendingAcknowledgements) {
+        router.replace("/acknowledgements")
+      } else {
+        router.replace("/my-summary")
+      }
     }
-  }, [hasHydrated, isLoading, pathname, router, session, user])
+  }, [
+    hasHydrated,
+    hasPendingAcknowledgements,
+    isCheckingAcknowledgements,
+    isLoading,
+    pathname,
+    router,
+    session,
+    user,
+  ])
+
+  useEffect(() => {
+    if (!hasHydrated || isLoading) {
+      return
+    }
+
+    if (needsMfa && !mfaGateActive) {
+      activateMfaGate()
+      return
+    }
+
+    if (!needsMfa && mfaGateActive) {
+      deactivateMfaGate()
+    }
+  }, [activateMfaGate, deactivateMfaGate, hasHydrated, isLoading, mfaGateActive, needsMfa])
 
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {
@@ -393,10 +490,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions(null)
       }
 
+      await refreshAcknowledgementsGate()
       router.refresh()
       return { success: true }
     },
-    [applyTenantSwitch, router, setPermissions]
+    [applyTenantSwitch, refreshAcknowledgementsGate, router, setPermissions]
   )
 
   const challengeMfa = useCallback(async (): Promise<{ success: boolean; message?: string; code?: string }> => {
@@ -434,9 +532,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Reset MFA banner dismissed state so it hides naturally
-        useMfaStore.getState().dismissBanner()
-
         // Re-fetch permissions to keep state in sync after MFA verify
         try {
           const rolePermissions = await authService.getPermissions()
@@ -460,7 +555,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (current) {
             setSessionContext({ ...current, mfaRequired: false })
           }
-          useMfaStore.getState().dismissBanner()
           return { success: true, redirectTo: consumeMfaReturnPath() ?? "/my-summary" }
         }
 
@@ -483,11 +577,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       clearPendingMfaRequest()
       consumeMfaReturnPath()
+      deactivateMfaGate()
       clearSession()
+      setHasPendingAcknowledgements(false)
       hasBootstrapped.current = false
       router.push("/login")
     }
-  }, [clearSession, refreshToken, router])
+  }, [clearSession, deactivateMfaGate, refreshToken, router])
 
   const hasPermission = useCallback(
     (permission: keyof RolePermissions): boolean => {
@@ -540,8 +636,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: Boolean(user),
         permissions,
+        hasPendingAcknowledgements,
         login,
         completeAuth,
+        refreshAcknowledgementsGate,
         switchTenant,
         challengeMfa,
         verifyMfa,

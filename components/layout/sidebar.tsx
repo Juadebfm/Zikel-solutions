@@ -11,6 +11,7 @@ import {
   Building2,
   Check,
   Loader2,
+  ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -29,7 +30,15 @@ import { canManageTenantAdministration } from "@/lib/auth/rbac"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, session, hasPermission, switchTenant, logout, getRoleDisplay } = useAuth()
+  const {
+    user,
+    session,
+    hasPermission,
+    switchTenant,
+    logout,
+    getRoleDisplay,
+    hasPendingAcknowledgements,
+  } = useAuth()
   const [isSwitchingTenant, setIsSwitchingTenant] = useState(false)
   const [tenantError, setTenantError] = useState<string | null>(null)
 
@@ -39,7 +48,7 @@ export function Sidebar() {
 
   // Filter nav items: permissions from /me/permissions are the primary gate.
   // Role-based filtering still applies but tenant_admin bypasses global role checks.
-  const visibleItems = navItems.filter((item) => {
+  const defaultVisibleItems = navItems.filter((item) => {
     if (item.hidden) return false
 
     const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
@@ -58,6 +67,16 @@ export function Sidebar() {
 
     return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })
+
+  const visibleItems = hasPendingAcknowledgements
+    ? [
+        {
+          label: "Acknowledgements",
+          href: "/acknowledgements",
+          icon: ShieldCheck,
+        },
+      ]
+    : defaultVisibleItems
 
   const memberships = session?.memberships ?? []
   const activeTenantId = session?.activeTenantId ?? null
@@ -88,7 +107,10 @@ export function Sidebar() {
     <aside data-sidebar className="w-64 h-screen bg-sidebar flex flex-col fixed left-0 top-0">
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border shrink-0">
-        <Link href="/my-summary" className="flex items-center gap-3">
+        <Link
+          href={hasPendingAcknowledgements ? "/acknowledgements" : "/my-summary"}
+          className="flex items-center gap-3"
+        >
           <BrandMark size={36} priority />
           <span className="text-xl font-bold text-sidebar-foreground">
             Zikel Solutions
@@ -124,21 +146,22 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-sidebar-border shrink-0">
-        {/* Help Link */}
-        <nav className="px-3 py-2">
-          <Link
-            href="/help"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              pathname === "/help"
-                ? "bg-primary text-primary-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-            )}
-          >
-            <HelpCircle className="h-5 w-5 shrink-0" />
-            <span>Help Centre</span>
-          </Link>
-        </nav>
+        {!hasPendingAcknowledgements ? (
+          <nav className="px-3 py-2">
+            <Link
+              href="/help"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                pathname === "/help"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <HelpCircle className="h-5 w-5 shrink-0" />
+              <span>Help Centre</span>
+            </Link>
+          </nav>
+        ) : null}
 
         {/* User Profile */}
         <div className="p-3 border-t border-sidebar-border">
@@ -207,19 +230,23 @@ export function Sidebar() {
                   )}
                 </>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/system-settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/help" className="cursor-pointer">
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  Help Centre
-                </Link>
-              </DropdownMenuItem>
+              {!hasPendingAcknowledgements ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/system-settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help" className="cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help Centre
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}

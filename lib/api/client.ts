@@ -35,10 +35,29 @@ let pendingMfaRequest: ApiRequestOptions | null = null
 const MFA_RETURN_PATH_STORAGE_KEY = "nexus-mfa-return-path"
 
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
+const MFA_GATE_BYPASS_PATHS = new Set([
+  "/auth/login",
+  "/auth/refresh",
+  "/auth/switch-tenant",
+  "/auth/mfa/challenge",
+  "/auth/mfa/verify",
+  "/auth/logout",
+])
 
 export async function apiRequest<T, M = unknown>(
   options: ApiRequestOptions
 ): Promise<ApiSuccess<T, M>> {
+  if (shouldBlockWriteUntilMfa(options)) {
+    const mfaResult = await promptMfaModal()
+    if (!mfaResult.success) {
+      throw new ApiClientError({
+        status: 403,
+        code: "MFA_REQUIRED",
+        message: "Additional verification is required to continue.",
+      })
+    }
+  }
+
   const response = await executeRequest<T, M>(options)
   const flyRequestId = response.headers.get("fly-request-id") ?? undefined
 
@@ -55,6 +74,7 @@ export async function apiRequest<T, M = unknown>(
       response.status === 403 &&
       isApiFailurePayload(errorPayload) &&
       errorPayload.error.code === "MFA_REQUIRED" &&
+      !shouldBypassMfaGateForPath(options.path) &&
       WRITE_METHODS.has((options.method ?? "GET").toUpperCase()) &&
       options.retryOnMfaRequired !== false
     ) {
@@ -100,7 +120,10 @@ export async function apiRequest<T, M = unknown>(
  */
 function promptMfaModal(): Promise<{ success: boolean }> {
   return new Promise((resolve) => {
-    useMfaStore.getState().openMfaModal({ resolve })
+    useMfaStore.getState().openMfaModal({
+      forceGate: true,
+      pendingWrite: { resolve },
+    })
   })
 }
 
@@ -479,8 +502,38 @@ function syncMfaRequirementFromError(errorPayload: unknown): void {
   }
 }
 
+function shouldBlockWriteUntilMfa(options: ApiRequestOptions): boolean {
+  if (!options.auth) {
+    return false
+  }
+
+  if (shouldBypassMfaGateForPath(options.path)) {
+    return false
+  }
+
+  const method = (options.method ?? "GET").toUpperCase()
+  if (!WRITE_METHODS.has(method)) {
+    return false
+  }
+
+  if (options.retryOnMfaRequired === false) {
+    return false
+  }
+
+  const { session } = getAuthSessionState()
+  if (!session) {
+    return false
+  }
+
+  return session.mfaRequired && !session.mfaVerified
+}
+
 function storePendingMfaRequest(options: ApiRequestOptions, errorPayload: unknown): void {
   if (!options.auth || options.retryOnMfaRequired === false) {
+    return
+  }
+
+  if (shouldBypassMfaGateForPath(options.path)) {
     return
   }
 
@@ -499,6 +552,11 @@ function storePendingMfaRequest(options: ApiRequestOptions, errorPayload: unknow
       window.sessionStorage.setItem(MFA_RETURN_PATH_STORAGE_KEY, path)
     }
   }
+}
+
+function shouldBypassMfaGateForPath(path: string): boolean {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+  return MFA_GATE_BYPASS_PATHS.has(normalizedPath)
 }
 
 interface SessionMembershipPayload {

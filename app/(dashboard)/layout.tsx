@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageLoading } from "@/components/shared/page-loading"
 import { Toast } from "@/components/shared/toast"
-import { MfaBanner } from "@/components/mfa/mfa-banner"
 import { MfaModal } from "@/components/mfa/mfa-modal"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -15,8 +15,12 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading, isAuthenticated, hasPendingAcknowledgements } = useAuth()
+  const isAcknowledgementsRoute = pathname.startsWith("/acknowledgements")
+  const useAcknowledgementsGateLayout =
+    isAcknowledgementsRoute && hasPendingAcknowledgements
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -26,6 +30,22 @@ export default function DashboardLayout({
   // Don't render dashboard if not authenticated (redirect will happen via context)
   if (!isAuthenticated) {
     return <PageLoading fullscreen message="Redirecting to Zikel sign in..." />
+  }
+
+  if (useAcknowledgementsGateLayout) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="min-h-screen p-4 lg:p-8">
+          <div className="mx-auto w-full max-w-[1500px]">{children}</div>
+        </main>
+
+        {/* Global MFA modal gate */}
+        <MfaModal />
+
+        {/* Global toast notifications */}
+        <Toast />
+      </div>
+    )
   }
 
   return (
@@ -42,12 +62,11 @@ export default function DashboardLayout({
       <div className="lg:pl-64">
         <Header onMenuClick={() => setMobileNavOpen(true)} />
         <main className="p-4 lg:p-6">
-          <MfaBanner />
           {children}
         </main>
       </div>
 
-      {/* Global MFA modal — triggered by API 403 or banner CTA */}
+      {/* Global MFA modal gate */}
       <MfaModal />
 
       {/* Global toast notifications */}

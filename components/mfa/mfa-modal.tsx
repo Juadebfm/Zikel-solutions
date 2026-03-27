@@ -20,8 +20,10 @@ import { useToastStore } from "@/components/shared/toast"
 export function MfaModal() {
   const { challengeMfa, verifyMfa } = useAuth()
   const mfaModalOpen = useMfaStore((s) => s.mfaModalOpen)
+  const mfaGateActive = useMfaStore((s) => s.mfaGateActive)
   const pendingWrite = useMfaStore((s) => s.pendingWrite)
   const closeMfaModal = useMfaStore((s) => s.closeMfaModal)
+  const deactivateMfaGate = useMfaStore((s) => s.deactivateMfaGate)
   const showToast = useToastStore((s) => s.show)
 
   const [code, setCode] = useState("")
@@ -60,7 +62,7 @@ export function MfaModal() {
             })
           }
           pendingWrite?.resolve({ success: true })
-          closeMfaModal()
+          deactivateMfaGate()
           setIsSendingCode(false)
           return
         }
@@ -76,7 +78,7 @@ export function MfaModal() {
     return () => {
       cancelled = true
     }
-  }, [mfaModalOpen, challengeMfa])
+  }, [challengeMfa, closeMfaModal, deactivateMfaGate, mfaModalOpen, pendingWrite])
 
   const handleVerify = useCallback(async () => {
     if (code.length !== 6 || isSubmitting) return
@@ -101,10 +103,10 @@ export function MfaModal() {
 
     // Brief delay to show success state, then close and toast
     setTimeout(() => {
-      closeMfaModal()
-      showToast("MFA is active. You can now make changes.")
+      deactivateMfaGate()
+      showToast("MFA verified. You can now continue.")
     }, 1500)
-  }, [code, isSubmitting, verifyMfa, pendingWrite, closeMfaModal])
+  }, [code, deactivateMfaGate, isSubmitting, pendingWrite, showToast, verifyMfa])
 
   const handleResend = async () => {
     setError(null)
@@ -122,7 +124,7 @@ export function MfaModal() {
           })
         }
         pendingWrite?.resolve({ success: true })
-        closeMfaModal()
+        deactivateMfaGate()
         setIsSendingCode(false)
         return
       }
@@ -135,14 +137,33 @@ export function MfaModal() {
   }
 
   const handleOpenChange = (open: boolean) => {
+    if (mfaGateActive) {
+      return
+    }
+
     if (!open && !verified) {
       closeMfaModal()
     }
   }
 
+  const preventDismiss = mfaGateActive && !verified
+
   return (
     <Dialog open={mfaModalOpen} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={!verified} className="sm:max-w-md">
+      <DialogContent
+        showCloseButton={!verified && !mfaGateActive}
+        className="sm:max-w-md"
+        onEscapeKeyDown={(event) => {
+          if (preventDismiss) {
+            event.preventDefault()
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (preventDismiss) {
+            event.preventDefault()
+          }
+        }}
+      >
         {verified ? (
           <div className="flex flex-col items-center py-6 gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
@@ -165,7 +186,7 @@ export function MfaModal() {
                 MFA Verification
               </DialogTitle>
               <DialogDescription className="text-center">
-                Enter the 6-digit security code sent to your email to continue.
+                Enter the 6-digit security code sent to your email. Verification is required before you can continue.
               </DialogDescription>
             </DialogHeader>
 

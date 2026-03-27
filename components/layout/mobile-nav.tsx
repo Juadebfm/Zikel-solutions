@@ -10,6 +10,7 @@ import {
   Loader2,
   LogOut,
   Settings,
+  ShieldCheck,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -33,7 +34,14 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname()
-  const { user, session, hasPermission, switchTenant, logout } = useAuth()
+  const {
+    user,
+    session,
+    hasPermission,
+    switchTenant,
+    logout,
+    hasPendingAcknowledgements,
+  } = useAuth()
   const [isSwitchingTenant, setIsSwitchingTenant] = useState(false)
   const [tenantError, setTenantError] = useState<string | null>(null)
 
@@ -67,7 +75,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   }
 
   // Filter nav items: permissions from /me/permissions are the primary gate.
-  const visibleItems = navItems.filter((item) => {
+  const defaultVisibleItems = navItems.filter((item) => {
     if (item.hidden) return false
 
     const isTenantAdminUser = session?.activeTenantRole === "tenant_admin"
@@ -83,6 +91,16 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
     return roleAllowed && (permissionAllowed || inviteFallbackAllowed)
   })
+
+  const visibleItems = hasPendingAcknowledgements
+    ? [
+        {
+          label: "Acknowledgements",
+          href: "/acknowledgements",
+          icon: ShieldCheck,
+        },
+      ]
+    : defaultVisibleItems
 
   const memberships = session?.memberships ?? []
   const activeTenantId = session?.activeTenantId ?? null
@@ -181,24 +199,26 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
         {/* Bottom Section */}
         <div className="border-t border-sidebar-border bg-sidebar shrink-0">
-          <nav className="px-3 py-2 space-y-1">
-            <Link
-              href="/settings"
-              onClick={handleLinkClick}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
-            >
-              <Settings className="h-5 w-5" />
-              <span>Settings</span>
-            </Link>
-            <Link
-              href="/help"
-              onClick={handleLinkClick}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
-            >
-              <HelpCircle className="h-5 w-5" />
-              <span>Help Centre</span>
-            </Link>
-          </nav>
+          {!hasPendingAcknowledgements ? (
+            <nav className="px-3 py-2 space-y-1">
+              <Link
+                href="/settings"
+                onClick={handleLinkClick}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
+              >
+                <Settings className="h-5 w-5" />
+                <span>Settings</span>
+              </Link>
+              <Link
+                href="/help"
+                onClick={handleLinkClick}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
+              >
+                <HelpCircle className="h-5 w-5" />
+                <span>Help Centre</span>
+              </Link>
+            </nav>
+          ) : null}
 
           {/* User Profile */}
           <div className="p-3 border-t border-sidebar-border">

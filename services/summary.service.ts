@@ -32,6 +32,11 @@ export interface SummaryTaskToApprove {
   priority: string
   assignee: string
   dueDate: string
+  category?: string | null
+  createdBy?: string | null
+  createdOn?: string | null
+  documentUrl?: string | null
+  taskUrl?: string | null
   reviewedByCurrentUser?: boolean
   reviewedAt?: string | null
 }
@@ -53,7 +58,7 @@ export interface SummaryTaskToApproveDetail {
 }
 
 export interface ReviewEventPayload {
-  action: "view_detail" | "review" | "acknowledge"
+  action: "view_detail" | "open_document" | "open_task" | "review" | "acknowledge"
 }
 
 export interface ReviewEventResult {
@@ -116,6 +121,22 @@ const DEFAULT_META: ApiMeta = {
   totalPages: 0,
 }
 
+const SUMMARY_MAX_PAGE_SIZE = 100
+
+function clampPageSize(pageSize: number | undefined, fallback: number): number {
+  const numericPageSize = typeof pageSize === "number" ? pageSize : Number.NaN
+  if (!Number.isFinite(numericPageSize)) {
+    return Math.min(fallback, SUMMARY_MAX_PAGE_SIZE)
+  }
+
+  const normalized = Math.floor(numericPageSize)
+  if (normalized <= 0) {
+    return Math.min(fallback, SUMMARY_MAX_PAGE_SIZE)
+  }
+
+  return Math.min(normalized, SUMMARY_MAX_PAGE_SIZE)
+}
+
 export const summaryService = {
   async getStats(): Promise<SummaryStats> {
     const response = await apiRequest<SummaryStats>({
@@ -138,7 +159,7 @@ export const summaryService = {
       auth: true,
       query: {
         page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
+        pageSize: clampPageSize(params?.pageSize, 20),
         sortBy: params?.sortBy,
         sortOrder: params?.sortOrder,
         search: params?.search,
@@ -160,7 +181,7 @@ export const summaryService = {
       auth: true,
       query: {
         page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
+        pageSize: clampPageSize(params?.pageSize, 20),
       },
     })
 
@@ -168,6 +189,34 @@ export const summaryService = {
       items: response.data,
       meta: response.meta ?? DEFAULT_META,
     }
+  },
+
+  async getAllTasksToApprove(pageSize = SUMMARY_MAX_PAGE_SIZE): Promise<SummaryTaskToApprove[]> {
+    const allRows: SummaryTaskToApprove[] = []
+    const safePageSize = clampPageSize(pageSize, SUMMARY_MAX_PAGE_SIZE)
+    let page = 1
+    let totalPages = 1
+
+    while (page <= totalPages) {
+      const result = await summaryService.getTasksToApprove({ page, pageSize: safePageSize })
+      allRows.push(...result.items)
+
+      const metaTotalPages = result.meta.totalPages
+      if (Number.isFinite(metaTotalPages) && metaTotalPages > 0) {
+        totalPages = metaTotalPages
+      } else if (result.items.length < safePageSize) {
+        break
+      }
+
+      page += 1
+    }
+
+    const deduped = new Map<string, SummaryTaskToApprove>()
+    for (const row of allRows) {
+      deduped.set(row.id, row)
+    }
+
+    return Array.from(deduped.values())
   },
 
   async processBatch(payload: BatchProcessPayload): Promise<BatchProcessResult> {
@@ -228,7 +277,7 @@ export const summaryService = {
       auth: true,
       query: {
         page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
+        pageSize: clampPageSize(params?.pageSize, 20),
         search: params?.search,
         formGroup: params?.formGroup,
       },

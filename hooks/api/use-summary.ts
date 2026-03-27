@@ -48,6 +48,14 @@ export function useSummaryTasksToApprove(params?: { page?: number; pageSize?: nu
   })
 }
 
+export function useAllSummaryTasksToApprove(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.summary.tasksToApproveAll,
+    queryFn: () => summaryService.getAllTasksToApprove(),
+    enabled,
+  })
+}
+
 export function useSummaryTaskToApproveDetail(taskId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.summary.taskToApproveDetail(taskId),

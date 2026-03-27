@@ -10,31 +10,48 @@ interface PendingMfaWrite {
   resolve: (retryResult: { success: boolean }) => void
 }
 
+interface OpenMfaModalOptions {
+  pendingWrite?: PendingMfaWrite | null
+  forceGate?: boolean
+}
+
 interface MfaState {
   mfaModalOpen: boolean
+  mfaGateActive: boolean
   pendingWrite: PendingMfaWrite | null
-  openMfaModal: (pendingWrite?: PendingMfaWrite | null) => void
+  openMfaModal: (options?: OpenMfaModalOptions) => void
   closeMfaModal: () => void
-  dismissBanner: () => void
-  bannerDismissed: boolean
+  activateMfaGate: () => void
+  deactivateMfaGate: () => void
 }
 
 export const useMfaStore = create<MfaState>()((set) => ({
   mfaModalOpen: false,
+  mfaGateActive: false,
   pendingWrite: null,
-  bannerDismissed: false,
 
-  openMfaModal: (pendingWrite = null) =>
-    set({ mfaModalOpen: true, pendingWrite }),
+  openMfaModal: (options = {}) =>
+    set((state) => ({
+      mfaModalOpen: true,
+      mfaGateActive: state.mfaGateActive || Boolean(options.forceGate),
+      pendingWrite: options.pendingWrite ?? state.pendingWrite,
+    })),
 
   closeMfaModal: () =>
     set((state) => {
+      if (state.mfaGateActive) {
+        return state
+      }
+
       // Reject pending write if modal closed without completing MFA
       state.pendingWrite?.resolve({ success: false })
       return { mfaModalOpen: false, pendingWrite: null }
     }),
 
-  dismissBanner: () => set({ bannerDismissed: true }),
+  activateMfaGate: () => set({ mfaGateActive: true, mfaModalOpen: true }),
+
+  deactivateMfaGate: () =>
+    set({ mfaGateActive: false, mfaModalOpen: false, pendingWrite: null }),
 }))
 
 /**

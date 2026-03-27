@@ -13,6 +13,7 @@ export const queryKeys = {
       ["summary", "todos", params] as const,
     tasksToApprove: (params: { page: number; pageSize: number }) =>
       ["summary", "tasks-to-approve", params] as const,
+    tasksToApproveAll: ["summary", "tasks-to-approve", "all"] as const,
     taskToApproveDetail: (taskId: string) =>
       ["summary", "tasks-to-approve", "detail", taskId] as const,
     taskReview: (taskId: string) =>
