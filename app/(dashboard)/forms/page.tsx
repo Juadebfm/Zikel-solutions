@@ -29,7 +29,7 @@ export default function FormsPage() {
     page,
     pageSize: 20,
     search: search || undefined,
-    status: (statusFilter || undefined) as "draft" | "published" | "archived" | undefined,
+    status: (statusFilter || undefined) as "draft" | "released" | "archived" | undefined,
   }), [page, search, statusFilter])
 
   const formsQuery = useFormList(listParams)
@@ -121,7 +121,7 @@ export default function FormsPage() {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="released">Published</SelectItem>
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>

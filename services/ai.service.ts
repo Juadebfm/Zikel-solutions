@@ -5,15 +5,42 @@ export interface AskAiSuggestion {
   action: string
 }
 
-export interface AskAiContext {
+/** Summary-page context (backward-compatible) */
+export interface AskAiSummaryContext {
   stats?: Record<string, unknown>
   todos?: Array<Record<string, unknown>>
   tasksToApprove?: Array<Record<string, unknown>>
 }
 
+/** Generic page context (tasks, homes, employees, etc.) */
+export interface AskAiPageContext {
+  items?: Array<Record<string, unknown>>
+  filters?: Record<string, unknown>
+  meta?: {
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+  }
+}
+
+export type AskAiContext = AskAiSummaryContext | AskAiPageContext
+
+export type AskAiPage =
+  | "summary"
+  | "tasks"
+  | "care_groups"
+  | "homes"
+  | "young_people"
+  | "employees"
+  | "vehicles"
+  | "form_designer"
+  | "users"
+  | "audit"
+
 export interface AskAiPayload {
   query: string
-  page?: string
+  page?: AskAiPage
   context?: AskAiContext
 }
 

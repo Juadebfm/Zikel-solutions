@@ -104,9 +104,9 @@ export function FormDesignerShell({ formId, onBack }: FormDesignerShellProps) {
               <p className="text-lg font-medium text-muted-foreground">
                 Form details editor will go here
               </p>
-              {formDetail?.title && (
+              {formDetail?.name && (
                 <Badge variant="secondary" className="text-sm">
-                  {formDetail.title}
+                  {formDetail.name}
                 </Badge>
               )}
             </div>

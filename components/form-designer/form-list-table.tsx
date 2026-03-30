@@ -46,8 +46,14 @@ interface FormListTableProps {
 
 const statusStyles: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700 hover:bg-gray-100",
-  published: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
+  released: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
   archived: "bg-amber-100 text-amber-700 hover:bg-amber-100",
+}
+
+const statusLabels: Record<string, string> = {
+  draft: "Draft",
+  released: "Published",
+  archived: "Archived",
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -56,8 +62,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 })
 
-function formatDate(dateString: string): string {
-  return dateFormatter.format(new Date(dateString))
+function formatDate(dateString: string | undefined | null): string {
+  if (!dateString) return "-"
+  const d = new Date(dateString)
+  if (isNaN(d.getTime())) return "-"
+  return dateFormatter.format(d)
 }
 
 export function FormListTable({
@@ -82,7 +91,7 @@ export function FormListTable({
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Version</TableHead>
-              <TableHead>Submissions</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Last Updated</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
@@ -130,7 +139,7 @@ export function FormListTable({
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Version</TableHead>
-              <TableHead>Submissions</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Last Updated</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
@@ -157,7 +166,7 @@ export function FormListTable({
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Version</TableHead>
-              <TableHead>Submissions</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Last Updated</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
@@ -166,21 +175,21 @@ export function FormListTable({
             {items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>
-                  <div className="font-bold">{item.title}</div>
-                  <div className="text-sm text-gray-500">{item.slug}</div>
+                  <div className="font-medium">{item.name}</div>
+                  <div className="text-sm text-gray-500">{item.key}</div>
                 </TableCell>
-                <TableCell>{item.categoryLabel}</TableCell>
+                <TableCell>{item.formGroup || item.group || "-"}</TableCell>
                 <TableCell>
                   <Badge
                     variant="secondary"
                     className={cn(statusStyles[item.status])}
                   >
-                    {item.statusLabel}
+                    {statusLabels[item.status] ?? item.status}
                   </Badge>
                 </TableCell>
-                <TableCell>v{item.version}</TableCell>
-                <TableCell>{item.submissionCount}</TableCell>
-                <TableCell>{formatDate(item.timestamps.updatedAt)}</TableCell>
+                <TableCell>v{item.builder?.version ?? 1}</TableCell>
+                <TableCell>{item.formTypes?.join(", ") || "-"}</TableCell>
+                <TableCell>{formatDate(item.updatedAt)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -207,7 +216,7 @@ export function FormListTable({
                           </DropdownMenuItem>
                         </>
                       )}
-                      {item.status === "published" && (
+                      {item.status === "released" && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onArchive(item.id)}>

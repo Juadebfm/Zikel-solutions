@@ -382,7 +382,7 @@ export default function DueTodayPage() {
                       </button>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {task.assignee}
+                      {task.assignee?.name ?? "-"}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge

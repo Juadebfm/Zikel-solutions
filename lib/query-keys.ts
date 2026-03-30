@@ -133,4 +133,8 @@ export const queryKeys = {
     detail: (id: string) => ["forms", "detail", id] as const,
     metadata: ["forms", "metadata"] as const,
   },
+  dailyLogs: {
+    list: (params: Record<string, unknown>) => ["daily-logs", "list", params] as const,
+    detail: (id: string) => ["daily-logs", "detail", id] as const,
+  },
 } as const

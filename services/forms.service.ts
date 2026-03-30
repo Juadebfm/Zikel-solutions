@@ -3,7 +3,7 @@ import type { ApiMeta } from "@/lib/api/types"
 
 // ─── Enums / Unions ───────────────────────────────────────────────
 
-export type FormStatus = "draft" | "published" | "archived"
+export type FormStatus = "draft" | "released" | "archived"
 
 export type FormFieldType =
   | "text"
@@ -31,22 +31,21 @@ export type FormTriggerType =
 
 export interface FormListItem {
   id: string
-  slug: string
-  title: string
+  key: string
+  name: string
   description?: string
-  category: string
-  categoryLabel: string
+  formGroup: string
+  group: string
   status: FormStatus
-  statusLabel: string
-  version: number
-  entityTypes: string[]
-  submissionCount: number
-  createdBy: { id: string; name: string } | null
-  timestamps: {
-    createdAt: string
-    updatedAt: string
-    publishedAt?: string | null
-  }
+  isActive: boolean
+  hidden: boolean
+  visibility: string
+  formTypes: string[]
+  keywords: string[]
+  instructions?: string
+  builder: { version: number; [key: string]: unknown }
+  createdAt: string
+  updatedAt: string
 }
 
 // ─── Detail ───────────────────────────────────────────────────────
@@ -114,7 +113,7 @@ export interface FormTriggerRules {
   defaultDueInDays?: number
 }
 
-export interface FormDetail extends FormListItem {
+export interface FormDetail extends Omit<FormListItem, "builder"> {
   access: FormAccessRules
   builder: FormBuilderSchema
   trigger: FormTriggerRules
@@ -204,6 +203,8 @@ export interface FormListParams {
   search?: string
   status?: FormStatus
   category?: string
+  sortBy?: string
+  sortOrder?: "asc" | "desc"
 }
 
 // ─── Paginated Result ─────────────────────────────────────────────

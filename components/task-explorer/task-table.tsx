@@ -13,19 +13,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import {
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
+  Eye,
+  Trash2,
   ArrowUpDown,
   Loader2,
 } from "lucide-react"
@@ -35,6 +31,7 @@ import {
 interface TaskTableProps {
   items: TaskListItem[]
   loading: boolean
+  fetching?: boolean
   page: number
   pageSize: number
   totalPages: number
@@ -45,6 +42,7 @@ interface TaskTableProps {
   onPageSizeChange: (size: number) => void
   onSortChange: (field: string, order: "asc" | "desc") => void
   onRowClick: (taskId: string) => void
+  onDelete?: (taskId: string) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -119,6 +117,7 @@ const SORTABLE_FIELDS = ["title", "dueAt", "status", "priority"] as const
 export function TaskTable({
   items,
   loading,
+  fetching = false,
   page,
   pageSize,
   totalPages,
@@ -129,7 +128,10 @@ export function TaskTable({
   onPageSizeChange,
   onSortChange,
   onRowClick,
+  onDelete,
 }: TaskTableProps) {
+  // Show skeletons on initial load OR when fetching with no items (e.g. first visit to a tab)
+  const showSkeleton = loading || (fetching && items.length === 0)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const allSelected = items.length > 0 && items.every((i) => selected.has(i.id))
@@ -168,7 +170,13 @@ export function TaskTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-md border relative">
+        {/* Subtle overlay when refetching in background (data already visible) */}
+        {fetching && !showSkeleton && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -191,7 +199,7 @@ export function TaskTable({
                 />
               </TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Entity</TableHead>
+              <TableHead>Related To</TableHead>
               <TableHead>
                 <SortButton
                   field="status"
@@ -223,12 +231,12 @@ export function TaskTable({
                   onSort={handleSort}
                 />
               </TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {loading ? (
+            {showSkeleton ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell>
@@ -318,19 +326,36 @@ export function TaskTable({
                   </TableCell>
                   <TableCell className="text-sm">{formatDate(task.dueAt)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onRowClick(task.id)}>
-                          View details
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center justify-end gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => onRowClick(task.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">View</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => onDelete?.(task.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
