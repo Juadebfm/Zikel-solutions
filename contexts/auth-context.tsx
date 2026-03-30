@@ -22,6 +22,7 @@ import {
 import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { authService, type LoginPayload } from "@/services/auth.service"
 import { summaryService } from "@/services/summary.service"
+import type { SummaryTaskItem } from "@/services/summary.service"
 import type { AuthSessionContext, RolePermissions, TenantRole, UserRole } from "@/types"
 import { ROLE_PERMISSIONS } from "@/types"
 import { useMfaStore } from "@/stores/mfa-store"
@@ -40,6 +41,8 @@ interface AuthContextType {
   isAuthenticated: boolean
   permissions: RolePermissions | null
   hasPendingAcknowledgements: boolean
+  /** Items fetched during the gate check — used to prime the query cache so the acknowledgements page loads instantly. */
+  pendingAcknowledgementItems: SummaryTaskItem[] | null
   login: (email: string, password: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
   refreshAcknowledgementsGate: () => Promise<boolean>
@@ -126,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(true)
   const [hasPendingAcknowledgements, setHasPendingAcknowledgements] = useState(false)
+  const [pendingAcknowledgementItems, setPendingAcknowledgementItems] = useState<SummaryTaskItem[] | null>(null)
   const [isCheckingAcknowledgements, setIsCheckingAcknowledgements] = useState(false)
   const hasBootstrapped = useRef(false)
   const mfaGateActive = useMfaStore((state) => state.mfaGateActive)
@@ -137,18 +141,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsCheckingAcknowledgements(true)
 
     try {
-      const [statsPayload, pendingPayload] = await Promise.all([
-        summaryService.getStats(),
-        summaryService.getTasksToApprove(),
-      ])
-
-      const hasPending =
-        (statsPayload.pendingApproval ?? 0) > 0 || (pendingPayload.items?.length ?? 0) > 0
+      // Single fast request with scope=gate to check if user is blocked.
+      // Also captures the returned items to prime the query cache so the
+      // acknowledgements page renders instantly without a second fetch.
+      const gateQueue = await summaryService.getTasksToApprove({
+        scope: "gate",
+        page: 1,
+        pageSize: 500,
+      })
+      const hasPending = (gateQueue.meta.total ?? 0) > 0
 
       setHasPendingAcknowledgements(hasPending)
+      setPendingAcknowledgementItems(hasPending ? gateQueue.items : null)
       return hasPending
-    } catch {
+    } catch (error) {
+      if (
+        isApiClientError(error) &&
+        error.status === 403 &&
+        error.code === "FORBIDDEN"
+      ) {
+        setHasPendingAcknowledgements(false)
+        setPendingAcknowledgementItems(null)
+        return false
+      }
+
       setHasPendingAcknowledgements(false)
+      setPendingAcknowledgementItems(null)
       return false
     } finally {
       setIsCheckingAcknowledgements(false)
@@ -580,6 +598,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       deactivateMfaGate()
       clearSession()
       setHasPendingAcknowledgements(false)
+      setPendingAcknowledgementItems(null)
       hasBootstrapped.current = false
       router.push("/login")
     }
@@ -637,6 +656,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: Boolean(user),
         permissions,
         hasPendingAcknowledgements,
+        pendingAcknowledgementItems,
         login,
         completeAuth,
         refreshAcknowledgementsGate,

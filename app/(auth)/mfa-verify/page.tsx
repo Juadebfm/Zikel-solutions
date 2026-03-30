@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 
 import { OTPInput } from "@/components/auth/otp-input"
 import { BrandMark } from "@/components/shared/brand-mark"
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -80,6 +81,17 @@ export default function MfaVerifyPage() {
 
   return (
     <div className="w-full max-w-md mx-auto">
+      <AuthErrorDialog
+        open={Boolean(error)}
+        message={error ?? ""}
+        title="MFA verification issue"
+        onOpenChange={(open) => {
+          if (!open) {
+            setError(null)
+          }
+        }}
+      />
+
       {/* Logo - Mobile */}
       <div className="flex justify-center mb-8 lg:hidden">
         <BrandMark size={48} priority animated />
@@ -95,12 +107,6 @@ export default function MfaVerifyPage() {
             Enter the security code sent to your email to continue.
           </p>
         </div>
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         {successMessage && (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">

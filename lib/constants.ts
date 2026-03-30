@@ -27,7 +27,7 @@ import {
 // Navigation Items
 export const mainNavItems = [
   { label: "My Summary", href: "/my-summary", icon: LayoutDashboard },
-  { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
+  // { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
   { label: "Task Explorer", href: "/tasks", icon: Search },
   "divider",
   { label: "Care Groups", href: "/care-groups", icon: Users },

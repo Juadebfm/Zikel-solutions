@@ -18,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog"
 import { getCooldownSecondsFromError, getPublicAuthErrorMessage } from "@/lib/auth/otp"
 import { isApiClientError } from "@/lib/api/error"
 import { authService } from "@/services/auth.service"
@@ -134,6 +135,17 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="w-full max-w-md mx-auto">
+      <AuthErrorDialog
+        open={Boolean(submitError)}
+        message={submitError ?? ""}
+        title="Password reset failed"
+        onOpenChange={(open) => {
+          if (!open) {
+            setSubmitError(null)
+          }
+        }}
+      />
+
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         <div className="mb-8">
           <p className="text-primary font-medium mb-1">Password Recovery</p>
@@ -147,12 +159,6 @@ export default function ResetPasswordPage() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {submitError && (
-              <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-                {submitError}
-              </div>
-            )}
-
             <FormField
               control={form.control}
               name="email"

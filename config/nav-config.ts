@@ -48,7 +48,7 @@ export interface NavItemConfig {
  */
 export const navItems: NavItemConfig[] = [
   { label: "My Summary", href: "/my-summary", icon: LayoutDashboard },
-  { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
+  // { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
   { label: "Task Explorer", href: "/tasks", icon: Search },
   { label: "Care Groups", href: "/care-groups", icon: Users },
   { label: "Homes", href: "/homes", icon: Home },
@@ -61,7 +61,7 @@ export const navItems: NavItemConfig[] = [
   { label: "Bespoke Reporting", href: "/reports", icon: PieChart, permission: "canViewReports", hidden: true },
   { label: "Uploads", href: "/uploads", icon: Upload, hidden: true },
   { label: "Sensitive Data", href: "/sensitive-data", icon: Shield, permission: "canManageSettings", hidden: true },
-  { label: "Forms & Procedures", href: "/forms", icon: ClipboardList, permission: "canManageSettings", hidden: true },
+  { label: "Form Designer", href: "/forms", icon: ClipboardList, permission: "canManageSettings" },
   { label: "Documents", href: "/documents", icon: FolderOpen, permission: "canManageSettings", hidden: true },
   { label: "Regions", href: "/regions", icon: MapPin, permission: "canManageSettings", hidden: true },
   { label: "Users", href: "/users", icon: UserCog, permission: "canManageUsers" },

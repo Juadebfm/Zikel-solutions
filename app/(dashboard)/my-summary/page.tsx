@@ -77,6 +77,8 @@ interface AiChatMessage {
   suggestions?: AskAiResponse["suggestions"]
 }
 
+const SUMMARY_PANEL_PAGE_SIZE = 10
+
 export default function MySummaryPage() {
   const { user, logout } = useAuth()
   const { guard, allowed, showModal, setShowModal } = usePermissionGuard("canApproveIOILogs")
@@ -91,10 +93,20 @@ export default function MySummaryPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [reviewedTaskIds, setReviewedTaskIds] = useState<Set<string>>(new Set())
+  const [todoPage, setTodoPage] = useState(1)
+  const [approvalPage, setApprovalPage] = useState(1)
 
   const statsQuery = useSummaryStats()
-  const todosQuery = useSummaryTodos({ page: 1, pageSize: 20, sortBy: "dueDate", sortOrder: "asc" })
-  const tasksToApproveQuery = useSummaryTasksToApprove({ page: 1, pageSize: 20 }, allowed)
+  const todosQuery = useSummaryTodos({
+    page: todoPage,
+    pageSize: SUMMARY_PANEL_PAGE_SIZE,
+    sortBy: "dueAt",
+    sortOrder: "asc",
+  })
+  const tasksToApproveQuery = useSummaryTasksToApprove(
+    { page: approvalPage, pageSize: SUMMARY_PANEL_PAGE_SIZE, scope: "all" },
+    allowed
+  )
   const provisionsQuery = useSummaryProvisions()
 
   const taskDetailQuery = useSummaryTaskToApproveDetail(detailTaskId ?? "", detailTaskId !== null)
@@ -103,6 +115,25 @@ export default function MySummaryPage() {
   const approveTaskMutation = useApproveSummaryTask()
   const recordReviewMutation = useRecordSummaryTaskReviewEvent()
   const askAiMutation = useAskAi()
+
+  const todoMeta = todosQuery.data?.meta
+  const approvalMeta = tasksToApproveQuery.data?.meta
+  const todoTotalPages = Math.max(todoMeta?.totalPages ?? 1, 1)
+  const approvalTotalPages = Math.max(approvalMeta?.totalPages ?? 1, 1)
+  const todoTotalItems = todoMeta?.total ?? todosQuery.data?.items.length ?? 0
+  const approvalTotalItems = approvalMeta?.total ?? tasksToApproveQuery.data?.items.length ?? 0
+
+  useEffect(() => {
+    if (todoPage > todoTotalPages) {
+      setTodoPage(todoTotalPages)
+    }
+  }, [todoPage, todoTotalPages])
+
+  useEffect(() => {
+    if (approvalPage > approvalTotalPages) {
+      setApprovalPage(approvalTotalPages)
+    }
+  }, [approvalPage, approvalTotalPages])
 
   useEffect(() => {
     if (!isAskAiOpen) return
@@ -142,18 +173,25 @@ export default function MySummaryPage() {
 
   const todoItems = useMemo<TodoItem[]>(() => {
     return (todosQuery.data?.items ?? []).map((item) => {
-      const assigneeName = item.assignee || "Unassigned"
+      const assigneeName = item.assignee?.name || "Unassigned"
       return {
         id: item.id,
-        taskId: item.id,
+        taskRef: item.taskRef,
         title: item.title,
-        relatedTo: item.relation,
-        dueDate: formatDate(item.dueDate),
-        status: toTodoStatus(item.status, item.dueDate),
+        description: item.description,
+        domain: item.domain,
+        statusLabel: item.statusLabel,
+        status: toTodoStatus(item.status, item.dueAt),
+        submittedAt: item.submittedAt,
+        dueDate: formatDueDate(item.dueAt),
+        taskUrl: item.links.taskUrl,
+        documentUrl: item.links.documentUrl,
+        documentsCount: item.referenceSummary?.documents,
         assignee: {
           name: assigneeName,
           initials: toInitials(assigneeName),
           color: colorFromString(assigneeName),
+          avatarUrl: item.assignee?.avatarUrl,
         },
       }
     })
@@ -161,20 +199,29 @@ export default function MySummaryPage() {
 
   const approvalTasks = useMemo<ApprovalTask[]>(() => {
     return (tasksToApproveQuery.data?.items ?? []).map((item) => {
-      const submitter = item.assignee || "Unknown"
+      const submitterName = (typeof item.requestedBy === "string" && item.requestedBy) || item.createdBy?.name || item.assignee?.name || "Unknown"
+      const submitterAvatarUrl = item.createdBy?.avatarUrl || item.assignee?.avatarUrl
       return {
         id: item.id,
-        taskId: item.id,
+        taskRef: item.taskRef,
+        requestId: item.requestId,
         title: item.title,
-        relatedTo: item.relation,
-        dueDate: formatDate(item.dueDate),
+        description: item.description,
+        domain: item.domain,
+        statusLabel: item.statusLabel ?? item.approvalStatusLabel,
         status: toApprovalStatus(item.approvalStatus, item.priority),
-        reviewed: item.reviewedByCurrentUser === true || reviewedTaskIds.has(item.id),
+        reviewed: item.review.reviewedByCurrentUser === true || reviewedTaskIds.has(item.id),
+        dueDate: formatDueDate(item.dueAt),
+        submittedAt: item.submittedAt,
+        taskUrl: item.links.taskUrl,
+        documentUrl: item.links.documentUrl,
         submitter: {
-          name: submitter,
-          initials: toInitials(submitter),
-          color: colorFromString(submitter),
+          name: submitterName,
+          initials: toInitials(submitterName),
+          color: colorFromString(submitterName),
+          avatarUrl: submitterAvatarUrl,
         },
+        previewFields: item.previewFields,
       }
     })
   }, [tasksToApproveQuery.data?.items, reviewedTaskIds])
@@ -231,9 +278,9 @@ export default function MySummaryPage() {
       context.todos = todosQuery.data.items.slice(0, 5).map((todo) => ({
         id: todo.id,
         title: todo.title,
-        relation: todo.relation,
+        relation: todo.relatedEntity?.name ?? "-",
         status: todo.status,
-        dueDate: todo.dueDate,
+        dueDate: todo.dueAt,
       }))
     }
 
@@ -241,10 +288,10 @@ export default function MySummaryPage() {
       context.tasksToApprove = tasksToApproveQuery.data.items.slice(0, 5).map((task) => ({
         id: task.id,
         title: task.title,
-        relation: task.relation,
+        relation: task.relatedEntity?.name ?? "-",
         status: task.status,
         priority: task.priority,
-        dueDate: task.dueDate,
+        dueDate: task.dueAt,
       }))
     }
 
@@ -484,12 +531,30 @@ export default function MySummaryPage() {
       ) : null}
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <TodoList items={todoItems} />
+        <TodoList
+          items={todoItems}
+          loading={todosQuery.isLoading}
+          currentPage={todoPage}
+          totalPages={todoTotalPages}
+          totalItems={todoTotalItems}
+          pageSize={SUMMARY_PANEL_PAGE_SIZE}
+          onPageChange={(nextPage) =>
+            setTodoPage(Math.max(1, Math.min(nextPage, todoTotalPages)))
+          }
+        />
         <TasksToApprove
           items={approvalTasks}
+          loading={tasksToApproveQuery.isLoading}
           onView={handleViewApproval}
           onApprove={allowed ? handleApproveTask : undefined}
           onProcessBatch={allowed ? handleProcessBatch : undefined}
+          currentPage={approvalPage}
+          totalPages={approvalTotalPages}
+          totalItems={approvalTotalItems}
+          pageSize={SUMMARY_PANEL_PAGE_SIZE}
+          onPageChange={(nextPage) =>
+            setApprovalPage(Math.max(1, Math.min(nextPage, approvalTotalPages)))
+          }
           allReviewed={allTasksReviewed}
         />
       </div>
@@ -519,7 +584,7 @@ export default function MySummaryPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Related To</span>
-                    <span className="font-medium">{taskDetailQuery.data.relation}</span>
+                    <span className="font-medium">{taskDetailQuery.data.relatedEntity?.name ?? "-"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Priority</span>
@@ -531,11 +596,11 @@ export default function MySummaryPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Assignee</span>
-                    <span className="font-medium">{taskDetailQuery.data.assignee}</span>
+                    <span className="font-medium">{taskDetailQuery.data.assignee?.name ?? "-"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Due Date</span>
-                    <span className="font-medium">{formatDate(taskDetailQuery.data.dueDate)}</span>
+                    <span className="font-medium">{formatDueDate(taskDetailQuery.data.dueAt)}</span>
                   </div>
                   {taskDetailQuery.data.labels.length > 0 && (
                     <div className="flex justify-between items-start">
@@ -547,9 +612,9 @@ export default function MySummaryPage() {
                       </div>
                     </div>
                   )}
-                  {taskDetailQuery.data.reviewedByCurrentUser && (
+                  {taskDetailQuery.data.review.reviewedByCurrentUser && (
                     <div className="p-2 rounded bg-emerald-50 text-emerald-700 text-xs">
-                      You have reviewed this task{taskDetailQuery.data.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.reviewedAt)}` : ""}.
+                      You have reviewed this task{taskDetailQuery.data.review.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
                     </div>
                   )}
                 </div>
@@ -739,14 +804,16 @@ export default function MySummaryPage() {
   )
 }
 
-function toTodoStatus(status: string, dueDate: string): TodoItem["status"] {
+function toTodoStatus(status: string, dueDate: string | null): TodoItem["status"] {
   if (status === "draft") {
     return "draft"
   }
 
-  const dueTimestamp = Date.parse(dueDate)
-  if (!Number.isNaN(dueTimestamp) && dueTimestamp < Date.now()) {
-    return "overdue"
+  if (dueDate) {
+    const dueTimestamp = Date.parse(dueDate)
+    if (!Number.isNaN(dueTimestamp) && dueTimestamp < Date.now()) {
+      return "overdue"
+    }
   }
 
   if (status === "pending") {
@@ -791,6 +858,15 @@ function formatDate(value: string): string {
 
   return DATE_FORMATTER.format(date)
 }
+
+function formatDueDate(value: string | null | undefined): string {
+  if (!value) {
+    return "-"
+  }
+
+  return formatDate(value)
+}
+
 
 function formatClock(value: string): string {
   const date = new Date(value)

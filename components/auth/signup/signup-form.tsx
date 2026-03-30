@@ -15,6 +15,7 @@ import { isApiClientError } from "@/lib/api/error"
 import { logApiError } from "@/lib/api/logger"
 import { authService, type OtpDeliveryStatus, type ResendOtpPayload } from "@/services/auth.service"
 import type { SignupStepData, SupportedCountry } from "@/types"
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog"
 
 const SIGNUP_STEPS = [
   { number: 1, title: "Country of residence" },
@@ -152,18 +153,22 @@ export function SignupForm({ onStepChange }: SignupFormProps) {
 
   return (
     <div className="w-full">
+      <AuthErrorDialog
+        open={Boolean(error)}
+        message={error ?? ""}
+        title="Sign up error"
+        onOpenChange={(open) => {
+          if (!open) {
+            setError(null)
+          }
+        }}
+      />
+
       {/* Step Indicator */}
       <div className="max-w-md mx-auto mb-8">
         <StepIndicator steps={SIGNUP_STEPS} currentStep={currentStep} className="hidden sm:flex" />
         <StepIndicatorCompact currentStep={currentStep} totalSteps={SIGNUP_STEPS.length} className="flex sm:hidden justify-center" />
       </div>
-
-      {/* Global Error */}
-      {error && (
-        <div className="max-w-md mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
-          {error}
-        </div>
-      )}
 
       {/* Step Content */}
       {currentStep === 1 && (

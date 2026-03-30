@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { usePathname } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { MobileNav } from "@/components/layout/mobile-nav"
@@ -9,6 +10,7 @@ import { PageLoading } from "@/components/shared/page-loading"
 import { Toast } from "@/components/shared/toast"
 import { MfaModal } from "@/components/mfa/mfa-modal"
 import { useAuth } from "@/contexts/auth-context"
+import { queryKeys } from "@/lib/query-keys"
 
 export default function DashboardLayout({
   children,
@@ -16,11 +18,28 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const queryClient = useQueryClient()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const { isLoading, isAuthenticated, hasPendingAcknowledgements } = useAuth()
+  const { isLoading, isAuthenticated, hasPendingAcknowledgements, pendingAcknowledgementItems } = useAuth()
+  const hasPrimedCache = useRef(false)
   const isAcknowledgementsRoute = pathname.startsWith("/acknowledgements")
   const useAcknowledgementsGateLayout =
     isAcknowledgementsRoute && hasPendingAcknowledgements
+
+  // Prime the React Query cache synchronously (before children render their
+  // hooks) so the acknowledgements page's useAllSummaryTasksToApprove() finds
+  // data already in the cache and skips the network fetch.
+  if (
+    !hasPrimedCache.current &&
+    pendingAcknowledgementItems &&
+    pendingAcknowledgementItems.length > 0
+  ) {
+    hasPrimedCache.current = true
+    queryClient.setQueryData(
+      queryKeys.summary.tasksToApproveAll("all"),
+      pendingAcknowledgementItems
+    )
+  }
 
   // Show loading state while checking auth
   if (isLoading) {

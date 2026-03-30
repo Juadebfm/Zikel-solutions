@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { OTPInput } from "@/components/auth/otp-input"
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog"
 import { useLanguage } from "@/contexts/language-context"
 import {
   getOtpDeliveryStatusMessage,
@@ -128,6 +129,17 @@ export function StepVerification({
 
   return (
     <div className="w-full max-w-md mx-auto">
+      <AuthErrorDialog
+        open={Boolean(error)}
+        message={error ?? ""}
+        title="Verification issue"
+        onOpenChange={(open) => {
+          if (!open) {
+            setError(null)
+          }
+        }}
+      />
+
       {/* Form Card */}
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         {/* Header */}
@@ -150,13 +162,6 @@ export function StepVerification({
             }`}
           >
             {currentDeliveryMessage}
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
-            {error}
           </div>
         )}
 

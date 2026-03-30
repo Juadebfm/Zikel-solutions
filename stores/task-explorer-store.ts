@@ -1,113 +1,116 @@
 import { create } from "zustand"
-import type { TaskExplorerFilters } from "@/types"
 
-interface ValidationError {
-  field: string
-  message: string
-}
+import type { TaskListParams, TaskScope } from "@/services/tasks.service"
 
 interface TaskExplorerState {
-  // Stepper
-  currentStep: number
-  setCurrentStep: (step: number) => void
-
   // Filters
-  filters: TaskExplorerFilters
-  updateFilter: <K extends keyof TaskExplorerFilters>(key: K, value: TaskExplorerFilters[K]) => void
+  scope: TaskScope
+  search: string
+  status: string
+  type: string
+  category: string
+  period: string
+  dateFrom: string
+  dateTo: string
+  formGroup: string
+  page: number
+  pageSize: number
+  sortBy: string
+  sortOrder: "asc" | "desc"
+
+  // UI state
+  showFilters: boolean
+  selectedTaskId: string | null
+  drawerOpen: boolean
+  createModalOpen: boolean
+
+  // Actions
+  setScope: (scope: TaskScope) => void
+  setSearch: (search: string) => void
+  setStatus: (status: string) => void
+  setType: (type: string) => void
+  setCategory: (category: string) => void
+  setPeriod: (period: string) => void
+  setDateRange: (from: string, to: string) => void
+  setFormGroup: (formGroup: string) => void
+  setPage: (page: number) => void
+  setPageSize: (pageSize: number) => void
+  setSorting: (sortBy: string, sortOrder: "asc" | "desc") => void
+  setShowFilters: (show: boolean) => void
+  openTaskDrawer: (taskId: string) => void
+  closeTaskDrawer: () => void
+  setCreateModalOpen: (open: boolean) => void
   resetFilters: () => void
-
-  // Validation
-  errors: ValidationError[]
-  showErrorModal: boolean
-  setShowErrorModal: (show: boolean) => void
-  validateStep: (step: number) => boolean
-  clearErrors: () => void
-
-  // Navigation
-  goToNextStep: () => void
-  goToPrevStep: () => void
-}
-
-const initialFilters: TaskExplorerFilters = {
-  period: "",
-  type: "",
-  project: "",
-  forms: [],
-  field: "",
-  keyword: "",
-  searchByOther: [],
-  taskId: "",
-  statuses: [],
-  showAuditTrail: false,
-}
-
-function validateStepOne(filters: TaskExplorerFilters): ValidationError[] {
-  const errors: ValidationError[] = []
-
-  if (!filters.period) {
-    errors.push({ field: "period", message: "Please select a period" })
-  }
-
-  // When period is "custom", require start/end dates (future-proof)
-  if (filters.period === "custom") {
-    errors.push({ field: "startDate", message: "Please select a start date" })
-    errors.push({ field: "endDate", message: "Please select an end date" })
-  }
-
-  return errors
+  getQueryParams: () => TaskListParams
 }
 
 export const useTaskExplorerStore = create<TaskExplorerState>((set, get) => ({
-  // Stepper
-  currentStep: 1,
-  setCurrentStep: (step) => set({ currentStep: step }),
+  scope: "all",
+  search: "",
+  status: "",
+  type: "",
+  category: "",
+  period: "",
+  dateFrom: "",
+  dateTo: "",
+  formGroup: "",
+  page: 1,
+  pageSize: 20,
+  sortBy: "dueAt",
+  sortOrder: "asc",
+  showFilters: false,
+  selectedTaskId: null,
+  drawerOpen: false,
+  createModalOpen: false,
 
-  // Filters
-  filters: initialFilters,
-  updateFilter: (key, value) =>
-    set((state) => ({
-      filters: { ...state.filters, [key]: value },
-      // Clear errors for the field being updated
-      errors: state.errors.filter((e) => e.field !== key),
-    })),
-  resetFilters: () => set({ filters: initialFilters, errors: [], currentStep: 1 }),
+  setScope: (scope) => set({ scope, page: 1 }),
+  setSearch: (search) => set({ search, page: 1 }),
+  setStatus: (status) => set({ status, page: 1 }),
+  setType: (type) => set({ type, page: 1 }),
+  setCategory: (category) => set({ category, page: 1 }),
+  setPeriod: (period) => set({ period, page: 1, dateFrom: "", dateTo: "" }),
+  setDateRange: (dateFrom, dateTo) => set({ dateFrom, dateTo, period: "custom", page: 1 }),
+  setFormGroup: (formGroup) => set({ formGroup, page: 1 }),
+  setPage: (page) => set({ page }),
+  setPageSize: (pageSize) => set({ pageSize, page: 1 }),
+  setSorting: (sortBy, sortOrder) => set({ sortBy, sortOrder, page: 1 }),
+  setShowFilters: (showFilters) => set({ showFilters }),
+  openTaskDrawer: (taskId) => set({ selectedTaskId: taskId, drawerOpen: true }),
+  closeTaskDrawer: () => set({ selectedTaskId: null, drawerOpen: false }),
+  setCreateModalOpen: (createModalOpen) => set({ createModalOpen }),
 
-  // Validation
-  errors: [],
-  showErrorModal: false,
-  setShowErrorModal: (show) => set({ showErrorModal: show }),
-  clearErrors: () => set({ errors: [], showErrorModal: false }),
+  resetFilters: () =>
+    set({
+      search: "",
+      status: "",
+      type: "",
+      category: "",
+      period: "",
+      dateFrom: "",
+      dateTo: "",
+      formGroup: "",
+      page: 1,
+    }),
 
-  validateStep: (step) => {
-    let errors: ValidationError[] = []
-
-    if (step === 1) {
-      errors = validateStepOne(get().filters)
+  getQueryParams: () => {
+    const state = get()
+    const params: TaskListParams = {
+      page: state.page,
+      pageSize: state.pageSize,
+      sortBy: state.sortBy,
+      sortOrder: state.sortOrder,
+      scope: state.scope,
     }
-    // Steps 2 and 3 have no required validation currently
 
-    if (errors.length > 0) {
-      set({ errors, showErrorModal: true })
-      return false
-    }
+    if (state.search) params.search = state.search
+    if (state.status) params.status = state.status
+    if (state.type) params.type = state.type
+    if (state.category) params.category = state.category
+    if (state.period && state.period !== "custom") params.period = state.period
+    if (state.dateFrom) params.dateFrom = state.dateFrom
+    if (state.dateTo) params.dateTo = state.dateTo
+    if (state.formGroup) params.formGroup = state.formGroup
 
-    set({ errors: [], showErrorModal: false })
-    return true
-  },
-
-  // Navigation
-  goToNextStep: () => {
-    const { currentStep, validateStep } = get()
-    if (validateStep(currentStep)) {
-      set({ currentStep: Math.min(currentStep + 1, 3) })
-    }
-  },
-
-  goToPrevStep: () => {
-    set((state) => ({
-      currentStep: Math.max(state.currentStep - 1, 1),
-      errors: [],
-      showErrorModal: false,
-    }))
+    return params
   },
 }))

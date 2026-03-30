@@ -11,9 +11,10 @@ export const queryKeys = {
     stats: ["summary", "stats"] as const,
     todos: (params: { page: number; pageSize: number; sortBy?: string; sortOrder?: string; search?: string }) =>
       ["summary", "todos", params] as const,
-    tasksToApprove: (params: { page: number; pageSize: number }) =>
+    tasksToApprove: (params: { page: number; pageSize: number; scope?: "gate" | "popup" | "all" }) =>
       ["summary", "tasks-to-approve", params] as const,
-    tasksToApproveAll: ["summary", "tasks-to-approve", "all"] as const,
+    tasksToApproveAll: (scope: "gate" | "popup" | "all" = "all") =>
+      ["summary", "tasks-to-approve", "all", scope] as const,
     taskToApproveDetail: (taskId: string) =>
       ["summary", "tasks-to-approve", "detail", taskId] as const,
     taskReview: (taskId: string) =>
@@ -120,5 +121,16 @@ export const queryKeys = {
       list: ["backend", "tasks", "list"] as const,
       detail: (id: string) => ["backend", "tasks", "detail", id] as const,
     },
+  },
+  tasks: {
+    list: (params: Record<string, unknown>) => ["tasks", "list", params] as const,
+    detail: (id: string) => ["tasks", "detail", id] as const,
+    categories: ["tasks", "categories"] as const,
+    formTemplates: ["tasks", "form-templates"] as const,
+  },
+  forms: {
+    list: (params: Record<string, unknown>) => ["forms", "list", params] as const,
+    detail: (id: string) => ["forms", "detail", id] as const,
+    metadata: ["forms", "metadata"] as const,
   },
 } as const

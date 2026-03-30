@@ -12,46 +12,214 @@ export interface SummaryStats {
   rewards: number
 }
 
-export interface SummaryTodoItem {
-  id: string
+export type SummaryTaskCategory =
+  | "task_log"
+  | "document"
+  | "system_link"
+  | "checklist"
+  | "incident"
+  | "other"
+
+export type SummaryTaskWorkflowStatus = "pending" | "in_progress" | "completed" | "cancelled"
+
+export type SummaryTaskApprovalStatus =
+  | "not_required"
+  | "pending_approval"
+  | "approved"
+  | "rejected"
+  | "processing"
+
+export type SummaryTaskPriority = "low" | "medium" | "high" | "urgent"
+
+export type SummaryTaskRelatedEntityType =
+  | "young_person"
+  | "home"
+  | "vehicle"
+  | "document"
+  | "upload"
+  | "care_group"
+  | "tenant"
+  | "employee"
+  | "task"
+  | "other"
+
+export type SummaryTaskReferenceType =
+  | "entity"
+  | "upload"
+  | "internal_route"
+  | "external_url"
+  | "document_url"
+
+export type SummaryTaskReferenceEntityType =
+  | "tenant"
+  | "care_group"
+  | "home"
+  | "young_person"
+  | "vehicle"
+  | "employee"
+  | "task"
+  | null
+
+export type SummaryTaskScope = "gate" | "popup" | "all"
+
+export interface SummaryListLabels {
+  listTitle: string
+  taskRef: string
   title: string
-  relation: string
-  status: string
+  category: string
+  workflowStatus: string
   approvalStatus: string
   priority: string
+  dueAt: string
   assignee: string
-  dueDate: string
+  createdBy: string
+  relatedEntity: string
 }
 
-export interface SummaryTaskToApprove {
+export interface SummaryPreviewField {
+  label: string
+  value: string
+  highlight?: boolean
+}
+
+export interface SummaryReferenceSummary {
+  documents: number
+  uploads: number
+  links: number
+  entities: number
+  total: number
+}
+
+export interface SummaryTaskItem {
   id: string
+  taskRef: string
+  requestId?: string
   title: string
-  relation: string
-  status: string
-  approvalStatus: string
-  priority: string
-  assignee: string
-  dueDate: string
-  category?: string | null
-  createdBy?: string | null
-  createdOn?: string | null
-  documentUrl?: string | null
-  taskUrl?: string | null
-  reviewedByCurrentUser?: boolean
-  reviewedAt?: string | null
+  description?: string
+
+  domain?: string
+  category: SummaryTaskCategory
+  categoryLabel: string
+
+  status: SummaryTaskWorkflowStatus
+  statusLabel?: string
+  approvalStatus: SummaryTaskApprovalStatus
+  approvalStatusLabel?: string
+  priority: SummaryTaskPriority
+
+  submittedAt?: string | null
+  dueAt: string | null
+
+  assignee: { id: string; name: string; avatarUrl?: string | null } | null
+  createdBy: { id: string; name: string; avatarUrl?: string | null } | null
+  requestedBy?: string | null
+
+  approvers?: Array<{ id: string; name: string; avatarUrl?: string | null }>
+
+  relatedEntity: {
+    type: SummaryTaskRelatedEntityType
+    id: string | null
+    name: string
+    homeId: string | null
+    careGroupId: string | null
+  } | null
+
+  previewFields?: SummaryPreviewField[]
+
+  links: {
+    taskUrl: string | null
+    documentUrl: string | null
+  }
+
+  referenceSummary?: SummaryReferenceSummary
+
+  review: {
+    reviewedByCurrentUser: boolean
+    reviewedAt: string | null
+    reviewedByCurrentUserName: string | null
+  }
+
+  timestamps: {
+    createdAt: string
+    updatedAt: string
+  }
+
+  references: Array<{
+    id: string
+    type: SummaryTaskReferenceType
+    entityType: SummaryTaskReferenceEntityType
+    entityId: string | null
+    fileId: string | null
+    url: string | null
+    label: string | null
+    metadata: unknown
+  }>
 }
 
 export interface SummaryTaskToApproveDetail {
   id: string
+  taskRef: string
+  requestId?: string
   title: string
-  relation: string
-  status: string
-  approvalStatus: string
-  priority: string
-  assignee: string
-  dueDate: string
-  reviewedByCurrentUser: boolean
-  reviewedAt: string | null
+  description?: string
+
+  domain?: string
+  category: SummaryTaskCategory
+  categoryLabel: string
+
+  status: SummaryTaskWorkflowStatus
+  statusLabel?: string
+  approvalStatus: SummaryTaskApprovalStatus
+  approvalStatusLabel?: string
+  priority: SummaryTaskPriority
+
+  submittedAt?: string | null
+  dueAt: string | null
+
+  assignee: { id: string; name: string; avatarUrl?: string | null } | null
+  createdBy: { id: string; name: string; avatarUrl?: string | null } | null
+  requestedBy?: string | null
+
+  approvers?: Array<{ id: string; name: string; avatarUrl?: string | null }>
+
+  relatedEntity: {
+    type: SummaryTaskRelatedEntityType
+    id: string | null
+    name: string
+    homeId: string | null
+    careGroupId: string | null
+  } | null
+
+  previewFields?: SummaryPreviewField[]
+
+  links: {
+    taskUrl: string | null
+    documentUrl: string | null
+  }
+
+  referenceSummary?: SummaryReferenceSummary
+
+  review: {
+    reviewedByCurrentUser: boolean
+    reviewedAt: string | null
+    reviewedByCurrentUserName: string | null
+  }
+
+  timestamps: {
+    createdAt: string
+    updatedAt: string
+  }
+
+  references: Array<{
+    id: string
+    type: SummaryTaskReferenceType
+    entityType: SummaryTaskReferenceEntityType
+    entityId: string | null
+    fileId: string | null
+    url: string | null
+    label: string | null
+    metadata: unknown
+  }>
   renderPayload: Record<string, unknown> | null
   labels: string[]
   meta: Record<string, unknown> | null
@@ -69,6 +237,7 @@ export interface ReviewEventResult {
 export interface BatchProcessPayload {
   taskIds: string[]
   action: "approve" | "reject"
+  signatureFileId?: string
   rejectionReason?: string
 }
 
@@ -109,9 +278,10 @@ export interface OverdueTask {
 }
 
 
-export interface PaginatedResult<T> {
+export interface PaginatedResult<T, L = undefined> {
   items: T[]
   meta: ApiMeta
+  labels?: L
 }
 
 const DEFAULT_META: ApiMeta = {
@@ -121,7 +291,21 @@ const DEFAULT_META: ApiMeta = {
   totalPages: 0,
 }
 
-const SUMMARY_MAX_PAGE_SIZE = 100
+const SUMMARY_MAX_PAGE_SIZE = 500
+
+const SUMMARY_LABEL_KEYS: Array<keyof SummaryListLabels> = [
+  "listTitle",
+  "taskRef",
+  "title",
+  "category",
+  "workflowStatus",
+  "approvalStatus",
+  "priority",
+  "dueAt",
+  "assignee",
+  "createdBy",
+  "relatedEntity",
+]
 
 function clampPageSize(pageSize: number | undefined, fallback: number): number {
   const numericPageSize = typeof pageSize === "number" ? pageSize : Number.NaN
@@ -135,6 +319,37 @@ function clampPageSize(pageSize: number | undefined, fallback: number): number {
   }
 
   return Math.min(normalized, SUMMARY_MAX_PAGE_SIZE)
+}
+
+function extractSummaryLabels(response: unknown): SummaryListLabels | undefined {
+  if (!response || typeof response !== "object") {
+    return undefined
+  }
+
+  const labels = (response as { labels?: unknown }).labels
+  if (!labels || typeof labels !== "object") {
+    return undefined
+  }
+
+  const record = labels as Record<string, unknown>
+  const hasAllKeys = SUMMARY_LABEL_KEYS.every((key) => typeof record[key] === "string")
+  if (!hasAllKeys) {
+    return undefined
+  }
+
+  return {
+    listTitle: record.listTitle as string,
+    taskRef: record.taskRef as string,
+    title: record.title as string,
+    category: record.category as string,
+    workflowStatus: record.workflowStatus as string,
+    approvalStatus: record.approvalStatus as string,
+    priority: record.priority as string,
+    dueAt: record.dueAt as string,
+    assignee: record.assignee as string,
+    createdBy: record.createdBy as string,
+    relatedEntity: record.relatedEntity as string,
+  }
 }
 
 export const summaryService = {
@@ -153,8 +368,8 @@ export const summaryService = {
     sortBy?: string
     sortOrder?: "asc" | "desc"
     search?: string
-  }): Promise<PaginatedResult<SummaryTodoItem>> {
-    const response = await apiRequest<SummaryTodoItem[], ApiMeta>({
+  }): Promise<PaginatedResult<SummaryTaskItem, SummaryListLabels>> {
+    const response = await apiRequest<SummaryTaskItem[], ApiMeta>({
       path: "/summary/todos",
       auth: true,
       query: {
@@ -169,36 +384,43 @@ export const summaryService = {
     return {
       items: response.data,
       meta: response.meta ?? DEFAULT_META,
+      labels: extractSummaryLabels(response),
     }
   },
 
   async getTasksToApprove(params?: {
     page?: number
     pageSize?: number
-  }): Promise<PaginatedResult<SummaryTaskToApprove>> {
-    const response = await apiRequest<SummaryTaskToApprove[], ApiMeta>({
+    scope?: SummaryTaskScope
+  }): Promise<PaginatedResult<SummaryTaskItem, SummaryListLabels>> {
+    const response = await apiRequest<SummaryTaskItem[], ApiMeta>({
       path: "/summary/tasks-to-approve",
       auth: true,
       query: {
         page: params?.page ?? 1,
         pageSize: clampPageSize(params?.pageSize, 20),
+        scope: params?.scope,
       },
     })
 
     return {
       items: response.data,
       meta: response.meta ?? DEFAULT_META,
+      labels: extractSummaryLabels(response),
     }
   },
 
-  async getAllTasksToApprove(pageSize = SUMMARY_MAX_PAGE_SIZE): Promise<SummaryTaskToApprove[]> {
-    const allRows: SummaryTaskToApprove[] = []
+  async getAllTasksToApprove(
+    pageSize = SUMMARY_MAX_PAGE_SIZE,
+    scope: SummaryTaskScope = "all"
+  ): Promise<SummaryTaskItem[]> {
+    const allRows: SummaryTaskItem[] = []
     const safePageSize = clampPageSize(pageSize, SUMMARY_MAX_PAGE_SIZE)
     let page = 1
     let totalPages = 1
 
     while (page <= totalPages) {
-      const result = await summaryService.getTasksToApprove({ page, pageSize: safePageSize })
+      const result = await summaryService.getTasksToApprove({ page, pageSize: safePageSize, scope })
       allRows.push(...result.items)
 
       const metaTotalPages = result.meta.totalPages
@@ -211,7 +433,7 @@ export const summaryService = {
       page += 1
     }
 
-    const deduped = new Map<string, SummaryTaskToApprove>()
+    const deduped = new Map<string, SummaryTaskItem>()
     for (const row of allRows) {
       deduped.set(row.id, row)
     }
@@ -230,13 +452,18 @@ export const summaryService = {
     return response.data
   },
 
-  async approveTask(taskId: string, comment?: string): Promise<SummaryTaskToApprove> {
-    const response = await apiRequest<SummaryTaskToApprove>({
+  async approveTask(
+    taskId: string,
+    comment?: string,
+    signatureFileId?: string
+  ): Promise<SummaryTaskItem> {
+    const response = await apiRequest<SummaryTaskItem>({
       path: `/summary/tasks-to-approve/${taskId}/approve`,
       method: "POST",
       auth: true,
       body: {
         comment,
+        signatureFileId,
       },
     })
 

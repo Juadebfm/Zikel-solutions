@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/lib/query-keys"
 import {
   summaryService,
   type BatchProcessPayload,
   type ReviewEventPayload,
+  type SummaryTaskScope,
 } from "@/services/summary.service"
 
 export function useSummaryStats() {
@@ -32,26 +33,34 @@ export function useSummaryTodos(params?: {
   return useQuery({
     queryKey: queryKeys.summary.todos(resolvedParams),
     queryFn: () => summaryService.getTodos(resolvedParams),
+    placeholderData: keepPreviousData,
   })
 }
 
-export function useSummaryTasksToApprove(params?: { page?: number; pageSize?: number }, enabled = true) {
+export function useSummaryTasksToApprove(
+  params?: { page?: number; pageSize?: number; scope?: SummaryTaskScope },
+  enabled = true
+) {
   const resolvedParams = {
     page: params?.page ?? 1,
     pageSize: params?.pageSize ?? 20,
+    scope: params?.scope ?? "all",
   }
 
   return useQuery({
     queryKey: queryKeys.summary.tasksToApprove(resolvedParams),
     queryFn: () => summaryService.getTasksToApprove(resolvedParams),
+    placeholderData: keepPreviousData,
     enabled,
   })
 }
 
 export function useAllSummaryTasksToApprove(enabled = true) {
+  const scope: SummaryTaskScope = "all"
+
   return useQuery({
-    queryKey: queryKeys.summary.tasksToApproveAll,
-    queryFn: () => summaryService.getAllTasksToApprove(),
+    queryKey: queryKeys.summary.tasksToApproveAll(scope),
+    queryFn: () => summaryService.getAllTasksToApprove(500, scope),
     enabled,
   })
 }
@@ -108,8 +117,15 @@ export function useApproveSummaryTask() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ taskId, comment }: { taskId: string; comment?: string }) =>
-      summaryService.approveTask(taskId, comment),
+    mutationFn: ({
+      taskId,
+      comment,
+      signatureFileId,
+    }: {
+      taskId: string
+      comment?: string
+      signatureFileId?: string
+    }) => summaryService.approveTask(taskId, comment, signatureFileId),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["summary", "tasks-to-approve"] }),

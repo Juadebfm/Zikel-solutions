@@ -19,85 +19,61 @@ export function PageLoading({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-amber-50",
-        fullscreen ? "min-h-screen w-full" : "rounded-2xl border border-orange-100 py-20"
+        "relative overflow-hidden bg-white",
+        fullscreen ? "min-h-screen w-full" : "rounded-2xl border border-gray-100 py-20"
       )}
     >
-      <motion.div
-        className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full bg-orange-200/50 blur-3xl"
-        animate={reduceMotion ? undefined : { scale: [1, 1.1, 1], opacity: [0.35, 0.6, 0.35] }}
-        transition={
-          reduceMotion
-            ? undefined
-            : { duration: 4, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
-        }
-      />
-      <motion.div
-        className="pointer-events-none absolute -bottom-20 -left-20 h-52 w-52 rounded-full bg-amber-200/45 blur-3xl"
-        animate={reduceMotion ? undefined : { scale: [1.08, 0.95, 1.08], opacity: [0.3, 0.55, 0.3] }}
-        transition={
-          reduceMotion
-            ? undefined
-            : { duration: 5, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
-        }
-      />
-
-      <div className="relative z-10 flex min-h-[320px] flex-col items-center justify-center px-6 text-center">
+      <div className={cn(
+        "relative z-10 flex flex-col items-center justify-center px-6 text-center",
+        fullscreen ? "min-h-screen" : "min-h-[320px]"
+      )}>
+        {/* Logo with subtle pulse */}
         <motion.div
-          initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="rounded-2xl border border-orange-200/70 bg-white/80 p-5 shadow-lg backdrop-blur"
+          initial={reduceMotion ? undefined : { opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="mb-8"
         >
-          <BrandMark size={72} priority animated />
+          <BrandMark size={56} priority animated={false} />
         </motion.div>
 
-        <motion.h2
-          className="mt-6 text-2xl font-bold text-zikel-dark"
-          initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
+        {/* Progress bar */}
+        <motion.div
+          className="w-48 h-1 rounded-full bg-gray-100 overflow-hidden"
+          initial={reduceMotion ? undefined : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
         >
-          Zikel Solutions
-        </motion.h2>
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            initial={{ x: "-100%" }}
+            animate={
+              reduceMotion
+                ? { x: "0%" }
+                : { x: ["-100%", "100%"] }
+            }
+            transition={
+              reduceMotion
+                ? undefined
+                : {
+                    duration: 1.4,
+                    ease: "easeInOut",
+                    repeat: Number.POSITIVE_INFINITY,
+                    repeatType: "loop",
+                  }
+            }
+          />
+        </motion.div>
 
+        {/* Message */}
         <motion.p
-          className="mt-2 text-sm text-zikel-dark/70"
-          initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.14, ease: "easeOut" }}
+          className="mt-5 text-sm font-medium text-gray-400"
+          initial={reduceMotion ? undefined : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
         >
           {message}
         </motion.p>
-
-        <div className="mt-6 flex items-center gap-2">
-          {[0, 1, 2].map((index) => (
-            <motion.span
-              // Dot animation creates visible loader progress without spinning text.
-              key={index}
-              className="h-2 w-2 rounded-full bg-primary"
-              animate={
-                reduceMotion
-                  ? { opacity: 0.6 }
-                  : {
-                      y: [0, -5, 0],
-                      opacity: [0.35, 1, 0.35],
-                      scale: [1, 1.12, 1],
-                    }
-              }
-              transition={
-                reduceMotion
-                  ? undefined
-                  : {
-                      duration: 0.9,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                      delay: index * 0.12,
-                    }
-              }
-            />
-          ))}
-        </div>
       </div>
     </div>
   )

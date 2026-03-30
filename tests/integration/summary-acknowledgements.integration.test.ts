@@ -131,4 +131,31 @@ describe("summary service integration: acknowledgements", () => {
     const [firstUrl] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(firstUrl).toContain("/summary/tasks-to-approve?page=1&pageSize=100")
   })
+
+  it("passes signatureFileId when processing batch approvals", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: {
+          processed: 2,
+          failed: [],
+        },
+      })
+    )
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    await summaryService.processBatch({
+      taskIds: ["task-1", "task-2"],
+      action: "approve",
+      signatureFileId: "file-abc123",
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain("/summary/tasks-to-approve/process-batch")
+    expect(options.method).toBe("POST")
+    expect(options.body).toContain("\"signatureFileId\":\"file-abc123\"")
+  })
 })
