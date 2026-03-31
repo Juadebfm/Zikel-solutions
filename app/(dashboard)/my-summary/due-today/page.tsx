@@ -190,7 +190,7 @@ export default function DueTodayPage() {
       (task.title ?? "").toLowerCase().includes(q) ||
       (task.relatedEntity?.name ?? "").toLowerCase().includes(q) ||
       (task.status ?? "").toLowerCase().includes(q) ||
-      (task.assignee ?? "").toLowerCase().includes(q) ||
+      (task.assignee?.name ?? "").toLowerCase().includes(q) ||
       (task.dueAt ?? "").toLowerCase().includes(q)
     )
   }, [activeTasks, searchQuery])
@@ -396,7 +396,7 @@ export default function DueTodayPage() {
                       {task.relatedEntity?.name}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500 whitespace-nowrap">
-                      {formatDate(task.dueAt)}
+                      {task.dueAt ? formatDate(task.dueAt) : "-"}
                     </TableCell>
                   </TableRow>
                 )

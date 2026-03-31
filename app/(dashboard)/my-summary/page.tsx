@@ -123,17 +123,8 @@ export default function MySummaryPage() {
   const todoTotalItems = todoMeta?.total ?? todosQuery.data?.items.length ?? 0
   const approvalTotalItems = approvalMeta?.total ?? tasksToApproveQuery.data?.items.length ?? 0
 
-  useEffect(() => {
-    if (todoPage > todoTotalPages) {
-      setTodoPage(todoTotalPages)
-    }
-  }, [todoPage, todoTotalPages])
-
-  useEffect(() => {
-    if (approvalPage > approvalTotalPages) {
-      setApprovalPage(approvalTotalPages)
-    }
-  }, [approvalPage, approvalTotalPages])
+  const effectiveTodoPage = Math.min(todoPage, todoTotalPages)
+  const effectiveApprovalPage = Math.min(approvalPage, approvalTotalPages)
 
   useEffect(() => {
     if (!isAskAiOpen) return
@@ -534,7 +525,7 @@ export default function MySummaryPage() {
         <TodoList
           items={todoItems}
           loading={todosQuery.isLoading}
-          currentPage={todoPage}
+          currentPage={effectiveTodoPage}
           totalPages={todoTotalPages}
           totalItems={todoTotalItems}
           pageSize={SUMMARY_PANEL_PAGE_SIZE}
@@ -548,7 +539,7 @@ export default function MySummaryPage() {
           onView={handleViewApproval}
           onApprove={allowed ? handleApproveTask : undefined}
           onProcessBatch={allowed ? handleProcessBatch : undefined}
-          currentPage={approvalPage}
+          currentPage={effectiveApprovalPage}
           totalPages={approvalTotalPages}
           totalItems={approvalTotalItems}
           pageSize={SUMMARY_PANEL_PAGE_SIZE}

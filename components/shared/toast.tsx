@@ -26,10 +26,11 @@ export function Toast() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (message) {
-      // Small delay to trigger CSS transition
-      requestAnimationFrame(() => setVisible(true))
-    } else {
+    if (!message) return
+    // Small delay to trigger CSS transition
+    const raf = requestAnimationFrame(() => setVisible(true))
+    return () => {
+      cancelAnimationFrame(raf)
       setVisible(false)
     }
   }, [message])

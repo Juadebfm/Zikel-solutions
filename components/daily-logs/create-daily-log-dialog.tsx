@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -67,7 +67,12 @@ export function CreateDailyLogDialog({
   // Form state
   const [homeId, setHomeId] = useState("")
   const [relatesToValue, setRelatesToValue] = useState("")
-  const [noteDate, setNoteDate] = useState("")
+  const [noteDate, setNoteDate] = useState(() => {
+    const now = new Date()
+    const offset = now.getTimezoneOffset()
+    const local = new Date(now.getTime() - offset * 60000)
+    return local.toISOString().slice(0, 16)
+  })
   const [category, setCategory] = useState("")
   const [triggerTaskFormKey, setTriggerTaskFormKey] = useState("")
   const [note, setNote] = useState("")
@@ -86,20 +91,10 @@ export function CreateDailyLogDialog({
   const youngPeople = youngPeopleQuery.data?.items ?? []
   const forms = formsQuery.data?.items ?? []
 
-  // Reset relates-to when home changes
-  useEffect(() => {
+  function handleHomeChange(value: string) {
+    setHomeId(value)
     setRelatesToValue("")
-  }, [homeId])
-
-  // Set default note date on open
-  useEffect(() => {
-    if (open && !noteDate) {
-      const now = new Date()
-      const offset = now.getTimezoneOffset()
-      const local = new Date(now.getTime() - offset * 60000)
-      setNoteDate(local.toISOString().slice(0, 16))
-    }
-  }, [open, noteDate])
+  }
 
   // Build grouped relates-to options
   const relatesToOptions = useMemo(() => {
@@ -125,10 +120,17 @@ export function CreateDailyLogDialog({
     return groups
   }, [youngPeople])
 
+  function getDefaultNoteDate(): string {
+    const now = new Date()
+    const offset = now.getTimezoneOffset()
+    const local = new Date(now.getTime() - offset * 60000)
+    return local.toISOString().slice(0, 16)
+  }
+
   function resetForm() {
     setHomeId("")
     setRelatesToValue("")
-    setNoteDate("")
+    setNoteDate(getDefaultNoteDate())
     setCategory("")
     setTriggerTaskFormKey("")
     setNote("")
@@ -195,7 +197,7 @@ export function CreateDailyLogDialog({
             <Label className="text-sm">
               Home <span className="text-red-500">*</span>
             </Label>
-            <Select value={homeId} onValueChange={setHomeId}>
+            <Select value={homeId} onValueChange={handleHomeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Which home is this log for?" />
               </SelectTrigger>

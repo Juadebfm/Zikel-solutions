@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { Sidebar } from "@/components/layout/sidebar"
@@ -26,20 +26,21 @@ export default function DashboardLayout({
   const useAcknowledgementsGateLayout =
     isAcknowledgementsRoute && hasPendingAcknowledgements
 
-  // Prime the React Query cache synchronously (before children render their
-  // hooks) so the acknowledgements page's useAllSummaryTasksToApprove() finds
-  // data already in the cache and skips the network fetch.
-  if (
-    !hasPrimedCache.current &&
-    pendingAcknowledgementItems &&
-    pendingAcknowledgementItems.length > 0
-  ) {
-    hasPrimedCache.current = true
-    queryClient.setQueryData(
-      queryKeys.summary.tasksToApproveAll("all"),
-      pendingAcknowledgementItems
-    )
-  }
+  // Prime the React Query cache so the acknowledgements page's
+  // useAllSummaryTasksToApprove() finds data already in the cache.
+  useEffect(() => {
+    if (
+      !hasPrimedCache.current &&
+      pendingAcknowledgementItems &&
+      pendingAcknowledgementItems.length > 0
+    ) {
+      hasPrimedCache.current = true
+      queryClient.setQueryData(
+        queryKeys.summary.tasksToApproveAll("all"),
+        pendingAcknowledgementItems
+      )
+    }
+  }, [pendingAcknowledgementItems, queryClient])
 
   // Show loading state while checking auth
   if (isLoading) {

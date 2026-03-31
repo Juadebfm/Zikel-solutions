@@ -62,22 +62,18 @@ export default function SummaryTodosPage() {
   const rangeStart = totalItems === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const rangeEnd = totalItems === 0 ? 0 : Math.min(page * PAGE_SIZE, totalItems)
 
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages)
-    }
-  }, [page, totalPages])
+  const effectivePage = Math.min(page, totalPages)
 
   const items = useMemo(() => {
     return (todosQuery.data?.items ?? []).map((item) => {
       const assigneeName = item.assignee?.name || "Unassigned"
-      const status = toTodoStatus(item.status, item.dueAt)
+      const status = toTodoStatus(item.status, item.dueAt ?? null)
       return {
         id: item.id,
         taskId: item.id,
         title: item.title,
-        relatedTo: item.relatedEntity?.name,
-        dueDate: formatDate(item.dueAt),
+        relatedTo: item.relatedEntity?.name ?? "-",
+        dueDate: item.dueAt ? formatDate(item.dueAt) : "-",
         statusLabel: statusConfig[status].label,
         statusClassName: statusConfig[status].className,
         assigneeName,
@@ -153,7 +149,7 @@ export default function SummaryTodosPage() {
                 title={item.title}
                 taskId={`#${item.taskId}`}
                 relatedTo={item.relatedTo}
-                dueDate={item.dueAt}
+                dueDate={item.dueDate}
                 personName={item.assigneeName}
                 avatarInitials={item.initials}
                 avatarColor={item.color}
@@ -204,11 +200,12 @@ export default function SummaryTodosPage() {
   )
 }
 
-function toTodoStatus(status: string, dueDate: string): "draft" | "not-started" | "in-progress" | "overdue" {
+function toTodoStatus(status: string, dueDate: string | null): "draft" | "not-started" | "in-progress" | "overdue" {
   if (status === "draft") {
     return "draft"
   }
 
+  if (!dueDate) return status === "pending" ? "not-started" : "in-progress"
   const dueTimestamp = Date.parse(dueDate)
   if (!Number.isNaN(dueTimestamp) && dueTimestamp < Date.now()) {
     return "overdue"

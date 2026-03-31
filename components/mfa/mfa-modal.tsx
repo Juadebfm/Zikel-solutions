@@ -34,6 +34,7 @@ export function MfaModal() {
   const [verified, setVerified] = useState(false)
 
   // Send challenge code when modal opens
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional reset on modal open */
   useEffect(() => {
     if (!mfaModalOpen) return
 
@@ -79,6 +80,7 @@ export function MfaModal() {
       cancelled = true
     }
   }, [challengeMfa, closeMfaModal, deactivateMfaGate, mfaModalOpen, pendingWrite])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleVerify = useCallback(async () => {
     if (code.length !== 6 || isSubmitting) return
