@@ -152,15 +152,23 @@ export interface TaskFormTemplate {
 export interface CreateTaskPayload {
   title: string
   description?: string
-  category: string
+  category?: string
   type?: TaskEntityType
-  relatedEntityId?: string
-  priority: TaskPriority
+  priority?: TaskPriority
+  status?: string
   dueAt?: string
+  homeId?: string
+  youngPersonId?: string
+  vehicleId?: string
   assigneeId?: string
   approverIds?: string[]
+  relatedEntityId?: string
+  formTemplateKey?: string
+  formName?: string
   formGroup?: string
+  submissionPayload?: Record<string, unknown>
   attachmentFileIds?: string[]
+  signatureFileId?: string
 }
 
 export interface UpdateTaskPayload {

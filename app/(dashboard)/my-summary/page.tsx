@@ -1,9 +1,11 @@
 "use client"
 
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, MessageCircleDashed, Sparkles, User2 } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
+import { CreateTaskDialog } from "@/components/task-explorer/create-task-dialog"
 import { PageHeader } from "@/components/layout/header"
 import { StatsOverview, defaultStats, type StatItem } from "@/components/dashboard/stats-overview"
 import { TodoList, type TodoItem } from "@/components/dashboard/todo-list"
@@ -80,8 +82,10 @@ interface AiChatMessage {
 const SUMMARY_PANEL_PAGE_SIZE = 10
 
 export default function MySummaryPage() {
+  const router = useRouter()
   const { user, logout } = useAuth()
   const { guard, allowed, showModal, setShowModal } = usePermissionGuard("canApproveIOILogs")
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [isAskAiOpen, setIsAskAiOpen] = useState(false)
   const [askAiQuery, setAskAiQuery] = useState("")
   const [askAiError, setAskAiError] = useState<string | null>(null)
@@ -296,7 +300,7 @@ export default function MySummaryPage() {
     getErrorMessage(tasksToApproveQuery.error)
 
   const handleNewTask = () => {
-    // Task module is not yet part of the live backend scope.
+    setIsCreateTaskOpen(true)
   }
 
   const handleAskAI = () => {
@@ -378,8 +382,29 @@ export default function MySummaryPage() {
     void submitAskAi()
   }
 
-  const handleSuggestionClick = (action: string) => {
-    void submitAskAi(action)
+  const handleSuggestionClick = (action: string, label: string) => {
+    // Perform the navigation action
+    switch (action) {
+      case "open_summary_todos_overdue":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/overdue-tasks")
+        return
+      case "open_summary_pending_approvals":
+        setIsAskAiOpen(false)
+        router.push("/acknowledgements")
+        return
+      case "open_summary_todos_due_today":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/due-today")
+        return
+      case "open_summary_todos_all":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/todos")
+        return
+      default:
+        // For unknown actions, send as a follow-up question
+        void submitAskAi(label)
+    }
   }
 
   const handleResetConversation = () => {
@@ -679,16 +704,6 @@ export default function MySummaryPage() {
                       </div>
                     ) : message.role === "assistant" ? (
                       <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3">
-                        {message.meta && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={message.meta.source === "model" ? "default" : "outline"}>
-                              {message.meta.source === "model" ? "Model" : "Fallback"}
-                            </Badge>
-                            <Badge variant="outline">Stats: {message.meta.statsSource}</Badge>
-                            {message.meta.model ? <Badge variant="outline">{message.meta.model}</Badge> : null}
-                          </div>
-                        )}
-
                         <FormattedAiContent content={message.content} />
 
                         {message.suggestions && message.suggestions.length > 0 && (
@@ -699,7 +714,7 @@ export default function MySummaryPage() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleSuggestionClick(suggestion.action)}
+                                onClick={() => handleSuggestionClick(suggestion.action, suggestion.label)}
                                 disabled={askAiMutation.isPending}
                                 className="bg-white"
                               >
@@ -708,12 +723,6 @@ export default function MySummaryPage() {
                             ))}
                           </div>
                         )}
-
-                        <p className="text-[11px] text-gray-500">
-                          {message.meta?.generatedAt
-                            ? `Generated at ${formatDateTime(message.meta.generatedAt)}`
-                            : `Sent at ${formatDateTime(message.createdAt)}`}
-                        </p>
                       </div>
                     ) : (
                       <div className="max-w-[92%] rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
@@ -790,6 +799,7 @@ export default function MySummaryPage() {
         </DialogContent>
       </Dialog>
 
+      <CreateTaskDialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen} />
       <NoPermissionModal open={showModal} onOpenChange={setShowModal} />
     </div>
   )

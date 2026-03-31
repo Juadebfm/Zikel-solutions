@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/layout/header"
 import { TaskFilterBar } from "@/components/task-explorer/task-filter-bar"
 import { TaskTable } from "@/components/task-explorer/task-table"
 import { TaskDetailDrawer } from "@/components/task-explorer/task-detail-drawer"
+import { CreateTaskDialog } from "@/components/task-explorer/create-task-dialog"
 import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
 import { useTaskExplorerStore } from "@/stores/task-explorer-store"
 import { useTaskList, useTaskCategories, useTaskAction, useDeleteTask } from "@/hooks/api/use-tasks"
@@ -195,6 +196,12 @@ export default function TasksPage() {
         open={store.drawerOpen}
         onClose={store.closeTaskDrawer}
         onAction={handleAction}
+      />
+
+      {/* Create task dialog */}
+      <CreateTaskDialog
+        open={store.createModalOpen}
+        onOpenChange={store.setCreateModalOpen}
       />
 
       {/* AI Chat dialog */}

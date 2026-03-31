@@ -138,39 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const needsMfa = Boolean(user && session?.mfaRequired && !session?.mfaVerified)
 
   const refreshAcknowledgementsGate = useCallback(async (): Promise<boolean> => {
-    setIsCheckingAcknowledgements(true)
-
-    try {
-      // Single fast request with scope=gate to check if user is blocked.
-      // Also captures the returned items to prime the query cache so the
-      // acknowledgements page renders instantly without a second fetch.
-      const gateQueue = await summaryService.getTasksToApprove({
-        scope: "gate",
-        page: 1,
-        pageSize: 500,
-      })
-      const hasPending = (gateQueue.meta.total ?? 0) > 0
-
-      setHasPendingAcknowledgements(hasPending)
-      setPendingAcknowledgementItems(hasPending ? gateQueue.items : null)
-      return hasPending
-    } catch (error) {
-      if (
-        isApiClientError(error) &&
-        error.status === 403 &&
-        error.code === "FORBIDDEN"
-      ) {
-        setHasPendingAcknowledgements(false)
-        setPendingAcknowledgementItems(null)
-        return false
-      }
-
-      setHasPendingAcknowledgements(false)
-      setPendingAcknowledgementItems(null)
-      return false
-    } finally {
-      setIsCheckingAcknowledgements(false)
-    }
+    // Approval gate removed by BE — scope=gate always returns [].
+    // Skip the API call entirely to avoid an unnecessary request on every login.
+    setHasPendingAcknowledgements(false)
+    setPendingAcknowledgementItems(null)
+    setIsCheckingAcknowledgements(false)
+    return false
   }, [])
 
   const applyTenantSwitch = useCallback(

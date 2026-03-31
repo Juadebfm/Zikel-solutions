@@ -3,7 +3,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { Loader2, MessageCircleDashed, Sparkles, User2 } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -48,23 +47,6 @@ export interface AiChatDialogProps {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-})
-
-const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  hour: "2-digit",
-  minute: "2-digit",
-})
-
-function formatDateTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return `${DATE_FORMATTER.format(date)} ${TIME_FORMATTER.format(date)}`
-}
 
 function createChatMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -310,11 +292,11 @@ export function AiChatDialog({
     }
   }
 
-  const handleSuggestionClick = (action: string) => {
+  const handleSuggestionClick = (action: string, label: string) => {
     if (onSuggestionAction) {
       onSuggestionAction(action)
     }
-    void submitQuery(action)
+    void submitQuery(label)
   }
 
   const handleReset = () => {
@@ -371,16 +353,6 @@ export function AiChatDialog({
                     </div>
                   ) : message.role === "assistant" ? (
                     <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3">
-                      {message.meta && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={message.meta.source === "model" ? "default" : "outline"}>
-                            {message.meta.source === "model" ? "Model" : "Fallback"}
-                          </Badge>
-                          <Badge variant="outline">Stats: {message.meta.statsSource}</Badge>
-                          {message.meta.model ? <Badge variant="outline">{message.meta.model}</Badge> : null}
-                        </div>
-                      )}
-
                       <FormattedAiContent content={message.content} />
 
                       {message.suggestions && message.suggestions.length > 0 && (
@@ -391,7 +363,7 @@ export function AiChatDialog({
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => handleSuggestionClick(suggestion.action)}
+                              onClick={() => handleSuggestionClick(suggestion.action, suggestion.label)}
                               disabled={askAiMutation.isPending}
                               className="bg-white"
                             >
@@ -400,12 +372,6 @@ export function AiChatDialog({
                           ))}
                         </div>
                       )}
-
-                      <p className="text-[11px] text-gray-500">
-                        {message.meta?.generatedAt
-                          ? `Generated at ${formatDateTime(message.meta.generatedAt)}`
-                          : `Sent at ${formatDateTime(message.createdAt)}`}
-                      </p>
                     </div>
                   ) : (
                     <div className="max-w-[92%] rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
