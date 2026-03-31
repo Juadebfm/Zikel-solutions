@@ -14,30 +14,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Search } from "lucide-react"
 
 import { DailyLogTable } from "@/components/daily-logs/daily-log-table"
 import { CreateDailyLogDialog } from "@/components/daily-logs/create-daily-log-dialog"
+import { DailyLogDetailDialog } from "@/components/daily-logs/daily-log-detail-dialog"
 import { useDailyLogList, useDeleteDailyLog } from "@/hooks/api/use-daily-logs"
-import { useHomeList } from "@/hooks/api/use-homes"
 
 export default function DailyLogsPage() {
   // Filters
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState("")
-  const [homeFilter, setHomeFilter] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
   // UI state
   const [createOpen, setCreateOpen] = useState(false)
+  const [viewId, setViewId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   // Queries
@@ -45,16 +38,13 @@ export default function DailyLogsPage() {
     page,
     pageSize,
     search: debouncedSearch || undefined,
-    homeId: homeFilter || undefined,
   })
-  const homesQuery = useHomeList({ page: 1, pageSize: 100 })
   const deleteMutation = useDeleteDailyLog()
 
   const items = logsQuery.data?.items ?? []
   const meta = logsQuery.data?.meta
   const totalPages = Math.max(meta?.totalPages ?? 1, 1)
   const totalItems = meta?.total ?? 0
-  const homes = homesQuery.data?.items ?? []
 
   // Debounced search
   const handleSearchChange = useCallback((value: string) => {
@@ -76,8 +66,8 @@ export default function DailyLogsPage() {
     })
   }, [deleteId, deleteMutation])
 
-  const handleRowClick = useCallback((_id: string) => {
-    // Detail view can be added later (drawer or route)
+  const handleRowClick = useCallback((id: string) => {
+    setViewId(id)
   }, [])
 
   return (
@@ -94,38 +84,20 @@ export default function DailyLogsPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search logs..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={homeFilter || "all"}
-          onValueChange={(v) => { setHomeFilter(v === "all" ? "" : v); setPage(1) }}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Homes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Homes</SelectItem>
-            {homes.map((home) => (
-              <SelectItem key={home.id} value={home.id}>
-                {home.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Search logs..."
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-4">
           <DailyLogTable
             items={items}
             loading={logsQuery.isLoading}
@@ -141,6 +113,13 @@ export default function DailyLogsPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Detail dialog */}
+      <DailyLogDetailDialog
+        logId={viewId}
+        open={!!viewId}
+        onClose={() => setViewId(null)}
+      />
 
       {/* Create dialog */}
       <CreateDailyLogDialog open={createOpen} onOpenChange={setCreateOpen} />

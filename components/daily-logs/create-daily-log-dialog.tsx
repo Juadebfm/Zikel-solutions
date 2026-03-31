@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -29,7 +30,7 @@ import { useHomeList } from "@/hooks/api/use-homes"
 import { useYoungPersonList } from "@/hooks/api/use-young-people"
 import { useFormList } from "@/hooks/api/use-forms"
 import { useCreateDailyLog } from "@/hooks/api/use-daily-logs"
-import type { DailyLogRelatesTo } from "@/services/daily-logs.service"
+import type { CreateDailyLogPayload } from "@/services/daily-logs.service"
 
 // ─── Constants ───────────────────────────────────────────────────
 
@@ -65,12 +66,11 @@ export function CreateDailyLogDialog({
 
   // Form state
   const [homeId, setHomeId] = useState("")
+  const [relatesToValue, setRelatesToValue] = useState("")
   const [noteDate, setNoteDate] = useState("")
   const [category, setCategory] = useState("")
-  const [note, setNote] = useState("")
-  const [relatesToType, setRelatesToType] = useState<string>("")
-  const [relatesToId, setRelatesToId] = useState("")
   const [triggerTaskFormKey, setTriggerTaskFormKey] = useState("")
+  const [note, setNote] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   // Data queries
@@ -88,11 +88,10 @@ export function CreateDailyLogDialog({
 
   // Reset relates-to when home changes
   useEffect(() => {
-    setRelatesToType("")
-    setRelatesToId("")
+    setRelatesToValue("")
   }, [homeId])
 
-  // Set default note date
+  // Set default note date on open
   useEffect(() => {
     if (open && !noteDate) {
       const now = new Date()
@@ -102,11 +101,11 @@ export function CreateDailyLogDialog({
     }
   }, [open, noteDate])
 
-  // Build relates-to options grouped
+  // Build grouped relates-to options
   const relatesToOptions = useMemo(() => {
     const groups: Array<{
       label: string
-      type: "young_person" | "vehicle"
+      type: string
       items: Array<{ id: string; name: string }>
     }> = []
 
@@ -121,17 +120,18 @@ export function CreateDailyLogDialog({
       })
     }
 
+    // Vehicles can be added here when the hook exists
+
     return groups
   }, [youngPeople])
 
   function resetForm() {
     setHomeId("")
+    setRelatesToValue("")
     setNoteDate("")
     setCategory("")
-    setNote("")
-    setRelatesToType("")
-    setRelatesToId("")
     setTriggerTaskFormKey("")
+    setNote("")
     setError(null)
   }
 
@@ -145,28 +145,29 @@ export function CreateDailyLogDialog({
   async function handleSubmit() {
     setError(null)
 
-    if (!homeId) { setError("Please select a provision."); return }
-    if (!noteDate) { setError("Please set a note date."); return }
+    if (!homeId) { setError("Please select a home."); return }
+    if (!relatesToValue) { setError("Please select who or what this log relates to."); return }
+    if (!noteDate) { setError("Please set a date and time."); return }
     if (!category) { setError("Please select a category."); return }
-    if (!note.trim()) { setError("Please enter a note."); return }
+    if (!note.trim()) { setError("Please enter the daily log content."); return }
 
-    let relatesTo: DailyLogRelatesTo | undefined
-    if (relatesToId && relatesToType) {
-      relatesTo = {
-        type: relatesToType as "young_person" | "vehicle",
-        id: relatesToId,
-      }
+    // Parse relates-to value ("young_person:id")
+    const [type, id] = relatesToValue.split(":")
+
+    const payload: CreateDailyLogPayload = {
+      homeId,
+      noteDate: new Date(noteDate).toISOString(),
+      category,
+      note,
+      relatesTo: { type: type as "young_person" | "vehicle", id },
+    }
+
+    if (triggerTaskFormKey) {
+      payload.triggerTaskFormKey = triggerTaskFormKey
     }
 
     try {
-      await createMutation.mutateAsync({
-        homeId,
-        noteDate: new Date(noteDate).toISOString(),
-        category,
-        note,
-        relatesTo: relatesTo ?? null,
-        triggerTaskFormKey: triggerTaskFormKey || null,
-      })
+      await createMutation.mutateAsync(payload)
       resetForm()
       onOpenChange(false)
     } catch (err) {
@@ -174,63 +175,51 @@ export function CreateDailyLogDialog({
     }
   }
 
-  // Parse the selected relates-to value (format: "type:id")
-  function handleRelatesToChange(value: string) {
-    if (value === "none") {
-      setRelatesToType("")
-      setRelatesToId("")
-      return
-    }
-    const [type, id] = value.split(":")
-    setRelatesToType(type)
-    setRelatesToId(id)
-  }
-
-  const relatesToValue = relatesToId ? `${relatesToType}:${relatesToId}` : "none"
+  const selectedHomeName = homes.find((h) => h.id === homeId)?.name
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Create Daily Log</DialogTitle>
+      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4">
+          <DialogTitle className="text-lg">Create Daily Log</DialogTitle>
           <DialogDescription>
-            Create a new daily log entry for a home.
+            Record a daily log entry. Fields marked with * are required.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
-          {/* Row 1: Provision + Relates To */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="homeId">
-                Provision <span className="text-red-500">*</span>
-              </Label>
-              <Select value={homeId} onValueChange={setHomeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select home..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {homes.map((home) => (
-                    <SelectItem key={home.id} value={home.id}>
-                      {home.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <Separator />
 
-            <div className="space-y-2">
-              <Label>Relates To</Label>
-              <Select
-                value={relatesToValue}
-                onValueChange={handleRelatesToChange}
-                disabled={!homeId}
-              >
+        <div className="px-6 py-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          {/* 1. Home */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">
+              Home <span className="text-red-500">*</span>
+            </Label>
+            <Select value={homeId} onValueChange={setHomeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Which home is this log for?" />
+              </SelectTrigger>
+              <SelectContent>
+                {homes.map((home) => (
+                  <SelectItem key={home.id} value={home.id}>
+                    {home.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 2. Relates To (shown after home is selected) */}
+          {homeId && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">
+                Relates To <span className="text-red-500">*</span>
+              </Label>
+              <Select value={relatesToValue} onValueChange={setRelatesToValue}>
                 <SelectTrigger>
-                  <SelectValue placeholder={homeId ? "Select..." : "Select a home first"} />
+                  <SelectValue placeholder="Who or what does this log relate to?" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
                   {relatesToOptions.map((group) => (
                     <SelectGroup key={group.type}>
                       <SelectLabel>{group.label}</SelectLabel>
@@ -244,80 +233,96 @@ export function CreateDailyLogDialog({
                       ))}
                     </SelectGroup>
                   ))}
+                  {relatesToOptions.length === 0 && (
+                    <SelectItem value="_empty" disabled>
+                      No young people found for {selectedHomeName}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
-          {/* Row 2: Note Date + Category */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="noteDate">
-                Note Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="noteDate"
-                type="datetime-local"
-                value={noteDate}
-                onChange={(e) => setNoteDate(e.target.value)}
-              />
+          {/* 3. Date & Category (side by side) */}
+          {homeId && relatesToValue && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="noteDate" className="text-sm">
+                  Date & Time <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="noteDate"
+                  type="datetime-local"
+                  value={noteDate}
+                  onChange={(e) => setNoteDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  Category <span className="text-red-500">*</span>
+                </Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOG_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label>
-                Category <span className="text-red-500">*</span>
-              </Label>
-              <Select value={category} onValueChange={setCategory}>
+          {/* 4. Trigger Task (optional) */}
+          {homeId && relatesToValue && category && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Trigger Task</Label>
+              <Select
+                value={triggerTaskFormKey || "none"}
+                onValueChange={(v) => setTriggerTaskFormKey(v === "none" ? "" : v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select..." />
+                  <SelectValue placeholder="Optional — link a form template" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOG_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
+                  {forms.map((form) => (
+                    <SelectItem key={form.key} value={form.key}>
+                      {form.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
-          {/* Row 3: Trigger Task */}
-          <div className="space-y-2">
-            <Label>Trigger Task</Label>
-            <Select
-              value={triggerTaskFormKey || "none"}
-              onValueChange={(v) => setTriggerTaskFormKey(v === "none" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select form template..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {forms.map((form) => (
-                  <SelectItem key={form.key} value={form.key}>
-                    {form.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Row 4: Note */}
-          <div className="space-y-2">
-            <Label htmlFor="note">
-              Note <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Type something..."
-              className="min-h-[160px]"
-              maxLength={10000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {note.length}/10,000
-            </p>
-          </div>
+          {/* 5. Daily Log content */}
+          {homeId && relatesToValue && category && (
+            <div className="space-y-1.5">
+              <Label htmlFor="note" className="text-sm">
+                Daily Log <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Describe what happened, observations, actions taken..."
+                className="min-h-[160px] resize-y"
+                maxLength={10000}
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Be specific and factual. Include times, names, and outcomes.
+                </p>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {note.length.toLocaleString()}/10,000
+                </span>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -326,13 +331,15 @@ export function CreateDailyLogDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <Separator />
+
+        <DialogFooter className="px-6 py-4 bg-gray-50/50">
           <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={createMutation.isPending}>
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save
+            Create Log
           </Button>
         </DialogFooter>
       </DialogContent>

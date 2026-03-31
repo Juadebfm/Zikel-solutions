@@ -10,30 +10,48 @@ export interface DailyLogRelatesTo {
 
 export interface DailyLogListItem {
   id: string
+  taskRef: string
   title: string
   description?: string
   category: string
+  categoryLabel: string
   status: string
+  statusLabel: string
   priority: string
-  dueDate: string | null
+  dueAt: string | null
+  submittedAt: string | null
+  type?: string
+  typeLabel?: string
+  formTemplateKey: string | null
+  relatedEntity: {
+    type: string
+    id: string
+    name: string
+    homeId?: string
+    careGroupId?: string
+  } | null
+  assignee: { id: string; name: string; avatarUrl?: string } | null
+  createdBy: { id: string; name: string; avatarUrl?: string } | null
+  timestamps: {
+    createdAt: string
+    updatedAt: string
+  }
+}
+
+export interface DailyLogDetail extends Omit<DailyLogListItem, "description"> {
   homeId: string | null
   youngPersonId: string | null
   vehicleId: string | null
-  formTemplateKey: string | null
+  description: string | null
   submissionPayload?: {
     dailyLogCategory?: string
     noteDate?: string
     relatesTo?: DailyLogRelatesTo | null
   }
-  createdAt: string
-  updatedAt?: string
-}
-
-export interface DailyLogDetail extends DailyLogListItem {
-  attachments: unknown[]
-  approvalChain: unknown[]
-  activityLog: unknown[]
-  comments: unknown[]
+  attachments?: unknown[]
+  approvalChain?: unknown[]
+  activityLog?: unknown[]
+  comments?: unknown[]
   formData?: Record<string, unknown> | null
 }
 

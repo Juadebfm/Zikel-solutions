@@ -38,8 +38,6 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
   year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
 })
 
 function formatDate(iso: string | null | undefined): string {
@@ -89,11 +87,9 @@ export function DailyLogTable({
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Relates To</TableHead>
-              <TableHead>Note Date</TableHead>
+              <TableHead>Related To</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>Submitted By</TableHead>
               <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -103,17 +99,15 @@ export function DailyLogTable({
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 </TableRow>
               ))
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                   No daily logs found
                 </TableCell>
               </TableRow>
@@ -124,27 +118,37 @@ export function DailyLogTable({
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => onRowClick(log.id)}
                 >
-                  <TableCell className="font-medium max-w-[280px] truncate">
-                    {log.title}
-                  </TableCell>
                   <TableCell>
-                    {log.submissionPayload?.dailyLogCategory ?? log.category ?? "-"}
+                    <div className="font-medium max-w-[320px] truncate">{log.title}</div>
+                    {log.description && (
+                      <div className="text-xs text-muted-foreground max-w-[320px] truncate mt-0.5">
+                        {log.description.replace(/<[^>]*>/g, "").slice(0, 80)}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {log.youngPersonId ? "Young Person" : log.vehicleId ? "Vehicle" : "-"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {formatDate(log.submissionPayload?.noteDate ?? log.dueDate)}
+                    {log.relatedEntity ? (
+                      <div>
+                        <span>{log.relatedEntity.name}</span>
+                        {log.typeLabel && (
+                          <span className="text-xs text-muted-foreground ml-1">({log.typeLabel})</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
                       className={cn("text-xs capitalize", statusStyles[log.status] ?? statusStyles.draft)}
                     >
-                      {log.status}
+                      {log.statusLabel ?? log.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{formatDate(log.createdAt)}</TableCell>
+                  <TableCell className="text-sm">
+                    {log.createdBy?.name ?? "-"}
+                  </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip>

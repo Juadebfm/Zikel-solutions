@@ -39,7 +39,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSummaryTodos } from "@/hooks/api/use-summary"
 import { statusColors } from "@/lib/constants"
-import type { SummaryTodoItem } from "@/services/summary.service"
+import type { SummaryTaskItem } from "@/services/summary.service"
 
 // ─── Timezone-aware date bucketing ──────────────────────────────────────────
 
@@ -151,7 +151,7 @@ export default function DueTodayPage() {
 
   // Bucket tasks by dueDate
   const { bucketedTasks, bucketCounts } = useMemo(() => {
-    const buckets: Record<DueBucket | "all", SummaryTodoItem[]> = {
+    const buckets: Record<DueBucket | "all", SummaryTaskItem[]> = {
       "all": [],
       "due today": [],
       "due tomorrow": [],
@@ -160,7 +160,7 @@ export default function DueTodayPage() {
     }
 
     for (const task of allTodos) {
-      const bucket = getDueBucket(task.dueDate, boundaries)
+      const bucket = getDueBucket(task.dueAt, boundaries)
       if (bucket) {
         buckets[bucket].push(task)
         buckets["all"].push(task)
@@ -188,10 +188,10 @@ export default function DueTodayPage() {
     return activeTasks.filter((task) =>
       (task.id ?? "").toLowerCase().includes(q) ||
       (task.title ?? "").toLowerCase().includes(q) ||
-      (task.relation ?? "").toLowerCase().includes(q) ||
+      (task.relatedEntity?.name ?? "").toLowerCase().includes(q) ||
       (task.status ?? "").toLowerCase().includes(q) ||
       (task.assignee ?? "").toLowerCase().includes(q) ||
-      (task.dueDate ?? "").toLowerCase().includes(q)
+      (task.dueAt ?? "").toLowerCase().includes(q)
     )
   }, [activeTasks, searchQuery])
 
@@ -360,7 +360,7 @@ export default function DueTodayPage() {
               </TableRow>
             ) : (
               paginated.map((task, index) => {
-                const bucket = getDueBucket(task.dueDate, boundaries) ?? "due today"
+                const bucket = getDueBucket(task.dueAt, boundaries) ?? "due today"
                 const badgeColors = BUCKET_BADGE_COLORS[bucket]
                 return (
                   <TableRow
@@ -393,10 +393,10 @@ export default function DueTodayPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {task.relation}
+                      {task.relatedEntity?.name}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500 whitespace-nowrap">
-                      {formatDate(task.dueDate)}
+                      {formatDate(task.dueAt)}
                     </TableCell>
                   </TableRow>
                 )

@@ -70,14 +70,14 @@ export default function SummaryTodosPage() {
 
   const items = useMemo(() => {
     return (todosQuery.data?.items ?? []).map((item) => {
-      const assigneeName = item.assignee || "Unassigned"
-      const status = toTodoStatus(item.status, item.dueDate)
+      const assigneeName = item.assignee?.name || "Unassigned"
+      const status = toTodoStatus(item.status, item.dueAt)
       return {
         id: item.id,
         taskId: item.id,
         title: item.title,
-        relatedTo: item.relation,
-        dueDate: formatDate(item.dueDate),
+        relatedTo: item.relatedEntity?.name,
+        dueDate: formatDate(item.dueAt),
         statusLabel: statusConfig[status].label,
         statusClassName: statusConfig[status].className,
         assigneeName,
@@ -153,7 +153,7 @@ export default function SummaryTodosPage() {
                 title={item.title}
                 taskId={`#${item.taskId}`}
                 relatedTo={item.relatedTo}
-                dueDate={item.dueDate}
+                dueDate={item.dueAt}
                 personName={item.assigneeName}
                 avatarInitials={item.initials}
                 avatarColor={item.color}
