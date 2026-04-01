@@ -97,10 +97,21 @@ export default function TasksPage() {
   }, [store])
 
   const handleAction = useCallback(
-    (taskId: string, action: string) => {
+    (taskId: string, action: string, options?: { comment?: string }) => {
+      const payload: {
+        action: "approve" | "reject" | "submit" | "reassign" | "comment" | "request_deletion"
+        comment?: string
+      } = {
+        action: action as "approve" | "reject" | "submit" | "reassign" | "comment" | "request_deletion",
+      }
+
+      if (action === "comment" && options?.comment) {
+        payload.comment = options.comment
+      }
+
       taskActionMutation.mutate({
         taskId,
-        payload: { action: action as "approve" | "reject" | "submit" | "reassign" | "comment" | "request_deletion" },
+        payload,
       })
     },
     [taskActionMutation]

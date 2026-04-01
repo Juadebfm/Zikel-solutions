@@ -44,6 +44,12 @@ const MFA_GATE_BYPASS_PATHS = new Set([
   "/auth/logout",
 ])
 
+const TOKEN_EXPIRED_ERROR_CODES = new Set([
+  "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED",
+  // Backward compatibility with older backend error naming.
+  "ACCESS_TOKEN_INVALID",
+])
+
 export async function apiRequest<T, M = unknown>(
   options: ApiRequestOptions
 ): Promise<ApiSuccess<T, M>> {
@@ -185,11 +191,20 @@ async function executeRequest<T, M>(
   )
 
   if (auth && response.status === 401 && retryOnUnauthorized) {
+    const unauthorizedPayload = await parseJsonSafely(response.clone())
+
+    if (!shouldRefreshAfterUnauthorized(unauthorizedPayload)) {
+      return response
+    }
+
     const refreshedToken = await refreshAccessToken()
 
     if (!refreshedToken) {
-      const payload = await parseJsonSafely(response)
-      throw toApiClientError(payload, response.status, response.statusText)
+      throw toApiClientError(
+        unauthorizedPayload,
+        response.status,
+        response.statusText
+      )
     }
 
     return executeRequest<T, M>({
@@ -204,6 +219,14 @@ async function executeRequest<T, M>(
   }
 
   return response
+}
+
+function shouldRefreshAfterUnauthorized(payload: unknown): boolean {
+  if (!isApiFailurePayload(payload)) {
+    return false
+  }
+
+  return TOKEN_EXPIRED_ERROR_CODES.has(payload.error.code.toUpperCase())
 }
 
 async function refreshAccessToken(): Promise<string | null> {

@@ -76,7 +76,10 @@ describe("api client integration: refresh and mfa", () => {
       .mockResolvedValueOnce(
         jsonResponse(401, {
           success: false,
-          error: { code: "ACCESS_TOKEN_INVALID", message: "Access token expired." },
+          error: {
+            code: "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED",
+            message: "Access token expired.",
+          },
         })
       )
       .mockResolvedValueOnce(
@@ -145,7 +148,10 @@ describe("api client integration: refresh and mfa", () => {
       .mockResolvedValueOnce(
         jsonResponse(401, {
           success: false,
-          error: { code: "ACCESS_TOKEN_INVALID", message: "Access token expired." },
+          error: {
+            code: "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED",
+            message: "Access token expired.",
+          },
         })
       )
       .mockResolvedValueOnce(
@@ -163,7 +169,7 @@ describe("api client integration: refresh and mfa", () => {
         auth: true,
       })
     ).rejects.toMatchObject({
-      code: "ACCESS_TOKEN_INVALID",
+      code: "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED",
       status: 401,
     })
 
@@ -213,6 +219,31 @@ describe("api client integration: refresh and mfa", () => {
     const retried = await retryPendingMfaRequest()
     expect(retried).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("does not refresh when 401 is not token-expiration", async () => {
+    seedAuthenticatedSession()
+
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(401, {
+        success: false,
+        error: { code: "TENANT_ACCESS_DENIED", message: "Access denied." },
+      })
+    )
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(
+      apiRequest({
+        path: "/summary/stats",
+        auth: true,
+      })
+    ).rejects.toMatchObject({
+      code: "TENANT_ACCESS_DENIED",
+      status: 401,
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it("blocks write requests until MFA verification completes", async () => {

@@ -224,7 +224,7 @@ export default function MySummaryPage() {
         domain: item.domain,
         statusLabel: item.statusLabel ?? item.approvalStatusLabel,
         status: toApprovalStatus(item.approvalStatus, item.priority),
-        reviewed: item.review.reviewedByCurrentUser === true || reviewedTaskIds.has(item.id),
+        reviewed: item.review?.reviewedByCurrentUser === true || reviewedTaskIds.has(item.id),
         dueDate: formatDueDate(item.dueAt),
         submittedAt: item.submittedAt,
         taskUrl: item.links.taskUrl,
@@ -689,19 +689,19 @@ export default function MySummaryPage() {
                     <span className="text-gray-500">Due Date</span>
                     <span className="font-medium">{formatDueDate(taskDetailQuery.data.dueAt)}</span>
                   </div>
-                  {taskDetailQuery.data.labels.length > 0 && (
+                  {(taskDetailQuery.data.labels?.length ?? 0) > 0 && (
                     <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-1">
                       <span className="text-gray-500">Labels</span>
                       <div className="flex flex-wrap gap-1 justify-end">
-                        {taskDetailQuery.data.labels.map((label) => (
+                        {(taskDetailQuery.data.labels ?? []).map((label) => (
                           <Badge key={label} variant="outline" className="text-xs">{label}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
-                  {taskDetailQuery.data.review.reviewedByCurrentUser && (
+                  {taskDetailQuery.data.review?.reviewedByCurrentUser && (
                     <div className="p-2 rounded bg-emerald-50 text-emerald-700 text-xs">
-                      You have reviewed this task{taskDetailQuery.data.review.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
+                      You have reviewed this task{taskDetailQuery.data.review?.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
                     </div>
                   )}
                 </div>

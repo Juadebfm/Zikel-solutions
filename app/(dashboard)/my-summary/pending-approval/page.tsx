@@ -532,7 +532,7 @@ export default function PendingApprovalPage() {
         taskId={drawerTaskId}
         open={drawerTaskId !== null}
         onClose={() => setDrawerTaskId(null)}
-        onAction={(taskId, action) => {
+        onAction={(taskId, action, options) => {
           if (action === "approve") {
             handleApprove([taskId])
             setDrawerTaskId(null)
@@ -542,6 +542,22 @@ export default function PendingApprovalPage() {
           } else if (action === "reassign") {
             setDrawerTaskId(null)
             setConfirmDialog({ type: "reassign", taskIds: [taskId] })
+          } else if (action === "comment" && options?.comment) {
+            taskActionMutation.mutate(
+              {
+                taskId,
+                payload: { action: "comment", comment: options.comment },
+              },
+              {
+                onSuccess: () => showToast("Comment added."),
+                onError: (err) =>
+                  showError(
+                    isApiClientError(err)
+                      ? getApiErrorMessage(err)
+                      : "Failed to add comment."
+                  ),
+              }
+            )
           }
         }}
       />

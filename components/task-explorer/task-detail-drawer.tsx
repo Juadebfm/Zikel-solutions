@@ -49,7 +49,11 @@ interface TaskDetailDrawerProps {
   taskId: string | null
   open: boolean
   onClose: () => void
-  onAction?: (taskId: string, action: string) => void
+  onAction?: (
+    taskId: string,
+    action: string,
+    options?: { comment?: string }
+  ) => void
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -113,6 +117,67 @@ function formatRelativeTime(value: string): string {
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) return `${diffDays}d ago`
   return formatShortDate(value)
+}
+
+function formatFieldLabel(key: string): string {
+  const normalized = key
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .trim()
+
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0
+}
+
+function formatFormValue(value: unknown, depth = 0): string {
+  if (value === null || value === undefined) return "-"
+
+  if (typeof value === "string") {
+    const text = value.trim()
+    return text.length > 0 ? text : "-"
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((entry) => formatFormValue(entry, depth + 1))
+      .filter((entry) => entry !== "-")
+
+    return parts.length > 0 ? parts.join(", ") : "-"
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>
+
+    // Prefer human-friendly object fields when available.
+    const preferredKeys = ["label", "name", "title", "value", "text"]
+    for (const key of preferredKeys) {
+      const candidate = record[key]
+      if (isNonEmptyString(candidate)) return candidate
+      if (typeof candidate === "number" || typeof candidate === "boolean") {
+        return String(candidate)
+      }
+    }
+
+    if (depth >= 2) return "-"
+
+    const entries = Object.entries(record)
+      .map(([key, nestedValue]) => {
+        const nested = formatFormValue(nestedValue, depth + 1)
+        return nested === "-" ? null : `${formatFieldLabel(key)}: ${nested}`
+      })
+      .filter((entry): entry is string => entry !== null)
+
+    return entries.length > 0 ? entries.join(" | ") : "-"
+  }
+
+  return "-"
 }
 
 // ─── Status / Priority styling ───────────────────────────────────
@@ -189,7 +254,7 @@ export function TaskDetailDrawer({
 
   function handleComment() {
     if (!task || !commentText.trim() || !onAction) return
-    onAction(task.id, "comment")
+    onAction(task.id, "comment", { comment: commentText.trim() })
     setCommentText("")
   }
 
@@ -259,7 +324,7 @@ export function TaskDetailDrawer({
 
             {/* ── Metadata Card ─────────────────────────── */}
             <div className="mx-6 rounded-lg bg-muted/50 border p-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <MetaField
                   icon={<User2 className="size-3.5" />}
                   label="Assignee"
@@ -372,7 +437,7 @@ export function TaskDetailDrawer({
               </div>
 
               {/* Scrollable tab content */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 {/* ── Details Tab ──────────────────────── */}
                 <TabsContent value="details" className="mt-0 px-6 py-4 space-y-5">
                   {/* Attachments */}
@@ -475,10 +540,10 @@ export function TaskDetailDrawer({
                             className="flex justify-between gap-4 px-3 py-2.5 text-sm"
                           >
                             <span className="text-muted-foreground capitalize">
-                              {key.replace(/_/g, " ")}
+                              {formatFieldLabel(key)}
                             </span>
                             <span className="font-medium text-right">
-                              {String(value ?? "-")}
+                              {formatFormValue(value)}
                             </span>
                           </div>
                         ))}
