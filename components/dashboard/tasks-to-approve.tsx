@@ -45,6 +45,17 @@ export interface ApprovalTask {
   }
   /** previewFields from BE — rendered as the stats strip on the card. */
   previewFields?: Array<{ label: string; value: string; highlight?: boolean }>
+  /** New contextual hints from BE queue endpoint for clarity in review/approval flows. */
+  context?: {
+    formName?: string | null
+    formGroup?: string | null
+    homeOrSchool?: string | null
+    relatedTo?: string | null
+    taskDate?: string | null
+    submittedBy?: string | null
+    updatedBy?: string | null
+    summary?: string | null
+  } | null
 }
 
 interface TasksToApproveProps {
@@ -282,9 +293,9 @@ export function TasksToApprove({
                       </h3>
 
                       {/* Description */}
-                      {item.description && (
+                      {(item.description || item.context?.summary) && (
                         <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                          {item.description}
+                          {item.description || item.context?.summary}
                         </p>
                       )}
 
@@ -317,14 +328,16 @@ export function TasksToApprove({
                               Requested by
                             </p>
                             <p className="text-xs font-semibold text-gray-900">
-                              {item.submitter.name}
+                              {item.context?.submittedBy || item.submitter.name}
                             </p>
                           </div>
                           <div>
                             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
-                              Due Date
+                              Task Date
                             </p>
-                            <p className="text-xs font-semibold text-gray-900">{item.dueDate}</p>
+                            <p className="text-xs font-semibold text-gray-900">
+                              {item.context?.taskDate ? formatTimeAgo(item.context.taskDate) ?? item.dueDate : item.dueDate}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -336,6 +349,7 @@ export function TasksToApprove({
                             size="sm"
                             className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold px-6 rounded-md gap-1.5 flex-1 sm:flex-none"
                             onClick={() => onApprove(item.id)}
+                            disabled={!item.reviewed}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             {getApproveLabel(item.domain)}

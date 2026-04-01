@@ -144,11 +144,13 @@ export function useApproveSummaryTask() {
       taskId,
       comment,
       signatureFileId,
+      gateScope,
     }: {
       taskId: string
       comment?: string
       signatureFileId?: string
-    }) => summaryService.approveTask(taskId, comment, signatureFileId),
+      gateScope?: "global" | "task"
+    }) => summaryService.approveTask(taskId, comment, signatureFileId, gateScope),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["summary"] }),

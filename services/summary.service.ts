@@ -90,6 +90,17 @@ export interface SummaryReferenceSummary {
   total: number
 }
 
+export interface SummaryTaskContext {
+  formName?: string | null
+  formGroup?: string | null
+  homeOrSchool?: string | null
+  relatedTo?: string | null
+  taskDate?: string | null
+  submittedBy?: string | null
+  updatedBy?: string | null
+  summary?: string | null
+}
+
 export interface SummaryTaskItem {
   id: string
   taskRef: string
@@ -132,8 +143,9 @@ export interface SummaryTaskItem {
   }
 
   referenceSummary?: SummaryReferenceSummary
+  context?: SummaryTaskContext | null
 
-  review: {
+  review?: {
     reviewedByCurrentUser: boolean
     reviewedAt: string | null
     reviewedByCurrentUserName: string | null
@@ -198,8 +210,9 @@ export interface SummaryTaskToApproveDetail {
   }
 
   referenceSummary?: SummaryReferenceSummary
+  context?: SummaryTaskContext | null
 
-  review: {
+  review?: {
     reviewedByCurrentUser: boolean
     reviewedAt: string | null
     reviewedByCurrentUserName: string | null
@@ -221,7 +234,7 @@ export interface SummaryTaskToApproveDetail {
     metadata: unknown
   }>
   renderPayload: Record<string, unknown> | null
-  labels: string[]
+  labels?: string[]
   meta: Record<string, unknown> | null
 }
 
@@ -272,6 +285,9 @@ export interface ReviewEventPayload {
 
 export interface ReviewEventResult {
   success: boolean
+  taskId?: string
+  reviewedByCurrentUser?: boolean
+  reviewedByCurrentUserName?: string | null
   reviewedAt: string | null
 }
 
@@ -280,6 +296,7 @@ export interface BatchProcessPayload {
   action: "approve" | "reject"
   signatureFileId?: string
   rejectionReason?: string
+  gateScope?: "global" | "task"
 }
 
 export interface BatchProcessResult {
@@ -492,7 +509,8 @@ export const summaryService = {
   async approveTask(
     taskId: string,
     comment?: string,
-    signatureFileId?: string
+    signatureFileId?: string,
+    gateScope: "global" | "task" = "task"
   ): Promise<SummaryTaskItem> {
     const response = await apiRequest<SummaryTaskItem>({
       path: `/summary/tasks-to-approve/${taskId}/approve`,
@@ -501,6 +519,7 @@ export const summaryService = {
       body: {
         comment,
         signatureFileId,
+        gateScope,
       },
     })
 

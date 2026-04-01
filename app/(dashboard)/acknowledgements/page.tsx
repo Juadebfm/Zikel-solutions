@@ -143,8 +143,8 @@ function resolveDocumentTarget(row: SummaryTaskItem): DocumentTarget | null {
 function toPendingRow(row: SummaryTaskItem, override?: ReviewOverride): PendingRow {
   return {
     ...row,
-    reviewedByCurrentUser: override?.reviewedByCurrentUser ?? Boolean(row.review.reviewedByCurrentUser),
-    reviewedAt: override?.reviewedAt ?? row.review.reviewedAt ?? null,
+    reviewedByCurrentUser: override?.reviewedByCurrentUser ?? Boolean(row.review?.reviewedByCurrentUser),
+    reviewedAt: override?.reviewedAt ?? row.review?.reviewedAt ?? null,
     taskRoute: resolveTaskRoute(row),
     documentTarget: resolveDocumentTarget(row),
   }

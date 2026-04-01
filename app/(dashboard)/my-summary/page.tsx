@@ -98,6 +98,7 @@ export default function MySummaryPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [reviewedTaskIds, setReviewedTaskIds] = useState<Set<string>>(new Set())
+  const [reviewEventErrors, setReviewEventErrors] = useState<Record<string, string>>({})
   const [todoPage, setTodoPage] = useState(1)
   const [approvalPage, setApprovalPage] = useState(1)
 
@@ -229,6 +230,7 @@ export default function MySummaryPage() {
         submittedAt: item.submittedAt,
         taskUrl: item.links.taskUrl,
         documentUrl: item.links.documentUrl,
+        context: item.context,
         submitter: {
           name: submitterName,
           initials: toInitials(submitterName),
@@ -241,6 +243,13 @@ export default function MySummaryPage() {
   }, [tasksToApproveQuery.data?.items, reviewedTaskIds])
 
   const allTasksReviewed = approvalTasks.length > 0 && approvalTasks.every((t) => t.reviewed)
+  const reviewedApprovalIds = useMemo(() => {
+    return new Set(approvalTasks.filter((task) => task.reviewed).map((task) => task.id))
+  }, [approvalTasks])
+  const selectedApprovalTask = useMemo(() => {
+    if (!detailTaskId) return null
+    return approvalTasks.find((task) => task.id === detailTaskId) ?? null
+  }, [approvalTasks, detailTaskId])
 
   const homeProvisions = useMemo<HomeProvision[]>(() => {
     return (provisionsQuery.data ?? []).map((home) => ({
@@ -437,27 +446,82 @@ export default function MySummaryPage() {
 
   const handleViewApproval = (id: string) => {
     setDetailTaskId(id)
-    if (!reviewedTaskIds.has(id)) {
-      recordReviewMutation.mutate(
-        { taskId: id, payload: { action: "view_detail" } },
-        {
-          onSuccess: () => {
-            setReviewedTaskIds((prev) => new Set(prev).add(id))
-          },
-        }
-      )
-    }
+    setReviewEventErrors((prev) => {
+      if (!(id in prev)) return prev
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+
+    recordReviewMutation.mutate(
+      { taskId: id, payload: { action: "view_detail" } },
+      {
+        onSuccess: (result) => {
+          const confirmedTaskId = result.taskId ?? id
+
+          if (result.taskId && result.taskId !== id) {
+            const mismatchMessage =
+              "Review confirmation mismatch. Please refresh and try reviewing this task again."
+            setReviewEventErrors((prev) => ({
+              ...prev,
+              [id]: mismatchMessage,
+            }))
+            showError(mismatchMessage)
+            return
+          }
+
+          if (result.reviewedByCurrentUser === false) {
+            const reviewRequiredMessage = "Task review was not confirmed by the server. Please try again."
+            setReviewEventErrors((prev) => ({
+              ...prev,
+              [id]: reviewRequiredMessage,
+            }))
+            showError(reviewRequiredMessage)
+            return
+          }
+
+          setReviewedTaskIds((prev) => new Set(prev).add(confirmedTaskId))
+          setReviewEventErrors((prev) => {
+            if (!(id in prev)) return prev
+            const next = { ...prev }
+            delete next[id]
+            return next
+          })
+        },
+        onError: async (error) => {
+          const errorMessage = getReviewEventErrorMessage(error)
+          setReviewEventErrors((prev) => ({
+            ...prev,
+            [id]: errorMessage,
+          }))
+
+          if (shouldForceLoginAfterReviewError(error)) {
+            showError("Your session has expired. Please log in again.")
+            await logout()
+            return
+          }
+
+          showError(errorMessage)
+        },
+      }
+    )
   }
 
   const handleApproveTask = (id: string) => {
-    if (!reviewedTaskIds.has(id)) {
+    if (!reviewedApprovalIds.has(id)) {
+      const reviewError = reviewEventErrors[id]
+      if (reviewError) {
+        showError(reviewError)
+        return
+      }
+
       showError("You must review this task before approving. Click \"View\" first.")
       return
     }
 
     guard(() => {
       approveTaskMutation.mutate(
-        { taskId: id },
+        { taskId: id, gateScope: "task" },
         {
           onSuccess: () => {
             showToast("Task approved successfully.")
@@ -596,6 +660,9 @@ export default function MySummaryPage() {
     )
   }
 
+  const reviewContext = taskDetailQuery.data?.context ?? selectedApprovalTask?.context ?? null
+  const detailTaskReviewed = detailTaskId ? reviewedApprovalIds.has(detailTaskId) : false
+
   return (
     <div className="space-y-6">
       <div>
@@ -670,8 +737,28 @@ export default function MySummaryPage() {
                     <span className="font-medium text-right">{taskDetailQuery.data.title}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Summary</span>
+                    <span className="font-medium text-right">
+                      {reviewContext?.summary ?? taskDetailQuery.data.description ?? "-"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Form Name</span>
+                    <span className="font-medium">{reviewContext?.formName ?? "-"}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Form Group</span>
+                    <span className="font-medium">{reviewContext?.formGroup ?? "-"}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Home/School</span>
+                    <span className="font-medium">{reviewContext?.homeOrSchool ?? "-"}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Related To</span>
-                    <span className="font-medium">{taskDetailQuery.data.relatedEntity?.name ?? "-"}</span>
+                    <span className="font-medium">
+                      {reviewContext?.relatedTo ?? taskDetailQuery.data.relatedEntity?.name ?? "-"}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Priority</span>
@@ -686,8 +773,20 @@ export default function MySummaryPage() {
                     <span className="font-medium">{taskDetailQuery.data.assignee?.name ?? "-"}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-gray-500">Due Date</span>
-                    <span className="font-medium">{formatDueDate(taskDetailQuery.data.dueAt)}</span>
+                    <span className="text-gray-500">Task Date</span>
+                    <span className="font-medium">
+                      {formatDueDate(reviewContext?.taskDate ?? taskDetailQuery.data.dueAt)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Submitted By</span>
+                    <span className="font-medium">
+                      {reviewContext?.submittedBy ?? taskDetailQuery.data.requestedBy ?? taskDetailQuery.data.createdBy?.name ?? "-"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-gray-500">Updated By</span>
+                    <span className="font-medium">{reviewContext?.updatedBy ?? "-"}</span>
                   </div>
                   {(taskDetailQuery.data.labels?.length ?? 0) > 0 && (
                     <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-1">
@@ -699,7 +798,7 @@ export default function MySummaryPage() {
                       </div>
                     </div>
                   )}
-                  {taskDetailQuery.data.review?.reviewedByCurrentUser && (
+                  {detailTaskReviewed && (
                     <div className="p-2 rounded bg-emerald-50 text-emerald-700 text-xs">
                       You have reviewed this task{taskDetailQuery.data.review?.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
                     </div>
@@ -710,7 +809,7 @@ export default function MySummaryPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailTaskId(null)}>Close</Button>
-            {detailTaskId && allowed && reviewedTaskIds.has(detailTaskId) && (
+            {detailTaskId && allowed && detailTaskReviewed && (
               <Button
                 onClick={() => {
                   handleApproveTask(detailTaskId)
@@ -1002,6 +1101,32 @@ function getTaskApprovalErrorMessage(error: unknown): string {
   }
 
   return getApiErrorMessage(error, "Unable to process task approval.")
+}
+
+function shouldForceLoginAfterReviewError(error: unknown): boolean {
+  if (!isApiClientError(error)) {
+    return false
+  }
+
+  return (
+    error.status === 401 ||
+    error.code === "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED" ||
+    error.code === "REFRESH_TOKEN_INVALID"
+  )
+}
+
+function getReviewEventErrorMessage(error: unknown): string {
+  if (isApiClientError(error)) {
+    if (error.status === 401) {
+      return "Your session expired while marking this task as reviewed. Please sign in again."
+    }
+
+    if (error.code === "NETWORK_ERROR" || error.code === "REQUEST_TIMEOUT") {
+      return "Could not mark the task as reviewed due to a network issue. Check your connection and try again."
+    }
+  }
+
+  return getApiErrorMessage(error, "Failed to mark task as reviewed. Please try again.")
 }
 
 function createChatMessageId(): string {
