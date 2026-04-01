@@ -19,6 +19,9 @@ export interface AuthSessionContext {
   memberships: TenantMembership[]
   mfaRequired: boolean
   mfaVerified: boolean
+  idleExpiresAt?: string | null
+  absoluteExpiresAt?: string | null
+  warningWindowSeconds?: number | null
 }
 
 export interface RolePermissions {

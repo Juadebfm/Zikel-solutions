@@ -323,10 +323,11 @@ Login → Email Verification (if required) → MFA Challenge (if enabled)
 
 ### Session Management
 
-- JWT-based: `accessToken` and `refreshToken` stored in localStorage via Zustand
-- 12-hour max idle timeout with automatic expiration checks
-- Automatic token refresh on 401 responses
-- Session hydration from localStorage on app boot
+- Cookie-backed refresh sessions (`credentials: "include"` on API calls)
+- `accessToken` kept in memory only (not persisted to localStorage/sessionStorage)
+- Automatic one-time access-token retry on `FST_JWT_AUTHORIZATION_TOKEN_EXPIRED`
+- Logout forced on terminal 401 auth codes: `SESSION_IDLE_EXPIRED`, `SESSION_ABSOLUTE_EXPIRED`, `REFRESH_TOKEN_INVALID`
+- Session countdown uses backend timestamps: `serverTime`, `idleExpiresAt`, `absoluteExpiresAt`, `warningWindowSeconds`
 
 ### Multi-Factor Authentication (MFA)
 

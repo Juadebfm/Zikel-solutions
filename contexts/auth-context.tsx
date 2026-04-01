@@ -34,6 +34,14 @@ interface LoginResult {
   requiresMfa?: boolean
 }
 
+interface SessionExpiryState {
+  idleExpiresAt: string | null
+  absoluteExpiresAt: string | null
+  warningWindowSeconds: number
+  accessTokenExpiresAt: string | null
+  refreshTokenExpiresAt: string | null
+}
+
 interface AuthContextType {
   user: ReturnType<typeof useAuthSessionStore.getState>["user"]
   session: AuthSessionContext | null
@@ -43,6 +51,10 @@ interface AuthContextType {
   hasPendingAcknowledgements: boolean
   /** Items fetched during the gate check — used to prime the query cache so the acknowledgements page loads instantly. */
   pendingAcknowledgementItems: SummaryTaskItem[] | null
+  sessionExpiry: SessionExpiryState
+  serverTimeOffsetMs: number
+  syncSessionExpiry: () => Promise<boolean>
+  staySignedIn: () => Promise<{ success: boolean; message?: string }>
   login: (email: string, password: string) => Promise<LoginResult>
   completeAuth: (payload: LoginPayload, redirectTo?: string) => Promise<void>
   refreshAcknowledgementsGate: () => Promise<boolean>
@@ -111,6 +123,18 @@ function isTenantContextError(error: unknown): boolean {
   return error.code === "TENANT_CONTEXT_REQUIRED" || error.code === "TENANT_ACCESS_DENIED"
 }
 
+function isSessionTerminalError(error: unknown): boolean {
+  if (!isApiClientError(error)) {
+    return false
+  }
+
+  return (
+    error.code === "SESSION_IDLE_EXPIRED" ||
+    error.code === "SESSION_ABSOLUTE_EXPIRED" ||
+    error.code === "REFRESH_TOKEN_INVALID"
+  )
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -118,7 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useAuthSessionStore((state) => state.user)
   const session = useAuthSessionStore((state) => state.session)
   const permissions = useAuthSessionStore((state) => state.permissions)
-  const refreshToken = useAuthSessionStore((state) => state.refreshToken)
+  const accessTokenExpiresAt = useAuthSessionStore((state) => state.accessTokenExpiresAt)
+  const refreshTokenExpiresAt = useAuthSessionStore((state) => state.refreshTokenExpiresAt)
+  const serverTimeOffsetMs = useAuthSessionStore((state) => state.serverTimeOffsetMs)
   const hasHydrated = useAuthSessionStore((state) => state.hasHydrated)
   const setSession = useAuthSessionStore((state) => state.setSession)
   const setSessionContext = useAuthSessionStore((state) => state.setSessionContext)
@@ -132,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingAcknowledgementItems, setPendingAcknowledgementItems] = useState<SummaryTaskItem[] | null>(null)
   const [isCheckingAcknowledgements, setIsCheckingAcknowledgements] = useState(false)
   const hasBootstrapped = useRef(false)
+  const lastSessionSyncAtRef = useRef(0)
   const mfaGateActive = useMfaStore((state) => state.mfaGateActive)
   const activateMfaGate = useMfaStore((state) => state.activateMfaGate)
   const deactivateMfaGate = useMfaStore((state) => state.deactivateMfaGate)
@@ -146,11 +173,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false
   }, [])
 
+  const forceSessionResetToLogin = useCallback(() => {
+    clearPendingMfaRequest()
+    consumeMfaReturnPath()
+    deactivateMfaGate()
+    clearSession()
+    setHasPendingAcknowledgements(false)
+    setPendingAcknowledgementItems(null)
+    hasBootstrapped.current = false
+    router.push("/login")
+  }, [clearSession, deactivateMfaGate, router])
+
+  const syncSessionExpiry = useCallback(async (): Promise<boolean> => {
+    try {
+      const payload = await authService.getSessionExpiry()
+      const currentSession = useAuthSessionStore.getState().session
+
+      if (payload.session && currentSession) {
+        setSessionContext({
+          ...currentSession,
+          idleExpiresAt: payload.session.idleExpiresAt ?? currentSession.idleExpiresAt ?? null,
+          absoluteExpiresAt: payload.session.absoluteExpiresAt ?? currentSession.absoluteExpiresAt ?? null,
+          warningWindowSeconds:
+            payload.session.warningWindowSeconds ?? currentSession.warningWindowSeconds ?? null,
+        })
+      }
+
+      if (payload.tokens?.accessTokenExpiresAt || payload.tokens?.refreshTokenExpiresAt || payload.serverTime) {
+        const currentAccessToken = useAuthSessionStore.getState().accessToken
+        if (currentAccessToken) {
+          setTokens({
+            accessToken: currentAccessToken,
+            accessTokenExpiresAt: payload.tokens?.accessTokenExpiresAt ?? undefined,
+            refreshTokenExpiresAt: payload.tokens?.refreshTokenExpiresAt ?? undefined,
+            serverTime: payload.serverTime,
+          })
+        }
+      }
+
+      return true
+    } catch (error) {
+      if (isSessionTerminalError(error) || (isApiClientError(error) && error.status === 401)) {
+        forceSessionResetToLogin()
+      }
+      return false
+    }
+  }, [forceSessionResetToLogin, setSessionContext, setTokens])
+
+  const staySignedIn = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const refreshed = await authService.refresh()
+
+      setTokens({
+        accessToken: refreshed.tokens.accessToken,
+        accessTokenExpiresAt: refreshed.tokens.accessTokenExpiresAt ?? null,
+        refreshTokenExpiresAt: refreshed.tokens.refreshTokenExpiresAt ?? null,
+        serverTime: refreshed.serverTime,
+      })
+
+      if (refreshed.session) {
+        setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
+      }
+
+      return { success: true }
+    } catch (error) {
+      if (isSessionTerminalError(error) || (isApiClientError(error) && error.status === 401)) {
+        forceSessionResetToLogin()
+        return { success: false, message: "Session expired. Please sign in again." }
+      }
+
+      return { success: false, message: getApiErrorMessage(error, "Unable to extend session right now.") }
+    }
+  }, [forceSessionResetToLogin, setSessionContext, setTokens])
+
   const applyTenantSwitch = useCallback(
     async (tenantId: string, fallbackSession?: AuthSessionContext | null): Promise<boolean> => {
       try {
         const payload = await authService.switchTenant(tenantId)
-        setTokens({ accessToken: payload.accessToken })
+        setTokens({
+          accessToken: payload.accessToken,
+          accessTokenExpiresAt: payload.accessTokenExpiresAt ?? null,
+          refreshTokenExpiresAt: payload.refreshTokenExpiresAt ?? null,
+          serverTime: payload.serverTime,
+        })
 
         if (payload.session) {
           setSessionContext(authService.mapAuthApiSessionToAppSession(payload.session))
@@ -189,7 +294,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: mappedUser,
         session: mappedSession,
         accessToken: payload.tokens.accessToken,
-        refreshToken: payload.tokens.refreshToken ?? null,
+        accessTokenExpiresAt: payload.tokens.accessTokenExpiresAt ?? null,
+        refreshTokenExpiresAt: payload.tokens.refreshTokenExpiresAt ?? null,
+        serverTime: payload.serverTime,
         permissions: null,
       })
 
@@ -243,11 +350,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Read tokens directly from store to avoid stale closure values
       const storeState = useAuthSessionStore.getState()
 
-      if (!storeState.accessToken) {
-        setIsLoading(false)
-        return
-      }
-
       // Fast path: if the session has been idle longer than the client-side
       // max-age, skip all network calls and go straight to login.
       if (storeState.isSessionExpired()) {
@@ -262,25 +364,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Refresh tokens once on boot to sync MFA state from backend.
       // Existing users may have stale JWTs with outdated mfaRequired/mfaVerified.
       try {
-        const currentRefreshToken = storeState.refreshToken
-        if (currentRefreshToken) {
-          const refreshed = await authService.refresh(currentRefreshToken)
-          if (isCancelled) return
+        const refreshed = await authService.refresh()
+        if (isCancelled) return
 
-          setTokens({
-            accessToken: refreshed.tokens.accessToken,
-            refreshToken: refreshed.tokens.refreshToken ?? currentRefreshToken,
-          })
+        setTokens({
+          accessToken: refreshed.tokens.accessToken,
+          accessTokenExpiresAt: refreshed.tokens.accessTokenExpiresAt ?? null,
+          refreshTokenExpiresAt: refreshed.tokens.refreshTokenExpiresAt ?? null,
+          serverTime: refreshed.serverTime,
+        })
 
-          if (refreshed.session) {
-            setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
-          }
+        if (refreshed.user) {
+          setUser(authService.mapAuthApiUserToAppUser(refreshed.user))
         }
-      } catch {
-        // Refresh failed — tokens are expired. Clear session immediately
-        // instead of continuing with stale tokens (which would trigger
-        // cascading 401s from profile/permissions calls).
-        clearSession()
+
+        if (refreshed.session) {
+          setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
+        }
+      } catch (error) {
+        if (isSessionTerminalError(error)) {
+          if (storeState.user || storeState.session) {
+            forceSessionResetToLogin()
+          } else {
+            clearSession()
+            setIsLoading(false)
+          }
+          return
+        }
+        if (storeState.user || storeState.session) {
+          clearSession()
+        }
         setIsLoading(false)
         return
       }
@@ -431,6 +544,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [activateMfaGate, deactivateMfaGate, hasHydrated, isLoading, mfaGateActive, needsMfa])
 
+  useEffect(() => {
+    if (!user || !accessTokenExpiresAt) {
+      return
+    }
+
+    const accessExpiresAtMs = Date.parse(accessTokenExpiresAt)
+    if (Number.isNaN(accessExpiresAtMs)) {
+      return
+    }
+
+    const refreshLeadMs = 60_000
+    const nowServerMs = Date.now() + serverTimeOffsetMs
+    const delayMs = Math.max(accessExpiresAtMs - nowServerMs - refreshLeadMs, 5_000)
+
+    const timer = window.setTimeout(() => {
+      void staySignedIn()
+    }, delayMs)
+
+    return () => window.clearTimeout(timer)
+  }, [accessTokenExpiresAt, serverTimeOffsetMs, staySignedIn, user])
+
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    lastSessionSyncAtRef.current = Date.now()
+    void syncSessionExpiry()
+  }, [syncSessionExpiry, user])
+
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      lastSessionSyncAtRef.current = Date.now()
+      void syncSessionExpiry()
+    }, 60_000)
+
+    return () => window.clearInterval(interval)
+  }, [syncSessionExpiry, user])
+
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    const idleMs = session?.idleExpiresAt ? Date.parse(session.idleExpiresAt) : Number.NaN
+    const absoluteMs = session?.absoluteExpiresAt ? Date.parse(session.absoluteExpiresAt) : Number.NaN
+    const candidateExpiry = [idleMs, absoluteMs].filter(Number.isFinite)
+
+    if (candidateExpiry.length === 0) {
+      return
+    }
+
+    const signOutAtMs = Math.min(...candidateExpiry)
+    const nowServerMs = Date.now() + serverTimeOffsetMs
+    const delayMs = Math.max(signOutAtMs - nowServerMs + 250, 1_000)
+
+    const timer = window.setTimeout(() => {
+      lastSessionSyncAtRef.current = Date.now()
+      void syncSessionExpiry()
+    }, delayMs)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    serverTimeOffsetMs,
+    session?.absoluteExpiresAt,
+    session?.idleExpiresAt,
+    syncSessionExpiry,
+    user,
+  ])
+
+  useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    const maybeSyncOnActivity = () => {
+      const now = Date.now()
+      if (now - lastSessionSyncAtRef.current < 30_000) {
+        return
+      }
+
+      lastSessionSyncAtRef.current = now
+      void syncSessionExpiry()
+    }
+
+    const events: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "focus"]
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, maybeSyncOnActivity, { passive: true })
+    })
+
+    return () => {
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, maybeSyncOnActivity)
+      })
+    }
+  }, [syncSessionExpiry, user])
+
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {
       setIsLoading(true)
@@ -509,7 +723,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (code: string): Promise<{ success: boolean; message?: string; redirectTo?: string }> => {
       try {
         const payload = await authService.verifyMfa(code)
-        setTokens({ accessToken: payload.accessToken })
+        setTokens({
+          accessToken: payload.accessToken,
+          accessTokenExpiresAt: payload.accessTokenExpiresAt ?? null,
+          refreshTokenExpiresAt: payload.refreshTokenExpiresAt ?? null,
+          serverTime: payload.serverTime,
+        })
 
         if (payload.session) {
           setSessionContext(authService.mapAuthApiSessionToAppSession(payload.session))
@@ -560,22 +779,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      if (refreshToken) {
-        await authService.logout(refreshToken)
-      }
+      await authService.logout()
     } catch {
       // We still clear local session if remote logout fails.
     } finally {
-      clearPendingMfaRequest()
-      consumeMfaReturnPath()
-      deactivateMfaGate()
-      clearSession()
-      setHasPendingAcknowledgements(false)
-      setPendingAcknowledgementItems(null)
-      hasBootstrapped.current = false
-      router.push("/login")
+      forceSessionResetToLogin()
     }
-  }, [clearSession, deactivateMfaGate, refreshToken, router])
+  }, [forceSessionResetToLogin])
 
   const hasPermission = useCallback(
     (permission: keyof RolePermissions): boolean => {
@@ -620,6 +830,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return GLOBAL_ROLE_DISPLAY[user.role]
   }, [user, session?.activeTenantRole])
 
+  const sessionExpiry: SessionExpiryState = {
+    idleExpiresAt: session?.idleExpiresAt ?? null,
+    absoluteExpiresAt: session?.absoluteExpiresAt ?? null,
+    warningWindowSeconds: session?.warningWindowSeconds ?? 300,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -630,6 +848,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions,
         hasPendingAcknowledgements,
         pendingAcknowledgementItems,
+        sessionExpiry,
+        serverTimeOffsetMs,
+        syncSessionExpiry,
+        staySignedIn,
         login,
         completeAuth,
         refreshAcknowledgementsGate,

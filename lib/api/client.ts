@@ -21,11 +21,13 @@ interface ApiRequestOptions {
 }
 
 interface RefreshPayload {
+  serverTime?: string
   user?: unknown
   session?: unknown
   tokens: {
     accessToken: string
-    refreshToken?: string
+    accessTokenExpiresAt?: string | null
+    refreshTokenExpiresAt?: string | null
   }
 }
 
@@ -237,31 +239,15 @@ async function refreshAccessToken(): Promise<string | null> {
   refreshPromise = (async () => {
     const session = getAuthSessionState()
 
-    if (!session.refreshToken) {
-      session.clearSession()
-      return null
-    }
-
     try {
-      let { response, payload } = await requestRefreshTokenResponse({
-        refreshToken: session.refreshToken,
-      })
-
-      if (
-        !response.ok &&
-        shouldRetryRefreshWithLegacyTokenBody(response.status, payload)
-      ) {
-        const legacyAttempt = await requestRefreshTokenResponse({
-          token: session.refreshToken,
-        })
-        response = legacyAttempt.response
-        payload = legacyAttempt.payload
-      }
+      const { response, payload } = await requestRefreshTokenResponse()
 
       if (!response.ok) {
         if (
           isApiFailurePayload(payload) &&
-          payload.error.code === "REFRESH_TOKEN_INVALID"
+          (payload.error.code === "REFRESH_TOKEN_INVALID" ||
+            payload.error.code === "SESSION_IDLE_EXPIRED" ||
+            payload.error.code === "SESSION_ABSOLUTE_EXPIRED")
         ) {
           session.clearSession()
         }
@@ -275,14 +261,16 @@ async function refreshAccessToken(): Promise<string | null> {
 
       const tokens = payload.data?.tokens
 
-      if (!tokens?.accessToken || !tokens.refreshToken) {
+      if (!tokens?.accessToken) {
         session.clearSession()
         return null
       }
 
       session.setTokens({
         accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+        refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+        serverTime: payload.data?.serverTime,
       })
 
       if (isAuthSessionPayload(payload.data?.session)) {
@@ -300,6 +288,9 @@ async function refreshAccessToken(): Promise<string | null> {
           })),
           mfaRequired: payload.data.session.mfaRequired,
           mfaVerified: payload.data.session.mfaVerified,
+          idleExpiresAt: payload.data.session.idleExpiresAt ?? null,
+          absoluteExpiresAt: payload.data.session.absoluteExpiresAt ?? null,
+          warningWindowSeconds: payload.data.session.warningWindowSeconds ?? null,
         })
       }
 
@@ -316,42 +307,17 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function requestRefreshTokenResponse(body: {
-  refreshToken?: string
-  token?: string
-}): Promise<{ response: Response; payload: unknown }> {
+async function requestRefreshTokenResponse(): Promise<{ response: Response; payload: unknown }> {
   const response = await fetchWithTimeout(buildRequestUrl("/auth/refresh"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({}),
   })
 
   const payload = await parseJsonSafely(response)
   return { response, payload }
-}
-
-function shouldRetryRefreshWithLegacyTokenBody(
-  status: number,
-  payload: unknown
-): boolean {
-  if (status !== 400 && status !== 422) {
-    return false
-  }
-
-  if (!isApiFailurePayload(payload)) {
-    return true
-  }
-
-  const code = payload.error.code.toUpperCase()
-  return (
-    code === "FST_ERR_VALIDATION" ||
-    code === "VALIDATION_ERROR" ||
-    code === "BAD_REQUEST" ||
-    code === "REQUEST_FAILED" ||
-    code.includes("VALIDATION")
-  )
 }
 
 function buildRequestHeaders(
@@ -425,6 +391,7 @@ async function fetchWithTimeout(
   try {
     return await fetch(input, {
       ...init,
+      credentials: "include",
       signal: controller.signal,
     })
   } catch (error) {
@@ -598,6 +565,9 @@ interface SessionPayload {
   memberships: SessionMembershipPayload[]
   mfaRequired: boolean
   mfaVerified: boolean
+  idleExpiresAt?: string | null
+  absoluteExpiresAt?: string | null
+  warningWindowSeconds?: number | null
 }
 
 function isSessionMembershipPayload(value: unknown): value is SessionMembershipPayload {
@@ -638,6 +608,27 @@ function isAuthSessionPayload(value: unknown): value is SessionPayload {
   if (!Array.isArray(session.memberships) || !session.memberships.every(isSessionMembershipPayload)) return false
   if (typeof session.mfaRequired !== "boolean") return false
   if (typeof session.mfaVerified !== "boolean") return false
+  if (
+    !(
+      session.idleExpiresAt === undefined ||
+      session.idleExpiresAt === null ||
+      typeof session.idleExpiresAt === "string"
+    )
+  ) return false
+  if (
+    !(
+      session.absoluteExpiresAt === undefined ||
+      session.absoluteExpiresAt === null ||
+      typeof session.absoluteExpiresAt === "string"
+    )
+  ) return false
+  if (
+    !(
+      session.warningWindowSeconds === undefined ||
+      session.warningWindowSeconds === null ||
+      typeof session.warningWindowSeconds === "number"
+    )
+  ) return false
 
   return true
 }

@@ -13,7 +13,9 @@ import type {
 
 export interface AuthTokens {
   accessToken: string
-  refreshToken: string
+  refreshToken?: string | null
+  accessTokenExpiresAt?: string | null
+  refreshTokenExpiresAt?: string | null
 }
 
 export interface AuthApiUser {
@@ -41,6 +43,7 @@ export interface LoginPayload {
   user: AuthApiUser
   session?: AuthApiSession
   tokens: AuthTokens
+  serverTime?: string
 }
 
 export interface RegisterPayload {
@@ -79,17 +82,32 @@ export interface AuthApiSession {
   memberships: AuthApiMembership[]
   mfaRequired: boolean
   mfaVerified: boolean
+  idleExpiresAt?: string | null
+  absoluteExpiresAt?: string | null
+  warningWindowSeconds?: number | null
+}
+
+export interface SessionExpiryPayload {
+  serverTime?: string
+  session?: Pick<AuthApiSession, "idleExpiresAt" | "absoluteExpiresAt" | "warningWindowSeconds">
+  tokens?: Pick<AuthTokens, "accessTokenExpiresAt" | "refreshTokenExpiresAt">
 }
 
 export interface AccessTokenPayload {
   accessToken: string
+  accessTokenExpiresAt?: string | null
+  refreshTokenExpiresAt?: string | null
+  serverTime?: string
   session?: AuthApiSession
 }
 
 interface AccessTokenEnvelope {
+  serverTime?: string
   accessToken?: string
   tokens?: {
     accessToken?: string
+    accessTokenExpiresAt?: string | null
+    refreshTokenExpiresAt?: string | null
   }
   session?: AuthApiSession
 }
@@ -170,6 +188,9 @@ function mapAuthApiSessionToAppSession(session?: AuthApiSession | null): AuthSes
       memberships: [],
       mfaRequired: false,
       mfaVerified: false,
+      idleExpiresAt: null,
+      absoluteExpiresAt: null,
+      warningWindowSeconds: null,
     }
   }
 
@@ -187,6 +208,9 @@ function mapAuthApiSessionToAppSession(session?: AuthApiSession | null): AuthSes
     })),
     mfaRequired: session.mfaRequired,
     mfaVerified: session.mfaVerified,
+    idleExpiresAt: session.idleExpiresAt ?? null,
+    absoluteExpiresAt: session.absoluteExpiresAt ?? null,
+    warningWindowSeconds: session.warningWindowSeconds ?? null,
   }
 }
 
@@ -332,36 +356,38 @@ export const authService = {
     }
   },
 
-  async refresh(refreshToken: string): Promise<LoginPayload> {
-    try {
-      const response = await apiRequest<LoginPayload>({
-        path: "/auth/refresh",
-        method: "POST",
-        body: { refreshToken },
-      })
+  async refresh(): Promise<LoginPayload> {
+    const response = await apiRequest<LoginPayload>({
+      path: "/auth/refresh",
+      method: "POST",
+      body: {},
+    })
 
-      return response.data
-    } catch (error) {
-      if (!shouldRetryWithLegacyBody(error)) {
-        throw error
-      }
-
-      const response = await apiRequest<LoginPayload>({
-        path: "/auth/refresh",
-        method: "POST",
-        body: { token: refreshToken },
-      })
-
-      return response.data
-    }
+    return response.data
   },
 
-  async logout(refreshToken: string): Promise<GenericMessagePayload> {
+  async getSessionExpiry(params?: {
+    token?: string
+    refreshToken?: string
+  }): Promise<SessionExpiryPayload> {
+    const response = await apiRequest<SessionExpiryPayload>({
+      path: "/auth/session-expiry",
+      auth: true,
+      query: {
+        token: params?.token,
+        refreshToken: params?.refreshToken,
+      },
+    })
+
+    return response.data
+  },
+
+  async logout(): Promise<GenericMessagePayload> {
     const response = await apiRequest<GenericMessagePayload>({
       path: "/auth/logout",
       method: "POST",
       auth: true,
-      body: { refreshToken },
+      body: {},
     })
 
     return response.data
@@ -454,6 +480,9 @@ export const authService = {
 
     return {
       accessToken,
+      accessTokenExpiresAt: response.data.tokens?.accessTokenExpiresAt ?? null,
+      refreshTokenExpiresAt: response.data.tokens?.refreshTokenExpiresAt ?? null,
+      serverTime: response.data.serverTime,
       session: response.data.session,
     }
   },
@@ -473,6 +502,9 @@ export const authService = {
 
     return {
       accessToken,
+      accessTokenExpiresAt: response.data.tokens?.accessTokenExpiresAt ?? null,
+      refreshTokenExpiresAt: response.data.tokens?.refreshTokenExpiresAt ?? null,
+      serverTime: response.data.serverTime,
       session: response.data.session,
     }
   },
