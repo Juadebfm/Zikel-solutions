@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 import {
   FileDown,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { StatsOverview, defaultStats, type StatItem } from "@/components/dashboard/stats-overview"
 import { useDashboardStats, useDashboardWidgets, useDeleteDashboardWidget } from "@/hooks/api/use-dashboard"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { DashboardWidgetReportsOn } from "@/services/dashboard.service"
 
 const reportsOnIconMap: Record<DashboardWidgetReportsOn, React.ElementType> = {
@@ -71,6 +73,14 @@ export default function MyDashboardPage() {
     getErrorMessage(widgetsQuery.error) ||
     getErrorMessage(deleteWidgetMutation.error)
 
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (pageError) {
+      showError(pageError)
+    }
+  }, [pageError, showError])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -99,12 +109,6 @@ export default function MyDashboardPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {pageError && (
-        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-          {pageError}
-        </div>
-      )}
 
       {(statsQuery.isLoading || widgetsQuery.isLoading) && (
         <div className="p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">

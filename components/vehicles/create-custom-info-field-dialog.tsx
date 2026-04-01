@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,7 @@ import {
   useVehicleCustomInfoGroups,
 } from "@/hooks/api/use-backend-data"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { CustomFieldType } from "@/types"
 
 interface CreateCustomInfoFieldDialogProps {
@@ -75,6 +76,11 @@ export function CreateCustomInfoFieldDialog({
   const [error, setError] = useState<string | null>(null)
   const { data: groups = [] } = useVehicleCustomInfoGroups()
   const createFieldMutation = useCreateVehicleCustomInfoField()
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   const handleSave = async () => {
     setError(null)
@@ -124,12 +130,6 @@ export function CreateCustomInfoFieldDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
           {/* Field Name */}
           <div className="space-y-1.5">
             <Label htmlFor="fieldName" className="text-sm font-medium">

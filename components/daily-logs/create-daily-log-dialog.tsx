@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ import { useHomeList } from "@/hooks/api/use-homes"
 import { useYoungPersonList } from "@/hooks/api/use-young-people"
 import { useFormList } from "@/hooks/api/use-forms"
 import { useCreateDailyLog } from "@/hooks/api/use-daily-logs"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { CreateDailyLogPayload } from "@/services/daily-logs.service"
 
 // ─── Constants ───────────────────────────────────────────────────
@@ -77,6 +78,11 @@ export function CreateDailyLogDialog({
   const [triggerTaskFormKey, setTriggerTaskFormKey] = useState("")
   const [note, setNote] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   // Data queries
   const homesQuery = useHomeList({ page: 1, pageSize: 100 })
@@ -326,11 +332,6 @@ export function CreateDailyLogDialog({
             </div>
           )}
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          )}
         </div>
 
         <Separator />

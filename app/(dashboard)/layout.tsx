@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/header"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { PageLoading } from "@/components/shared/page-loading"
 import { Toast } from "@/components/shared/toast"
+import { ErrorModal } from "@/components/shared/error-modal"
 import { MfaModal } from "@/components/mfa/mfa-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { queryKeys } from "@/lib/query-keys"
@@ -64,6 +65,9 @@ export default function DashboardLayout({
 
         {/* Global toast notifications */}
         <Toast />
+
+        {/* Global error modal */}
+        <ErrorModal />
       </div>
     )
   }
@@ -91,6 +95,9 @@ export default function DashboardLayout({
 
       {/* Global toast notifications */}
       <Toast />
+
+      {/* Global error modal */}
+      <ErrorModal />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -31,6 +31,7 @@ import {
   useFormTemplatesDropdown,
 } from "@/hooks/api/use-dropdown-data"
 import { useCreateTask } from "@/hooks/api/use-tasks"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { CreateTaskPayload } from "@/services/tasks.service"
 
 // ─── Constants ───────────────────────────────────────────────────
@@ -87,6 +88,11 @@ export function CreateTaskDialog({
   const [youngPersonId, setYoungPersonId] = useState("")
   const [assigneeId, setAssigneeId] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   // Cached dropdown data
   const homesQuery = useHomesDropdown()
@@ -154,22 +160,23 @@ export function CreateTaskDialog({
     }
   }
 
+  const fieldClass = "rounded-lg border-stone-200/80 bg-stone-100/60 shadow-none focus-visible:border-primary/40 focus-visible:ring-primary/20"
+  const triggerClass = "w-full rounded-lg border-stone-200/80 bg-stone-100/60 shadow-none focus-visible:border-primary/40 focus-visible:ring-primary/20"
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className="text-lg">Create Task</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border-0 bg-white shadow-2xl">
+        <DialogHeader className="px-4 sm:px-7 pt-6 sm:pt-7 pb-2">
+          <DialogTitle className="text-xl font-bold text-gray-900">Create Task</DialogTitle>
+          <DialogDescription className="text-gray-500">
             Create a new task. Only the title is required.
           </DialogDescription>
         </DialogHeader>
 
-        <Separator />
-
-        <div className="px-6 py-5 space-y-4 max-h-[65vh] overflow-y-auto">
+        <div className="px-4 sm:px-7 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
           {/* Title */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-800">
               Title <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -177,27 +184,28 @@ export function CreateTaskDialog({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
               maxLength={200}
+              className={fieldClass}
             />
           </div>
 
           {/* Description */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Description</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-800">Description</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add details, context, or instructions..."
-              className="min-h-[80px] resize-y"
+              className={cn("min-h-[90px] resize-y", fieldClass)}
               maxLength={5000}
             />
           </div>
 
           {/* Category + Priority */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Category</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
+                <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Select category..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -208,10 +216,10 @@ export function CreateTaskDialog({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm">Priority</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Priority</Label>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger>
+                <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Select priority..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -224,20 +232,21 @@ export function CreateTaskDialog({
           </div>
 
           {/* Due Date + Type */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Due Date</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Due Date</Label>
               <Input
                 type="datetime-local"
                 value={dueAt}
                 onChange={(e) => setDueAt(e.target.value)}
+                className={fieldClass}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm">Type</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Type</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
+                <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Select type..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -250,10 +259,10 @@ export function CreateTaskDialog({
           </div>
 
           {/* Home */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Home</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-800">Home</Label>
             <Select value={homeId} onValueChange={handleHomeChange}>
-              <SelectTrigger>
+              <SelectTrigger className={triggerClass}>
                 <SelectValue placeholder="Select home..." />
               </SelectTrigger>
               <SelectContent>
@@ -266,10 +275,10 @@ export function CreateTaskDialog({
 
           {/* Young Person (shown when home is selected and type-relevant) */}
           {homeId && youngPeople.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-sm">Young Person</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Young Person</Label>
               <Select value={youngPersonId} onValueChange={setYoungPersonId}>
-                <SelectTrigger>
+                <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Select young person..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,10 +292,10 @@ export function CreateTaskDialog({
 
           {/* Assignee (shown when home is selected) */}
           {homeId && employees.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-sm">Assignee</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Assignee</Label>
               <Select value={assigneeId} onValueChange={setAssigneeId}>
-                <SelectTrigger>
+                <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Assign to..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -298,20 +307,22 @@ export function CreateTaskDialog({
             </div>
           )}
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          )}
         </div>
 
-        <Separator />
-
-        <DialogFooter className="px-6 py-4 bg-gray-50/50">
-          <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
+        <DialogFooter className="px-4 sm:px-7 py-4 sm:py-5 bg-gray-50/50">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={createMutation.isPending}
+            className="rounded-lg px-6"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={createMutation.isPending}
+            className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg px-6"
+          >
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Task
           </Button>

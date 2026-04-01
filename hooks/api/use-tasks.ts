@@ -66,7 +66,10 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: (payload: CreateTaskPayload) => tasksService.create(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks", "list"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["summary"] }),
+      ])
     },
   })
 }
@@ -81,6 +84,7 @@ export function useUpdateTask() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["tasks", "list"] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(variables.taskId) }),
+        queryClient.invalidateQueries({ queryKey: ["summary"] }),
       ])
     },
   })
@@ -92,7 +96,10 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (taskId: string) => tasksService.remove(taskId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks", "list"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tasks", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["summary"] }),
+      ])
     },
   })
 }

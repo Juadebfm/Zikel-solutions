@@ -15,6 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { AskAiContext, AskAiPage, AskAiResponse } from "@/services/ai.service"
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -102,8 +103,21 @@ function getAskAiErrorMessage(error: unknown): string {
 
 type AiRenderedBlock =
   | { type: "paragraph"; text: string }
-  | { type: "bullets"; items: string[] }
+  | { type: "bullets"; items: string[]; ordered?: boolean }
   | { type: "label"; label: string; body?: string }
+
+const BULLET_RE = /^[-*]\s+/
+const NUMBERED_RE = /^\d+\.\s+/
+const LABEL_RE = /^\*\*(.+?)\*\*:{0,2}\s*(.*)$/
+const INLINE_NUMBERED_RE = /\d+\.\s+\*\*/
+
+function splitInlineNumberedList(text: string): string[] | null {
+  // Detect "1. **Item** - desc 2. **Item** - desc" on a single line
+  if (!INLINE_NUMBERED_RE.test(text)) return null
+  const parts = text.split(/(?=\d+\.\s)/).map((s) => s.trim()).filter(Boolean)
+  if (parts.length < 2) return null
+  return parts.map((p) => p.replace(/^\d+\.\s*/, ""))
+}
 
 function parseAiContent(content: string): AiRenderedBlock[] {
   const lines = content.replace(/\r\n/g, "\n").split("\n")
@@ -118,7 +132,8 @@ function parseAiContent(content: string): AiRenderedBlock[] {
       continue
     }
 
-    if (/^[-*]\s+/.test(currentLine)) {
+    // Bullet lists (- or *)
+    if (BULLET_RE.test(currentLine)) {
       const items: string[] = []
       while (index < lines.length) {
         const line = lines[index].trim()
@@ -131,7 +146,22 @@ function parseAiContent(content: string): AiRenderedBlock[] {
       continue
     }
 
-    const labelMatch = currentLine.match(/^\*\*(.+?)\*\*:?\s*(.*)$/)
+    // Numbered lists (1. 2. 3. on separate lines)
+    if (NUMBERED_RE.test(currentLine)) {
+      const items: string[] = []
+      while (index < lines.length) {
+        const line = lines[index].trim()
+        const match = line.match(/^\d+\.\s+(.*)$/)
+        if (!match) break
+        items.push(match[1].trim())
+        index += 1
+      }
+      if (items.length > 0) blocks.push({ type: "bullets", items, ordered: true })
+      continue
+    }
+
+    // Bold labels (**Label:** or **Label::**)
+    const labelMatch = currentLine.match(LABEL_RE)
     if (labelMatch) {
       blocks.push({
         type: "label",
@@ -142,15 +172,28 @@ function parseAiContent(content: string): AiRenderedBlock[] {
       continue
     }
 
+    // Paragraph — but check for inline numbered lists first
     let paragraph = currentLine
     index += 1
     while (index < lines.length) {
       const nextLine = lines[index].trim()
-      if (!nextLine || /^[-*]\s+/.test(nextLine) || /^\*\*(.+?)\*\*:?\s*(.*)$/.test(nextLine)) break
+      if (
+        !nextLine ||
+        BULLET_RE.test(nextLine) ||
+        NUMBERED_RE.test(nextLine) ||
+        LABEL_RE.test(nextLine)
+      ) break
       paragraph = `${paragraph} ${nextLine}`
       index += 1
     }
-    blocks.push({ type: "paragraph", text: paragraph })
+
+    // Try to split inline numbered items (e.g. "1. **A** - x 2. **B** - y")
+    const inlineItems = splitInlineNumberedList(paragraph)
+    if (inlineItems) {
+      blocks.push({ type: "bullets", items: inlineItems, ordered: true })
+    } else {
+      blocks.push({ type: "paragraph", text: paragraph })
+    }
   }
 
   return blocks
@@ -218,6 +261,11 @@ export function AiChatDialog({
   const [query, setQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -410,11 +458,6 @@ export function AiChatDialog({
               <span>Conversation stays active while this window is open.</span>
               <span>{query.length}/1200</span>
             </div>
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </div>
-            )}
           </div>
         </div>
 

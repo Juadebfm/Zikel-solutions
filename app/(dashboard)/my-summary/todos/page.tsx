@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSummaryTodos } from "@/hooks/api/use-summary"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 10
@@ -48,6 +49,8 @@ export default function SummaryTodosPage() {
     return () => window.clearTimeout(timeout)
   }, [searchInput])
 
+  const showError = useErrorModalStore((s) => s.show)
+
   const todosQuery = useSummaryTodos({
     page,
     pageSize: PAGE_SIZE,
@@ -55,6 +58,12 @@ export default function SummaryTodosPage() {
     sortOrder: "asc",
     search: search || undefined,
   })
+
+  useEffect(() => {
+    if (todosQuery.error) {
+      showError(getApiErrorMessage(todosQuery.error, "Unable to load to do tasks."))
+    }
+  }, [todosQuery.error, showError])
 
   const meta = todosQuery.data?.meta
   const totalPages = Math.max(meta?.totalPages ?? 1, 1)
@@ -120,9 +129,7 @@ export default function SummaryTodosPage() {
       </div>
 
       {todosQuery.error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {getApiErrorMessage(todosQuery.error, "Unable to load to do tasks.")}
-        </div>
+        <p className="text-sm text-muted-foreground">Unable to load to do tasks.</p>
       ) : null}
 
       <div className="space-y-3">

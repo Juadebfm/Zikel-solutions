@@ -21,6 +21,7 @@ import {
   useSummaryTaskToApproveDetail,
 } from "@/hooks/api/use-summary"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { SummaryTaskItem } from "@/services/summary.service"
 import { uploadsService } from "@/services/uploads.service"
 import { Badge } from "@/components/ui/badge"
@@ -208,6 +209,14 @@ export default function AcknowledgementsPage() {
   const [detailModalOpen, setDetailModalOpen] = useState(false)
 
   const detailQuery = useSummaryTaskToApproveDetail(detailTaskId ?? "", detailModalOpen && Boolean(detailTaskId))
+
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (detailQuery.error) {
+      showError(getApiErrorMessage(detailQuery.error, "Unable to load detail payload."))
+    }
+  }, [detailQuery.error, showError])
 
   const rows = useMemo<PendingRow[]>(() => {
     const sourceRows = pendingQuery.data ?? []
@@ -1096,8 +1105,8 @@ export default function AcknowledgementsPage() {
               </span>
             </div>
           ) : detailQuery.isError ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {getApiErrorMessage(detailQuery.error, "Unable to load detail payload.")}
+            <div className="py-10 text-center text-sm text-gray-500">
+              Unable to load detail payload.
             </div>
           ) : (
             <div className="space-y-4">

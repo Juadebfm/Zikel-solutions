@@ -225,6 +225,47 @@ export interface SummaryTaskToApproveDetail {
   meta: Record<string, unknown> | null
 }
 
+export interface BatchArchivePayload {
+  taskIds: string[]
+}
+
+export interface BatchArchiveResult {
+  processed: number
+  failed: Array<{ id: string; reason: string }>
+}
+
+export interface PostponeTaskPayload {
+  dueDate: string
+  reason?: string
+}
+
+export interface PostponeTaskResult {
+  success: boolean
+  task: SummaryTaskItem
+}
+
+export interface BatchPostponePayload {
+  taskIds: string[]
+  dueDate: string
+  reason?: string
+}
+
+export interface BatchPostponeResult {
+  processed: number
+  failed: Array<{ id: string; reason: string }>
+}
+
+export interface BatchReassignPayload {
+  taskIds: string[]
+  assigneeId: string
+  reason?: string
+}
+
+export interface BatchReassignResult {
+  processed: number
+  failed: Array<{ id: string; reason: string }>
+}
+
 export interface ReviewEventPayload {
   action: "view_detail" | "open_document" | "open_task" | "review" | "acknowledge"
 }
@@ -267,14 +308,10 @@ export interface HomeProvision {
   shifts: ProvisionShift[]
 }
 
-export interface OverdueTask {
-  id: string
-  taskRef: string
-  title: string
-  formGroup: string
-  status: string
-  relatesTo: string
-  taskDate: string
+export interface OverdueTask extends SummaryTaskItem {
+  formGroup?: string
+  relatesTo?: string
+  taskDate?: string
 }
 
 
@@ -514,6 +551,50 @@ export const summaryService = {
       items: response.data,
       meta: response.meta ?? DEFAULT_META,
     }
+  },
+
+  async batchArchive(payload: BatchArchivePayload): Promise<BatchArchiveResult> {
+    const response = await apiRequest<BatchArchiveResult>({
+      path: "/tasks/batch-archive",
+      method: "POST",
+      auth: true,
+      body: payload,
+    })
+
+    return response.data
+  },
+
+  async postponeTask(taskId: string, payload: PostponeTaskPayload): Promise<PostponeTaskResult> {
+    const response = await apiRequest<PostponeTaskResult>({
+      path: `/tasks/${taskId}/postpone`,
+      method: "POST",
+      auth: true,
+      body: payload,
+    })
+
+    return response.data
+  },
+
+  async batchPostpone(payload: BatchPostponePayload): Promise<BatchPostponeResult> {
+    const response = await apiRequest<BatchPostponeResult>({
+      path: "/tasks/batch-postpone",
+      method: "POST",
+      auth: true,
+      body: payload,
+    })
+
+    return response.data
+  },
+
+  async batchReassign(payload: BatchReassignPayload): Promise<BatchReassignResult> {
+    const response = await apiRequest<BatchReassignResult>({
+      path: "/tasks/batch-reassign",
+      method: "POST",
+      auth: true,
+      body: payload,
+    })
+
+    return response.data
   },
 
   async getProvisions(): Promise<HomeProvision[]> {

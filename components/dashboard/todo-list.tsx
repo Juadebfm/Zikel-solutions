@@ -61,6 +61,7 @@ interface TodoListProps {
   onPageChange?: (page: number) => void
   onArchive?: (ids: string[]) => void
   onPostpone?: (ids: string[]) => void
+  onReassign?: (taskId: string, assigneeId: string, reason?: string) => void
 }
 
 const statusConfig = {

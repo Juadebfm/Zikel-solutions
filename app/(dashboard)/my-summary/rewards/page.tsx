@@ -6,13 +6,12 @@ import {
   ChevronRight,
   ChevronLeft,
   Search,
-  Clock,
+  Gift,
   AlertTriangle,
   Users,
   Layers,
-  Trash2,
-  UserRoundPlus,
-  CalendarClock,
+  CheckCircle2,
+  XCircle,
   Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -50,9 +49,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSummaryOverdueTasks } from "@/hooks/api/use-summary"
-import { useBatchArchive, useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
-import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
+import { useTaskList } from "@/hooks/api/use-tasks"
+import { useTaskAction } from "@/hooks/api/use-tasks"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
@@ -75,7 +73,10 @@ function formatRelativeDate(iso: string | null | undefined): string {
   const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000)
   if (diffDays === 0) return "Today"
   if (diffDays === 1) return "1 day ago"
-  return `${diffDays}d overdue`
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 14) return "1 week ago"
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+  return `${Math.floor(diffDays / 30)} months ago`
 }
 
 function formatShortDate(iso: string | null | undefined): string {
@@ -87,22 +88,23 @@ function formatShortDate(iso: string | null | undefined): string {
 
 // ─── Component ───────────────────────────────────────────────────
 
-export default function OverdueTasksPage() {
+export default function PendingRewardsPage() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState("20")
   const [searchQuery, setSearchQuery] = useState("")
   const [confirmDialog, setConfirmDialog] = useState<{
-    type: "delete" | "reassign" | "postpone"
+    type: "approve" | "reject" | "approve-bulk" | "reject-bulk"
     taskIds: string[]
   } | null>(null)
-  const [reassigneeId, setReassigneeId] = useState("")
 
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
 
   const pageSizeNum = parseInt(pageSize)
-  const { data, isLoading } = useSummaryOverdueTasks({
+  const { data, isLoading } = useTaskList({
+    category: "reward",
+    status: "submitted",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,
@@ -114,24 +116,27 @@ export default function OverdueTasksPage() {
   const totalItems = meta?.total ?? allTasks.length
 
   // Mutations
-  const batchArchiveMutation = useBatchArchive()
-  const batchPostponeMutation = useBatchPostpone()
-  const batchReassignMutation = useBatchReassign()
-  const employeesQuery = useEmployeesDropdown()
-  const employees = employeesQuery.data ?? []
+  const taskActionMutation = useTaskAction()
 
-  // Summary stats derived from current page data
+  // Summary stats
   const summary = useMemo(() => {
     const priorities = { urgent: 0, high: 0, medium: 0, low: 0 }
-    const unassigned = allTasks.filter((t) => !t.assignee).length
+    const youngPersonNames = new Set<string>()
     const categories = new Set<string>()
 
     for (const t of allTasks) {
       if (t.priority in priorities) priorities[t.priority as keyof typeof priorities]++
+      if (t.relatedEntity?.type === "young_person" && t.relatedEntity.name) {
+        youngPersonNames.add(t.relatedEntity.name)
+      }
       if (t.categoryLabel) categories.add(t.categoryLabel)
     }
 
-    return { priorities, unassigned, categoryCount: categories.size }
+    return {
+      priorities,
+      youngPersonCount: youngPersonNames.size,
+      categoryCount: categories.size,
+    }
   }, [allTasks])
 
   // Selection
@@ -150,50 +155,29 @@ export default function OverdueTasksPage() {
   }
 
   // Handlers
-  const isPending = batchArchiveMutation.isPending || batchPostponeMutation.isPending || batchReassignMutation.isPending
+  const isPending = taskActionMutation.isPending
 
-  const handleDelete = (ids: string[]) => {
-    batchArchiveMutation.mutate({ taskIds: ids }, {
-      onSuccess: (r) => {
-        if (r.failed.length > 0) showError(`Archived ${r.processed}, ${r.failed.length} failed.`)
-        else showToast(`Archived ${r.processed} task(s).`)
-        setSelectedRows(new Set())
-      },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to delete tasks."),
-    })
+  const handleAction = async (ids: string[], action: "approve" | "reject") => {
+    let processed = 0
+    let failed = 0
+    for (const taskId of ids) {
+      try {
+        await taskActionMutation.mutateAsync({ taskId, payload: { action } })
+        processed++
+      } catch (err) {
+        failed++
+      }
+    }
+    if (failed > 0) {
+      showError(`${action === "approve" ? "Approved" : "Rejected"} ${processed}, ${failed} failed.`)
+    } else {
+      showToast(`${action === "approve" ? "Approved" : "Rejected"} ${processed} task(s).`)
+    }
+    setSelectedRows(new Set())
     setConfirmDialog(null)
   }
 
-  const handlePostpone = (ids: string[]) => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(9, 0, 0, 0)
-    batchPostponeMutation.mutate({ taskIds: ids, dueDate: tomorrow.toISOString() }, {
-      onSuccess: (r) => {
-        if (r.failed.length > 0) showError(`Postponed ${r.processed}, ${r.failed.length} failed.`)
-        else showToast(`Postponed ${r.processed} task(s) to tomorrow.`)
-        setSelectedRows(new Set())
-      },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to postpone tasks."),
-    })
-    setConfirmDialog(null)
-  }
-
-  const handleReassign = (ids: string[]) => {
-    if (!reassigneeId) { showError("Please select an employee."); return }
-    batchReassignMutation.mutate({ taskIds: ids, assigneeId: reassigneeId }, {
-      onSuccess: (r) => {
-        if (r.failed.length > 0) showError(`Reassigned ${r.processed}, ${r.failed.length} failed.`)
-        else showToast(`Reassigned ${r.processed} task(s).`)
-        setSelectedRows(new Set())
-        setReassigneeId("")
-      },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks."),
-    })
-    setConfirmDialog(null)
-  }
-
-  const colors = statusColors.overdue
+  const colors = statusColors.pending
 
   return (
     <div className="space-y-6">
@@ -202,12 +186,12 @@ export default function OverdueTasksPage() {
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-1">
           <Link href="/my-summary" className="text-primary hover:underline font-medium">My Summary</Link>
           <ChevronRight className="h-4 w-4" />
-          <span className="text-gray-900 font-medium">Overdue Tasks</span>
+          <span className="text-gray-900 font-medium">Pending Rewards</span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold text-gray-900">Overdue Tasks</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Pending Rewards</h1>
           <Badge variant="outline" className={`${colors.bg} ${colors.text} ${colors.border} border text-sm px-3 py-1`}>
-            {totalItems} overdue
+            {totalItems} pending
           </Badge>
         </div>
       </div>
@@ -216,10 +200,10 @@ export default function OverdueTasksPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-100"><Clock className="h-4 w-4 text-red-600" /></div>
+            <div className="p-2 rounded-lg bg-teal-100"><Gift className="h-4 w-4 text-teal-600" /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
-              <p className="text-xs text-gray-500">Total Overdue</p>
+              <p className="text-xs text-gray-500">Total Pending</p>
             </div>
           </CardContent>
         </Card>
@@ -228,7 +212,7 @@ export default function OverdueTasksPage() {
             <div className="p-2 rounded-lg bg-orange-100"><AlertTriangle className="h-4 w-4 text-orange-600" /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{summary.priorities.urgent + summary.priorities.high}</p>
-              <p className="text-xs text-gray-500">Urgent / High Priority</p>
+              <p className="text-xs text-gray-500">Urgent / High</p>
             </div>
           </CardContent>
         </Card>
@@ -236,8 +220,8 @@ export default function OverdueTasksPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-100"><Users className="h-4 w-4 text-purple-600" /></div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{summary.unassigned}</p>
-              <p className="text-xs text-gray-500">Unassigned</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.youngPersonCount}</p>
+              <p className="text-xs text-gray-500">By Young Person</p>
             </div>
           </CardContent>
         </Card>
@@ -268,14 +252,11 @@ export default function OverdueTasksPage() {
         {selectedRows.size > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-500">{selectedRows.size} selected</span>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConfirmDialog({ type: "postpone", taskIds: Array.from(selectedRows) })}>
-              <CalendarClock className="h-4 w-4" /> Postpone
+            <Button variant="outline" size="sm" className="gap-1.5 text-green-600 border-green-200 hover:bg-green-50" onClick={() => setConfirmDialog({ type: "approve-bulk", taskIds: Array.from(selectedRows) })}>
+              <CheckCircle2 className="h-4 w-4" /> Approve All
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConfirmDialog({ type: "reassign", taskIds: Array.from(selectedRows) })}>
-              <UserRoundPlus className="h-4 w-4" /> Reassign
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmDialog({ type: "delete", taskIds: Array.from(selectedRows) })}>
-              <Trash2 className="h-4 w-4" /> Archive
+            <Button variant="outline" size="sm" className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmDialog({ type: "reject-bulk", taskIds: Array.from(selectedRows) })}>
+              <XCircle className="h-4 w-4" /> Reject All
             </Button>
           </div>
         )}
@@ -293,9 +274,9 @@ export default function OverdueTasksPage() {
               <TableHead className="font-semibold text-gray-700 min-w-[150px] sm:min-w-[200px]">Task</TableHead>
               <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Category</TableHead>
               <TableHead className="font-semibold text-gray-700">Assigned To</TableHead>
-              <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Related To</TableHead>
+              <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Young Person</TableHead>
               <TableHead className="font-semibold text-gray-700 text-center">Priority</TableHead>
-              <TableHead className="font-semibold text-gray-700">Due Date</TableHead>
+              <TableHead className="font-semibold text-gray-700">Submitted</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -313,12 +294,13 @@ export default function OverdueTasksPage() {
             ) : allTasks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10 text-gray-500">
-                  No overdue tasks found.
+                  No pending rewards found.
                 </TableCell>
               </TableRow>
             ) : (
               allTasks.map((task, index) => {
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
+                const youngPerson = task.relatedEntity?.type === "young_person" ? task.relatedEntity : null
                 return (
                   <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
                     <TableCell className="pl-4 py-3">
@@ -356,7 +338,16 @@ export default function OverdueTasksPage() {
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {task.relatedEntity ? (
+                      {youngPerson ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-gray-600 truncate max-w-[80px] sm:max-w-[140px] block cursor-default">{youngPerson.name}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Young Person: {youngPerson.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : task.relatedEntity ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm text-gray-600 truncate max-w-[80px] sm:max-w-[140px] block cursor-default">{task.relatedEntity.name}</span>
@@ -376,20 +367,17 @@ export default function OverdueTasksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-0.5">
-                        <p className="text-sm text-red-600 font-medium whitespace-nowrap">{formatRelativeDate(task.dueAt)}</p>
-                        <p className="text-xs text-gray-400 whitespace-nowrap">{formatShortDate(task.dueAt)}</p>
+                        <p className="text-sm text-amber-600 font-medium whitespace-nowrap">{formatRelativeDate(task.submittedAt)}</p>
+                        <p className="text-xs text-gray-400 whitespace-nowrap">{formatShortDate(task.submittedAt)}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" title="Postpone" onClick={() => setConfirmDialog({ type: "postpone", taskIds: [task.id] })}>
-                          <CalendarClock className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-4 w-4 text-green-600 hover:text-green-700" title="Approve" onClick={() => setConfirmDialog({ type: "approve", taskIds: [task.id] })}>
+                          <CheckCircle2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" title="Reassign" onClick={() => setConfirmDialog({ type: "reassign", taskIds: [task.id] })}>
-                          <UserRoundPlus className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" title="Archive" className="text-red-600 hover:text-red-700" onClick={() => setConfirmDialog({ type: "delete", taskIds: [task.id] })}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-4 w-4 text-red-600 hover:text-red-700" title="Reject" onClick={() => setConfirmDialog({ type: "reject", taskIds: [task.id] })}>
+                          <XCircle className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -429,59 +417,37 @@ export default function OverdueTasksPage() {
         </div>
       </div>
 
-      {/* Confirm: Archive */}
-      <Dialog open={confirmDialog?.type === "delete"} onOpenChange={(v) => !v && setConfirmDialog(null)}>
+      {/* Confirm: Approve */}
+      <Dialog open={confirmDialog?.type === "approve" || confirmDialog?.type === "approve-bulk"} onOpenChange={(v) => !v && setConfirmDialog(null)}>
         <DialogContent className="sm:max-w-md rounded-2xl border-0 bg-white shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Archive {confirmDialog?.taskIds.length === 1 ? "Task" : "Tasks"}</DialogTitle>
+            <DialogTitle>Approve {confirmDialog?.taskIds.length === 1 ? "Reward" : "Rewards"}</DialogTitle>
             <DialogDescription>
-              Are you sure? {confirmDialog?.taskIds.length === 1 ? "This task" : `${confirmDialog?.taskIds.length} tasks`} will be archived.
+              Are you sure you want to approve {confirmDialog?.taskIds.length === 1 ? "this reward task" : `${confirmDialog?.taskIds.length} reward tasks`}?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleDelete(confirmDialog.taskIds)}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Archive
+            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleAction(confirmDialog.taskIds, "approve")}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Confirm: Reassign */}
-      <Dialog open={confirmDialog?.type === "reassign"} onOpenChange={(v) => { if (!v) { setConfirmDialog(null); setReassigneeId("") } }}>
+      {/* Confirm: Reject */}
+      <Dialog open={confirmDialog?.type === "reject" || confirmDialog?.type === "reject-bulk"} onOpenChange={(v) => !v && setConfirmDialog(null)}>
         <DialogContent className="sm:max-w-md rounded-2xl border-0 bg-white shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Reassign {confirmDialog?.taskIds.length === 1 ? "Task" : "Tasks"}</DialogTitle>
-            <DialogDescription>Select an employee to reassign to.</DialogDescription>
-          </DialogHeader>
-          <Select value={reassigneeId} onValueChange={setReassigneeId}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Select employee..." /></SelectTrigger>
-            <SelectContent>
-              {employees.map((e) => (<SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>))}
-            </SelectContent>
-          </Select>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-lg" onClick={() => { setConfirmDialog(null); setReassigneeId("") }}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending || !reassigneeId} onClick={() => confirmDialog && handleReassign(confirmDialog.taskIds)}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reassign
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm: Postpone */}
-      <Dialog open={confirmDialog?.type === "postpone"} onOpenChange={(v) => !v && setConfirmDialog(null)}>
-        <DialogContent className="sm:max-w-md rounded-2xl border-0 bg-white shadow-2xl">
-          <DialogHeader>
-            <DialogTitle>Postpone {confirmDialog?.taskIds.length === 1 ? "Task" : "Tasks"}</DialogTitle>
+            <DialogTitle>Reject {confirmDialog?.taskIds.length === 1 ? "Reward" : "Rewards"}</DialogTitle>
             <DialogDescription>
-              {confirmDialog?.taskIds.length === 1 ? "This task" : `${confirmDialog?.taskIds.length} tasks`} will be postponed to tomorrow at 9:00 AM.
+              Are you sure you want to reject {confirmDialog?.taskIds.length === 1 ? "this reward task" : `${confirmDialog?.taskIds.length} reward tasks`}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handlePostpone(confirmDialog.taskIds)}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Postpone
+            <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleAction(confirmDialog.taskIds, "reject")}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reject
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   Loader2,
@@ -16,6 +16,7 @@ import {
   useSecurityAlerts,
 } from "@/hooks/api/use-audit"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -91,6 +92,26 @@ export default function AuditPage() {
     selectedEventId,
     isAdminPersona && activeTab === "events"
   )
+
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (eventsQuery.error) {
+      showError(getApiErrorMessage(eventsQuery.error, "Unable to load audit events."))
+    }
+  }, [eventsQuery.error, showError])
+
+  useEffect(() => {
+    if (detailQuery.error) {
+      showError(getApiErrorMessage(detailQuery.error, "Unable to load event detail."))
+    }
+  }, [detailQuery.error, showError])
+
+  useEffect(() => {
+    if (alertsQuery.error) {
+      showError(getApiErrorMessage(alertsQuery.error, "Unable to load security alerts."))
+    }
+  }, [alertsQuery.error, showError])
 
   const eventRows = useMemo(() => eventsQuery.data?.items ?? [], [eventsQuery.data?.items])
   const alertRows = useMemo(() => alertsQuery.data?.items ?? [], [alertsQuery.data?.items])
@@ -213,13 +234,7 @@ export default function AuditPage() {
                 </Button>
               </div>
 
-              {eventsQuery.error ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {getApiErrorMessage(eventsQuery.error, "Unable to load audit events.")}
-                </div>
-              ) : null}
-
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-lg border overflow-hidden overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -304,9 +319,7 @@ export default function AuditPage() {
                     Loading audit event details...
                   </div>
                 ) : detailQuery.error ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                    {getApiErrorMessage(detailQuery.error, "Unable to load event detail.")}
-                  </div>
+                  null
                 ) : !detailQuery.data ? (
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
                     Event detail is not available for this record.
@@ -339,7 +352,7 @@ export default function AuditPage() {
                     {detailQuery.data.details ? (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-gray-800">Raw Details</p>
-                        <pre className="max-h-72 overflow-auto rounded-lg border bg-gray-950 text-gray-100 p-3 text-xs">
+                        <pre className="max-h-72 overflow-auto overflow-x-auto rounded-lg border bg-gray-950 text-gray-100 p-3 text-[10px] sm:text-xs break-all">
                           {JSON.stringify(detailQuery.data.details, null, 2)}
                         </pre>
                       </div>
@@ -412,13 +425,7 @@ export default function AuditPage() {
                 </Button>
               </div>
 
-              {alertsQuery.error ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {getApiErrorMessage(alertsQuery.error, "Unable to load security alerts.")}
-                </div>
-              ) : null}
-
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-lg border overflow-hidden overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

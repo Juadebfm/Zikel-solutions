@@ -56,7 +56,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80">
               <DropdownMenuLabel className="flex items-center justify-between">
                 <span>Notifications</span>
                 <Button variant="ghost" size="sm" className="text-xs h-auto p-0 text-primary">

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -51,6 +51,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { canWriteVehicles } from "@/lib/auth/rbac"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useVehicles } from "@/hooks/api/use-backend-data"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { VehicleStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -95,6 +96,11 @@ export function VehiclesTab() {
   const vehiclesErrorMessage = vehiclesError
     ? getApiErrorMessage(vehiclesError, "Unable to load vehicles.")
     : null
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (vehiclesErrorMessage) showError(vehiclesErrorMessage)
+  }, [vehiclesErrorMessage, showError])
 
   const statusFiltered = statusTab === "all" ? allVehicles : allVehicles.filter((v) => v.status === statusTab)
 
@@ -202,12 +208,6 @@ export function VehiclesTab() {
           </button>
         ))}
       </div>
-
-      {vehiclesErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {vehiclesErrorMessage}
-        </div>
-      ) : null}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">

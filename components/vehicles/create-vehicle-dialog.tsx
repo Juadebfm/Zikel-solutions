@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select"
 import { useCreateVehicle, useHomes } from "@/hooks/api/use-backend-data"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { VehicleStatus } from "@/types"
 
 interface CreateVehicleDialogProps {
@@ -57,6 +58,11 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
   const [form, setForm] = useState<FormData>(initialForm)
   const [errors, setErrors] = useState<string[]>([])
   const { data: allHomes = [] } = useHomes()
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (errors.length > 0) showError("Please fix the following errors:", { title: "Validation Errors", details: errors })
+  }, [errors, showError])
 
   const updateField = (key: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -134,18 +140,6 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6">
-          {/* Validation errors */}
-          {errors.length > 0 && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-semibold text-red-600 mb-2">Errors</p>
-              <ul className="list-disc list-inside space-y-1">
-                {errors.map((err) => (
-                  <li key={err} className="text-sm text-red-600">{err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Form fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
             {/* Vehicle Name */}

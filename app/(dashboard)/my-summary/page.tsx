@@ -28,8 +28,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
 import type { AskAiResponse } from "@/services/ai.service"
+import { useErrorModalStore } from "@/components/shared/error-modal"
+import { useToastStore } from "@/components/shared/toast"
 import {
   useApproveSummaryTask,
+  useBatchArchive,
+  useBatchPostpone,
+  useBatchReassign,
   useProcessSummaryBatch,
   useRecordSummaryTaskReviewEvent,
   useSummaryProvisions,
@@ -89,10 +94,6 @@ export default function MySummaryPage() {
   const [isAskAiOpen, setIsAskAiOpen] = useState(false)
   const [askAiQuery, setAskAiQuery] = useState("")
   const [askAiError, setAskAiError] = useState<string | null>(null)
-  const [approvalFeedback, setApprovalFeedback] = useState<{
-    type: "success" | "error"
-    message: string
-  } | null>(null)
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([])
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
@@ -118,7 +119,12 @@ export default function MySummaryPage() {
   const processBatchMutation = useProcessSummaryBatch()
   const approveTaskMutation = useApproveSummaryTask()
   const recordReviewMutation = useRecordSummaryTaskReviewEvent()
+  const batchArchiveMutation = useBatchArchive()
+  const batchPostponeMutation = useBatchPostpone()
+  const batchReassignMutation = useBatchReassign()
   const askAiMutation = useAskAi()
+  const showError = useErrorModalStore((s) => s.show)
+  const showToast = useToastStore((s) => s.show)
 
   const todoMeta = todosQuery.data?.meta
   const approvalMeta = tasksToApproveQuery.data?.meta
@@ -134,6 +140,19 @@ export default function MySummaryPage() {
     if (!isAskAiOpen) return
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [chatMessages, isAskAiOpen, askAiMutation.isPending])
+
+  useEffect(() => {
+    if (taskDetailQuery.error) {
+      showError(getErrorMessage(taskDetailQuery.error) ?? "Failed to load task details.")
+    }
+  }, [taskDetailQuery.error, showError])
+
+  useEffect(() => {
+    if (askAiError) {
+      showError(askAiError)
+      setAskAiError(null)
+    }
+  }, [askAiError, showError])
 
   const stats = useMemo<StatItem[]>(() => {
     if (!statsQuery.data) {
@@ -293,11 +312,14 @@ export default function MySummaryPage() {
     return Object.keys(context).length > 0 ? context : undefined
   }, [statsQuery.data, todosQuery.data, tasksToApproveQuery.data])
 
-  const pageErrorMessage =
-    getErrorMessage(statsQuery.error) ||
-    getErrorMessage(todosQuery.error) ||
-    getErrorMessage(provisionsQuery.error) ||
-    getErrorMessage(tasksToApproveQuery.error)
+  useEffect(() => {
+    const msg =
+      getErrorMessage(statsQuery.error) ||
+      getErrorMessage(todosQuery.error) ||
+      getErrorMessage(provisionsQuery.error) ||
+      getErrorMessage(tasksToApproveQuery.error)
+    if (msg) showError(msg)
+  }, [statsQuery.error, todosQuery.error, provisionsQuery.error, tasksToApproveQuery.error, showError])
 
   const handleNewTask = () => {
     setIsCreateTaskOpen(true)
@@ -429,29 +451,19 @@ export default function MySummaryPage() {
 
   const handleApproveTask = (id: string) => {
     if (!reviewedTaskIds.has(id)) {
-      setApprovalFeedback({
-        type: "error",
-        message: "You must review this task before approving. Click \"View\" first.",
-      })
+      showError("You must review this task before approving. Click \"View\" first.")
       return
     }
 
     guard(() => {
-      setApprovalFeedback(null)
       approveTaskMutation.mutate(
         { taskId: id },
         {
           onSuccess: () => {
-            setApprovalFeedback({
-              type: "success",
-              message: "Task approved successfully.",
-            })
+            showToast("Task approved successfully.")
           },
           onError: (error) => {
-            setApprovalFeedback({
-              type: "error",
-              message: getTaskApprovalErrorMessage(error),
-            })
+            showError(getTaskApprovalErrorMessage(error))
           },
         }
       )
@@ -460,10 +472,7 @@ export default function MySummaryPage() {
 
   const handleProcessBatch = () => {
     if (!allTasksReviewed) {
-      setApprovalFeedback({
-        type: "error",
-        message: "All tasks must be reviewed before batch processing. Click \"View\" on each task first.",
-      })
+      showError("All tasks must be reviewed before batch processing. Click \"View\" on each task first.")
       return
     }
 
@@ -475,7 +484,6 @@ export default function MySummaryPage() {
       const taskIds = approvalTasks.map((task) => task.id)
       if (taskIds.length === 0) return
 
-      setApprovalFeedback(null)
       processBatchMutation.mutate(
         {
           taskIds,
@@ -485,29 +493,107 @@ export default function MySummaryPage() {
           onSuccess: (result) => {
             if (result.failed.length > 0) {
               const firstFailure = result.failed[0]?.reason
-              setApprovalFeedback({
-                type: "error",
-                message: firstFailure
+              showError(
+                firstFailure
                   ? `Processed ${result.processed} tasks. ${result.failed.length} failed: ${firstFailure}`
-                  : `Processed ${result.processed} tasks. ${result.failed.length} could not be approved.`,
-              })
+                  : `Processed ${result.processed} tasks. ${result.failed.length} could not be approved.`
+              )
               return
             }
 
-            setApprovalFeedback({
-              type: "success",
-              message: `Processed ${result.processed} tasks successfully.`,
-            })
+            showToast(`Processed ${result.processed} tasks successfully.`)
           },
           onError: (error) => {
-            setApprovalFeedback({
-              type: "error",
-              message: getTaskApprovalErrorMessage(error),
-            })
+            showError(getTaskApprovalErrorMessage(error))
           },
         }
       )
     })
+  }
+
+  const handleArchiveTodos = (ids: string[]) => {
+    if (ids.length === 0 || batchArchiveMutation.isPending) return
+
+    batchArchiveMutation.mutate(
+      { taskIds: ids },
+      {
+        onSuccess: (result) => {
+          if (result.failed.length > 0) {
+            showError(
+              `Archived ${result.processed} task(s). ${result.failed.length} failed.`,
+              { details: result.failed.map((f) => f.reason) }
+            )
+          } else {
+            showToast(`Archived ${result.processed} task(s) successfully.`)
+          }
+        },
+        onError: (error) => {
+          showError(
+            isApiClientError(error)
+              ? getApiErrorMessage(error)
+              : "Failed to archive tasks. Please try again."
+          )
+        },
+      }
+    )
+  }
+
+  const handlePostponeTodos = (ids: string[]) => {
+    if (ids.length === 0 || batchPostponeMutation.isPending) return
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+
+    batchPostponeMutation.mutate(
+      { taskIds: ids, dueDate: tomorrow.toISOString() },
+      {
+        onSuccess: (result) => {
+          if (result.failed.length > 0) {
+            showError(
+              `Postponed ${result.processed} task(s). ${result.failed.length} failed.`,
+              { details: result.failed.map((f) => f.reason) }
+            )
+          } else {
+            showToast(`Postponed ${result.processed} task(s) to tomorrow.`)
+          }
+        },
+        onError: (error) => {
+          showError(
+            isApiClientError(error)
+              ? getApiErrorMessage(error)
+              : "Failed to postpone tasks. Please try again."
+          )
+        },
+      }
+    )
+  }
+
+  const handleReassignTodo = (taskId: string, assigneeId: string, reason?: string) => {
+    if (!taskId || !assigneeId || batchReassignMutation.isPending) return
+
+    batchReassignMutation.mutate(
+      { taskIds: [taskId], assigneeId, reason },
+      {
+        onSuccess: (result) => {
+          if (result.failed.length > 0) {
+            showError(
+              "Failed to reassign task.",
+              { details: result.failed.map((f) => f.reason) }
+            )
+          } else {
+            showToast("Task reassigned successfully.")
+          }
+        },
+        onError: (error) => {
+          showError(
+            isApiClientError(error)
+              ? getApiErrorMessage(error)
+              : "Failed to reassign task. Please try again."
+          )
+        },
+      }
+    )
   }
 
   return (
@@ -524,27 +610,9 @@ export default function MySummaryPage() {
         />
       </div>
 
-      {pageErrorMessage && (
-        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-          {pageErrorMessage}
-        </div>
-      )}
-
       <StatsOverview stats={stats} loading={statsQuery.isLoading} />
 
       <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
-
-      {approvalFeedback ? (
-        <div
-          className={
-            approvalFeedback.type === "error"
-              ? "p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg"
-              : "p-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg"
-          }
-        >
-          {approvalFeedback.message}
-        </div>
-      ) : null}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <TodoList
@@ -557,6 +625,9 @@ export default function MySummaryPage() {
           onPageChange={(nextPage) =>
             setTodoPage(Math.max(1, Math.min(nextPage, todoTotalPages)))
           }
+          onArchive={handleArchiveTodos}
+          onPostpone={handlePostponeTodos}
+          onReassign={handleReassignTodo}
         />
         <TasksToApprove
           items={approvalTasks}
@@ -594,32 +665,32 @@ export default function MySummaryPage() {
             ) : taskDetailQuery.data ? (
               <>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Title</span>
                     <span className="font-medium text-right">{taskDetailQuery.data.title}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Related To</span>
                     <span className="font-medium">{taskDetailQuery.data.relatedEntity?.name ?? "-"}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Priority</span>
                     <span className="font-medium">{taskDetailQuery.data.priority}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Status</span>
                     <Badge variant="outline">{taskDetailQuery.data.approvalStatus}</Badge>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Assignee</span>
                     <span className="font-medium">{taskDetailQuery.data.assignee?.name ?? "-"}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-500">Due Date</span>
                     <span className="font-medium">{formatDueDate(taskDetailQuery.data.dueAt)}</span>
                   </div>
                   {taskDetailQuery.data.labels.length > 0 && (
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-1">
                       <span className="text-gray-500">Labels</span>
                       <div className="flex flex-wrap gap-1 justify-end">
                         {taskDetailQuery.data.labels.map((label) => (
@@ -635,10 +706,6 @@ export default function MySummaryPage() {
                   )}
                 </div>
               </>
-            ) : taskDetailQuery.error ? (
-              <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-                {getErrorMessage(taskDetailQuery.error) ?? "Failed to load task details."}
-              </div>
             ) : null}
           </div>
           <DialogFooter>
@@ -672,7 +739,7 @@ export default function MySummaryPage() {
 
           <div className="px-6 pb-6 space-y-4">
             <div className="rounded-2xl border border-gray-200 bg-[radial-gradient(circle_at_12%_20%,rgba(249,115,22,0.08),transparent_36%),radial-gradient(circle_at_88%_0%,rgba(16,185,129,0.09),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
-              <div className="max-h-[26rem] overflow-y-auto space-y-3 pr-1">
+              <div className="max-h-[40vh] sm:max-h-[26rem] overflow-y-auto space-y-3 pr-1">
                 {chatMessages.length === 0 && (
                   <div className="rounded-xl border border-dashed border-gray-300 bg-white/80 p-5 text-center">
                     <MessageCircleDashed className="h-5 w-5 text-gray-500 mx-auto mb-2" />
@@ -695,7 +762,7 @@ export default function MySummaryPage() {
                     }`}
                   >
                     {message.role === "user" ? (
-                      <div className="max-w-[86%] rounded-2xl rounded-br-md bg-primary text-white px-4 py-3 shadow-sm">
+                      <div className="max-w-[86%] rounded-2xl rounded-br-md bg-primary text-white px-4 py-3 shadow-sm break-words">
                         <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-white/80">
                           <User2 className="h-3.5 w-3.5" />
                           You
@@ -703,7 +770,7 @@ export default function MySummaryPage() {
                         <p className="text-sm leading-6 whitespace-pre-wrap">{message.content}</p>
                       </div>
                     ) : message.role === "assistant" ? (
-                      <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3">
+                      <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3 break-words">
                         <FormattedAiContent content={message.content} />
 
                         {message.suggestions && message.suggestions.length > 0 && (
@@ -725,7 +792,7 @@ export default function MySummaryPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="max-w-[92%] rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
+                      <div className="max-w-[92%] rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-sm break-words">
                         {message.content}
                       </div>
                     )}
@@ -762,11 +829,6 @@ export default function MySummaryPage() {
                 <span>{askAiQuery.length}/1200</span>
               </div>
 
-              {askAiError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {askAiError}
-                </div>
-              )}
             </div>
           </div>
 

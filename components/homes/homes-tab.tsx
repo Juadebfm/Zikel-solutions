@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -49,6 +49,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { canWriteHomes } from "@/lib/auth/rbac"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useHomes } from "@/hooks/api/use-backend-data"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { CareGroupHomeStatus } from "@/types"
 
 type HomesStatusTab = "all" | "current" | "past" | "planned"
@@ -90,6 +91,12 @@ export function HomesTab() {
   const homesErrorMessage = homesError
     ? getApiErrorMessage(homesError, "Unable to load homes.")
     : null
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (homesErrorMessage) showError(homesErrorMessage)
+  }, [homesErrorMessage, showError])
+
   const canWriteHomeRecords = canWriteHomes(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allHomes : allHomes.filter((h) => h.status === statusTab)
@@ -188,12 +195,6 @@ export function HomesTab() {
           </button>
         ))}
       </div>
-
-      {homesErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {homesErrorMessage}
-        </div>
-      ) : null}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">

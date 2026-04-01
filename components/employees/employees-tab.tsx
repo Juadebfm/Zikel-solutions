@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -50,6 +50,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { canWriteEmployees } from "@/lib/auth/rbac"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useEmployees } from "@/hooks/api/use-backend-data"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { EmployeeStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -92,6 +93,12 @@ export function EmployeesTab() {
   const employeesErrorMessage = employeesError
     ? getApiErrorMessage(employeesError, "Unable to load employees.")
     : null
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (employeesErrorMessage) showError(employeesErrorMessage)
+  }, [employeesErrorMessage, showError])
+
   const canWriteEmployeeRecords = canWriteEmployees(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allEmployees : allEmployees.filter((e) => e.status === statusTab)
@@ -199,12 +206,6 @@ export function EmployeesTab() {
           </button>
         ))}
       </div>
-
-      {employeesErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {employeesErrorMessage}
-        </div>
-      ) : null}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">

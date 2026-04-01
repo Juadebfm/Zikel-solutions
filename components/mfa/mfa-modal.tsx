@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useMfaStore } from "@/stores/mfa-store"
 import { useAuthSessionStore } from "@/stores/auth-session-store"
 import { useToastStore } from "@/components/shared/toast"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 
 export function MfaModal() {
   const { challengeMfa, verifyMfa } = useAuth()
@@ -31,6 +32,11 @@ export function MfaModal() {
   const [isSendingCode, setIsSendingCode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
   const [verified, setVerified] = useState(false)
 
   // Send challenge code when modal opens
@@ -191,12 +197,6 @@ export function MfaModal() {
                 Enter the 6-digit security code sent to your email. Verification is required before you can continue.
               </DialogDescription>
             </DialogHeader>
-
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
 
             {successMessage && !error && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">

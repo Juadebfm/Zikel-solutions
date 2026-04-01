@@ -32,7 +32,7 @@ export default function EmployeesPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 sm:px-8 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
+            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
               activeTab === tab.key
                 ? "bg-primary text-white border-primary"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
@@ -44,7 +44,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
+      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3 sm:p-6 lg:p-8 shadow-sm">
         {activeTab === "employees" && <EmployeesTab />}
         {activeTab === "settings" && <EmpSettingsTab />}
         {activeTab === "audit" && <EmpAuditTab />}

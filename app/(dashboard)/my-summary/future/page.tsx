@@ -2,15 +2,16 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ChevronRight,
   ChevronLeft,
   Search,
-  Clock,
+  CalendarDays,
+  Calendar,
   AlertTriangle,
   Users,
-  Layers,
-  Trash2,
+  Pencil,
   UserRoundPlus,
   CalendarClock,
   Loader2,
@@ -50,8 +51,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSummaryOverdueTasks } from "@/hooks/api/use-summary"
-import { useBatchArchive, useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
+import { useTaskList } from "@/hooks/api/use-tasks"
+import { useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
 import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
@@ -68,14 +69,16 @@ const priorityConfig = {
   low: { label: "Low", className: "bg-green-100 text-green-700 border-green-200" },
 } as const
 
-function formatRelativeDate(iso: string | null | undefined): string {
+function formatFutureRelative(iso: string | null): string {
   if (!iso) return "-"
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return "-"
-  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000)
-  if (diffDays === 0) return "Today"
-  if (diffDays === 1) return "1 day ago"
-  return `${diffDays}d overdue`
+  const d = new Date(iso)
+  const diffDays = Math.ceil((d.getTime() - Date.now()) / 86_400_000)
+  if (diffDays <= 0) return "Today"
+  if (diffDays === 1) return "Tomorrow"
+  if (diffDays < 7) return `in ${diffDays} days`
+  if (diffDays < 14) return "in 1 week"
+  if (diffDays < 30) return `in ${Math.floor(diffDays / 7)} weeks`
+  return `in ${Math.floor(diffDays / 30)} months`
 }
 
 function formatShortDate(iso: string | null | undefined): string {
@@ -87,13 +90,14 @@ function formatShortDate(iso: string | null | undefined): string {
 
 // ─── Component ───────────────────────────────────────────────────
 
-export default function OverdueTasksPage() {
+export default function FutureTasksPage() {
+  const router = useRouter()
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState("20")
   const [searchQuery, setSearchQuery] = useState("")
   const [confirmDialog, setConfirmDialog] = useState<{
-    type: "delete" | "reassign" | "postpone"
+    type: "reassign" | "postpone"
     taskIds: string[]
   } | null>(null)
   const [reassigneeId, setReassigneeId] = useState("")
@@ -102,10 +106,13 @@ export default function OverdueTasksPage() {
   const showToast = useToastStore((s) => s.show)
 
   const pageSizeNum = parseInt(pageSize)
-  const { data, isLoading } = useSummaryOverdueTasks({
+  const { data, isLoading } = useTaskList({
+    period: "future",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,
+    sortBy: "dueAt",
+    sortOrder: "asc",
   })
 
   const allTasks = data?.items ?? []
@@ -114,24 +121,29 @@ export default function OverdueTasksPage() {
   const totalItems = meta?.total ?? allTasks.length
 
   // Mutations
-  const batchArchiveMutation = useBatchArchive()
   const batchPostponeMutation = useBatchPostpone()
   const batchReassignMutation = useBatchReassign()
   const employeesQuery = useEmployeesDropdown()
   const employees = employeesQuery.data ?? []
 
-  // Summary stats derived from current page data
+  // Summary stats
   const summary = useMemo(() => {
     const priorities = { urgent: 0, high: 0, medium: 0, low: 0 }
     const unassigned = allTasks.filter((t) => !t.assignee).length
-    const categories = new Set<string>()
+
+    const now = Date.now()
+    const sevenDaysMs = 7 * 86_400_000
+    const thisWeek = allTasks.filter((t) => {
+      if (!t.dueAt) return false
+      const diff = new Date(t.dueAt).getTime() - now
+      return diff >= 0 && diff <= sevenDaysMs
+    }).length
 
     for (const t of allTasks) {
       if (t.priority in priorities) priorities[t.priority as keyof typeof priorities]++
-      if (t.categoryLabel) categories.add(t.categoryLabel)
     }
 
-    return { priorities, unassigned, categoryCount: categories.size }
+    return { priorities, unassigned, thisWeek }
   }, [allTasks])
 
   // Selection
@@ -150,19 +162,7 @@ export default function OverdueTasksPage() {
   }
 
   // Handlers
-  const isPending = batchArchiveMutation.isPending || batchPostponeMutation.isPending || batchReassignMutation.isPending
-
-  const handleDelete = (ids: string[]) => {
-    batchArchiveMutation.mutate({ taskIds: ids }, {
-      onSuccess: (r) => {
-        if (r.failed.length > 0) showError(`Archived ${r.processed}, ${r.failed.length} failed.`)
-        else showToast(`Archived ${r.processed} task(s).`)
-        setSelectedRows(new Set())
-      },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to delete tasks."),
-    })
-    setConfirmDialog(null)
-  }
+  const isPending = batchPostponeMutation.isPending || batchReassignMutation.isPending
 
   const handlePostpone = (ids: string[]) => {
     const tomorrow = new Date()
@@ -193,7 +193,7 @@ export default function OverdueTasksPage() {
     setConfirmDialog(null)
   }
 
-  const colors = statusColors.overdue
+  const colors = statusColors.future
 
   return (
     <div className="space-y-6">
@@ -202,12 +202,12 @@ export default function OverdueTasksPage() {
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-1">
           <Link href="/my-summary" className="text-primary hover:underline font-medium">My Summary</Link>
           <ChevronRight className="h-4 w-4" />
-          <span className="text-gray-900 font-medium">Overdue Tasks</span>
+          <span className="text-gray-900 font-medium">Future Tasks</span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold text-gray-900">Overdue Tasks</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Future Tasks</h1>
           <Badge variant="outline" className={`${colors.bg} ${colors.text} ${colors.border} border text-sm px-3 py-1`}>
-            {totalItems} overdue
+            {totalItems} future
           </Badge>
         </div>
       </div>
@@ -216,19 +216,19 @@ export default function OverdueTasksPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-100"><Clock className="h-4 w-4 text-red-600" /></div>
+            <div className="p-2 rounded-lg bg-green-100"><CalendarDays className="h-4 w-4 text-green-600" /></div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
-              <p className="text-xs text-gray-500">Total Overdue</p>
+              <p className="text-xs text-gray-500">Total Future</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-100"><AlertTriangle className="h-4 w-4 text-orange-600" /></div>
+            <div className="p-2 rounded-lg bg-blue-100"><Calendar className="h-4 w-4 text-blue-600" /></div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{summary.priorities.urgent + summary.priorities.high}</p>
-              <p className="text-xs text-gray-500">Urgent / High Priority</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.thisWeek}</p>
+              <p className="text-xs text-gray-500">This Week</p>
             </div>
           </CardContent>
         </Card>
@@ -243,10 +243,10 @@ export default function OverdueTasksPage() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100"><Layers className="h-4 w-4 text-blue-600" /></div>
+            <div className="p-2 rounded-lg bg-orange-100"><AlertTriangle className="h-4 w-4 text-orange-600" /></div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{summary.categoryCount}</p>
-              <p className="text-xs text-gray-500">Categories</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.priorities.urgent + summary.priorities.high}</p>
+              <p className="text-xs text-gray-500">Urgent / High</p>
             </div>
           </CardContent>
         </Card>
@@ -268,14 +268,11 @@ export default function OverdueTasksPage() {
         {selectedRows.size > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-500">{selectedRows.size} selected</span>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConfirmDialog({ type: "postpone", taskIds: Array.from(selectedRows) })}>
-              <CalendarClock className="h-4 w-4" /> Postpone
-            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConfirmDialog({ type: "reassign", taskIds: Array.from(selectedRows) })}>
               <UserRoundPlus className="h-4 w-4" /> Reassign
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmDialog({ type: "delete", taskIds: Array.from(selectedRows) })}>
-              <Trash2 className="h-4 w-4" /> Archive
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConfirmDialog({ type: "postpone", taskIds: Array.from(selectedRows) })}>
+              <CalendarClock className="h-4 w-4" /> Postpone
             </Button>
           </div>
         )}
@@ -313,7 +310,7 @@ export default function OverdueTasksPage() {
             ) : allTasks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10 text-gray-500">
-                  No overdue tasks found.
+                  No future tasks found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -376,20 +373,20 @@ export default function OverdueTasksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-0.5">
-                        <p className="text-sm text-red-600 font-medium whitespace-nowrap">{formatRelativeDate(task.dueAt)}</p>
+                        <p className="text-sm text-green-600 font-medium whitespace-nowrap">{formatFutureRelative(task.dueAt)}</p>
                         <p className="text-xs text-gray-400 whitespace-nowrap">{formatShortDate(task.dueAt)}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" title="Postpone" onClick={() => setConfirmDialog({ type: "postpone", taskIds: [task.id] })}>
-                          <CalendarClock className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-4 w-4" title="Edit" onClick={() => router.push(`/tasks?taskId=${task.id}`)}>
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" title="Reassign" onClick={() => setConfirmDialog({ type: "reassign", taskIds: [task.id] })}>
+                        <Button variant="ghost" size="sm" className="h-4 w-4" title="Reassign" onClick={() => setConfirmDialog({ type: "reassign", taskIds: [task.id] })}>
                           <UserRoundPlus className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" title="Archive" className="text-red-600 hover:text-red-700" onClick={() => setConfirmDialog({ type: "delete", taskIds: [task.id] })}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-4 w-4" title="Postpone" onClick={() => setConfirmDialog({ type: "postpone", taskIds: [task.id] })}>
+                          <CalendarClock className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -428,24 +425,6 @@ export default function OverdueTasksPage() {
           </Button>
         </div>
       </div>
-
-      {/* Confirm: Archive */}
-      <Dialog open={confirmDialog?.type === "delete"} onOpenChange={(v) => !v && setConfirmDialog(null)}>
-        <DialogContent className="sm:max-w-md rounded-2xl border-0 bg-white shadow-2xl">
-          <DialogHeader>
-            <DialogTitle>Archive {confirmDialog?.taskIds.length === 1 ? "Task" : "Tasks"}</DialogTitle>
-            <DialogDescription>
-              Are you sure? {confirmDialog?.taskIds.length === 1 ? "This task" : `${confirmDialog?.taskIds.length} tasks`} will be archived.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleDelete(confirmDialog.taskIds)}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Archive
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Confirm: Reassign */}
       <Dialog open={confirmDialog?.type === "reassign"} onOpenChange={(v) => { if (!v) { setConfirmDialog(null); setReassigneeId("") } }}>

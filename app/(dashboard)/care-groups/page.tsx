@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useCareGroups } from "@/hooks/api/use-backend-data"
 import type { CareGroup } from "@/types"
 
@@ -82,6 +83,14 @@ export default function CareGroupsPage() {
   const careGroupsErrorMessage = careGroupsError
     ? getApiErrorMessage(careGroupsError, "Unable to load care groups.")
     : null
+
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (careGroupsErrorMessage) {
+      showError(careGroupsErrorMessage)
+    }
+  }, [careGroupsErrorMessage, showError])
 
   // Filter by column search
   const filtered = useMemo(() => {
@@ -169,12 +178,6 @@ export default function CareGroupsPage() {
           </Link>
         ))}
       </div>
-
-      {careGroupsErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {careGroupsErrorMessage}
-        </div>
-      ) : null}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -299,9 +302,9 @@ export default function CareGroupsPage() {
               <TableRow>
                 <TableCell
                   colSpan={visibleColumnDefs.length + 1}
-                  className={`text-center py-10 ${careGroupsErrorMessage ? "text-red-600" : "text-gray-400"}`}
+                  className="text-center py-10 text-gray-400"
                 >
-                  {careGroupsErrorMessage ?? "No care groups found."}
+                  No care groups found.
                 </TableCell>
               </TableRow>
             ) : (

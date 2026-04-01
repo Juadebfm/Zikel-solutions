@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useAnnouncements } from "@/hooks/api/use-announcements"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { Announcement } from "@/services/announcements.service"
 
 type ColumnKey = "id" | "title" | "startsAt" | "endsAt" | "status" | "message"
@@ -83,6 +84,18 @@ export default function AnnouncementsPage() {
     page: 1,
     limit: 100,
   })
+
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (announcementQuery.error) {
+      showError(
+        announcementQuery.error instanceof Error
+          ? announcementQuery.error.message
+          : "Unable to load announcements."
+      )
+    }
+  }, [announcementQuery.error, showError])
 
   const filtered = useMemo(() => {
     const announcements = announcementQuery.data?.items ?? []
@@ -165,14 +178,6 @@ export default function AnnouncementsPage() {
         </p>
       </div>
 
-      {announcementQuery.error && (
-        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-          {announcementQuery.error instanceof Error
-            ? announcementQuery.error.message
-            : "Unable to load announcements."}
-        </div>
-      )}
-
       {announcementQuery.isLoading && (
         <div className="p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
           Loading announcements...
@@ -253,7 +258,7 @@ export default function AnnouncementsPage() {
       </div>
 
       <div className="border rounded-lg bg-white overflow-x-auto">
-        <Table className="min-w-160">
+        <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12 pl-4">

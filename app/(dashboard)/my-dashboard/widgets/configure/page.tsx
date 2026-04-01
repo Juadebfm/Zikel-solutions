@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -31,6 +31,7 @@ import {
 } from "@/data/widget-options"
 import { useCreateDashboardWidget } from "@/hooks/api/use-dashboard"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 
 const widgetTypeIcons: Record<string, React.ElementType> = {
   "data-card": CreditCard,
@@ -50,6 +51,14 @@ function ConfigureWidgetForm() {
   const [reportsOn, setReportsOn] = useState("")
   const [error, setError] = useState<string | null>(null)
   const createWidgetMutation = useCreateDashboardWidget()
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) {
+      showError(error)
+      setError(null)
+    }
+  }, [error, showError])
 
   const Icon = widgetTypeIcons[widgetType] || BarChart3
   const typeName = widgetTypeLabels[widgetType] || "Widget"
@@ -113,11 +122,6 @@ function ConfigureWidgetForm() {
         <CardTitle className="text-base">Widget Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {error && (
-            <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-              {error}
-            </div>
-          )}
           {/* Card Title */}
           <div className="space-y-2">
             <Label htmlFor="widget-title">Card Title</Label>

@@ -16,6 +16,7 @@ import {
   useUpdateTenantMembership,
 } from "@/hooks/api/use-tenants"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import { canManageTenantAdministration, getAllowedInviteRoles } from "@/lib/auth/rbac"
 import type { TenantRole } from "@/types"
 import { Badge } from "@/components/ui/badge"
@@ -164,6 +165,7 @@ export default function UsersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [fallbackInviteValue, setFallbackInviteValue] = useState<string | null>(null)
+  const showError = useErrorModalStore((s) => s.show)
   const [revokingInviteId, setRevokingInviteId] = useState<string | null>(null)
   const [revokingInviteLinkId, setRevokingInviteLinkId] = useState<string | null>(null)
   const [approvingMembershipId, setApprovingMembershipId] = useState<string | null>(null)
@@ -180,6 +182,31 @@ export default function UsersPage() {
       setInviteLinkRole(allowedStaffRoles[0])
     }
   }, [allowedStaffRoles])
+
+  useEffect(() => {
+    if (formError) {
+      showError(formError)
+      setFormError(null)
+    }
+  }, [formError, showError])
+
+  useEffect(() => {
+    if (inviteLinksQuery.error) {
+      showError(getApiErrorMessage(inviteLinksQuery.error, "Unable to load invite links."))
+    }
+  }, [inviteLinksQuery.error, showError])
+
+  useEffect(() => {
+    if (membershipsQuery.error) {
+      showError(getApiErrorMessage(membershipsQuery.error, "Unable to load members."))
+    }
+  }, [membershipsQuery.error, showError])
+
+  useEffect(() => {
+    if (invitesQuery.error) {
+      showError(getApiErrorMessage(invitesQuery.error, "Unable to load invites."))
+    }
+  }, [invitesQuery.error, showError])
 
   const filteredRows = useMemo(() => {
     const inviteRows = invitesQuery.data?.items ?? []
@@ -457,12 +484,6 @@ export default function UsersPage() {
         </Card>
       ) : null}
 
-      {activeTenantId && formError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {formError}
-        </div>
-      ) : null}
-
       {activeTenantId && formSuccess ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
           {formSuccess}
@@ -634,13 +655,7 @@ export default function UsersPage() {
               </div>
             ) : null}
 
-            {inviteLinksQuery.error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {getApiErrorMessage(inviteLinksQuery.error, "Unable to load invite links.")}
-              </div>
-            ) : null}
-
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -847,13 +862,7 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            {membershipsQuery.error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {getApiErrorMessage(membershipsQuery.error, "Unable to load members.")}
-              </div>
-            ) : null}
-
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -969,13 +978,8 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            {invitesQuery.error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {getApiErrorMessage(invitesQuery.error, "Unable to load invites.")}
-              </div>
-            ) : null}
 
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

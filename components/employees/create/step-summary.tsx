@@ -1,7 +1,8 @@
 "use client"
 
+import { useEffect } from "react"
 import { useCreateEmployeeStore } from "@/stores/create-employee-store"
-import { ErrorBanner } from "@/components/shared/error-banner"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import {
   Select,
   SelectContent,
@@ -15,11 +16,16 @@ import { Upload } from "lucide-react"
 export function StepSummary() {
   const { summary, updateSummary, errors } = useCreateEmployeeStore()
 
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (errors.length > 0) showError("Please fix the following errors:", { title: "Validation Errors", details: errors.map((e) => e.message) })
+  }, [errors, showError])
+
   const hasError = (field: string) => errors.some((e) => e.field === field)
 
   return (
     <div className="space-y-6">
-      <ErrorBanner errors={errors} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-5">
         {/* Left Column */}

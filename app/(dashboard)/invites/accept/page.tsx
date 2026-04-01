@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { useAcceptTenantInvite } from "@/hooks/api/use-tenants"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,14 @@ export default function AcceptInvitePage() {
   const [tokenInput, setTokenInput] = useState(() => searchParams.get("token") ?? "")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (error) {
+      showError(error)
+      setError(null)
+    }
+  }, [error, showError])
 
   const handleAcceptInvite = async () => {
     const token = tokenInput.trim()
@@ -76,12 +85,6 @@ export default function AcceptInvitePage() {
               placeholder="Paste invite token"
             />
           </div>
-
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
 
           {success ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Search,
@@ -49,6 +49,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { canWriteYoungPeople } from "@/lib/auth/rbac"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useYoungPeople } from "@/hooks/api/use-backend-data"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import type { YoungPersonStatus } from "@/types"
 
 type StatusTab = "all" | "current" | "past" | "planned"
@@ -90,6 +91,12 @@ export function YoungPeopleTab() {
   const youngPeopleErrorMessage = youngPeopleError
     ? getApiErrorMessage(youngPeopleError, "Unable to load young people.")
     : null
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (youngPeopleErrorMessage) showError(youngPeopleErrorMessage)
+  }, [youngPeopleErrorMessage, showError])
+
   const canWriteYoungPeopleRecords = canWriteYoungPeople(user?.role, session?.activeTenantRole)
 
   const statusFiltered = statusTab === "all" ? allYP : allYP.filter((yp) => yp.status === statusTab)
@@ -201,12 +208,6 @@ export function YoungPeopleTab() {
           </button>
         ))}
       </div>
-
-      {youngPeopleErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {youngPeopleErrorMessage}
-        </div>
-      ) : null}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">

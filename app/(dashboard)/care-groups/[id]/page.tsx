@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { useErrorModalStore } from "@/components/shared/error-modal"
 import {
   useCareGroupDetail,
   useCareGroupStakeholders,
@@ -89,6 +90,20 @@ export default function CareGroupDetailPage() {
   const homesErrorMessage = homesError
     ? getApiErrorMessage(homesError, "Unable to load homes.")
     : null
+
+  const showError = useErrorModalStore((s) => s.show)
+
+  useEffect(() => {
+    if (stakeholdersErrorMessage) {
+      showError(stakeholdersErrorMessage)
+    }
+  }, [stakeholdersErrorMessage, showError])
+
+  useEffect(() => {
+    if (homesErrorMessage) {
+      showError(homesErrorMessage)
+    }
+  }, [homesErrorMessage, showError])
 
   const [activeTab, setActiveTab] = useState<TabKey>("summary")
 
@@ -214,25 +229,13 @@ export default function CareGroupDetailPage() {
         </div>
       </div>
 
-      {stakeholdersErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {stakeholdersErrorMessage}
-        </div>
-      ) : null}
-
-      {homesErrorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {homesErrorMessage}
-        </div>
-      ) : null}
-
       {/* Tabs */}
       <div className="flex flex-wrap">
         {tabs.map((tab, index) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 sm:px-8 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
+            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
               activeTab === tab.key
                 ? "bg-primary text-white border-primary"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
@@ -244,7 +247,7 @@ export default function CareGroupDetailPage() {
       </div>
 
       {/* Tab Content — wrapped in card */}
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
+      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3 sm:p-6 lg:p-8 shadow-sm">
       {activeTab === "summary" && (
         <SummaryTab
           careGroup={careGroup}
@@ -319,7 +322,7 @@ interface SummaryTabProps {
 
 function SummaryTab({ careGroup, name, setName, type, setType, description, setDescription, website, setWebsite, ipRestriction, setIpRestriction }: SummaryTabProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 sm:gap-x-12 gap-y-6">
       {/* Left Column */}
       <div className="space-y-6">
         <div>
@@ -575,7 +578,7 @@ interface SettingsTabProps {
 
 function SettingsTab({ careGroup }: SettingsTabProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 sm:gap-x-12 gap-y-6">
       <div>
         <Label className="text-sm text-gray-700">Twilio SID</Label>
         <Input
@@ -944,7 +947,7 @@ function HomesTab({ homes }: HomesTabProps) {
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
-            className={`px-4 sm:px-8 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
+            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
               statusTab === tab
                 ? "bg-primary text-white border-primary"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
@@ -1022,7 +1025,7 @@ function HomesTab({ homes }: HomesTabProps) {
 
       {/* Table */}
       <div className="border rounded-lg bg-white overflow-x-auto">
-        <Table className="min-w-200">
+        <Table className="min-w-160">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12 pl-4">
