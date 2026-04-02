@@ -17,7 +17,6 @@ describe("uploads service integration", () => {
     useAuthSessionStore.setState({
       user: null,
       accessToken: "token-123",
-      refreshToken: "refresh-123",
       session: null,
       permissions: null,
       hasHydrated: true,

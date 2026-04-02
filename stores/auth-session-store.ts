@@ -168,15 +168,23 @@ export const useAuthSessionStore = create<AuthSessionState>()(
           return persistedState as AuthSessionState
         }
 
-        const state = persistedState as Partial<AuthSessionState>
+        const state = persistedState as Partial<AuthSessionState> & {
+          refreshToken?: string | null
+        }
 
         if (version < 2) {
+          const { refreshToken: _legacyRefreshToken, ...rest } = state
           return {
-            ...state,
+            ...rest,
             accessToken: null,
             accessTokenExpiresAt: null,
-            refreshTokenExpiresAt: state.refreshTokenExpiresAt ?? null,
+            refreshTokenExpiresAt: rest.refreshTokenExpiresAt ?? null,
           } as AuthSessionState
+        }
+
+        if ("refreshToken" in state) {
+          const { refreshToken: _legacyRefreshToken, ...rest } = state
+          return rest as AuthSessionState
         }
 
         return state as AuthSessionState

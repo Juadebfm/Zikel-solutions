@@ -22,7 +22,6 @@ function seedAuthenticatedSession(overrides?: Partial<AuthSessionContext>) {
   useAuthSessionStore.setState({
     user: null,
     accessToken: "access-old",
-    refreshToken: "refresh-old",
     permissions: null,
     hasHydrated: true,
     session: {
@@ -68,7 +67,7 @@ describe("api client integration: refresh and mfa", () => {
     vi.unstubAllGlobals()
   })
 
-  it("rotates refresh tokens and retries the original request once", async () => {
+  it("refreshes access token via cookie and retries the original request once", async () => {
     seedAuthenticatedSession()
 
     const fetchMock = vi.fn()
@@ -88,7 +87,6 @@ describe("api client integration: refresh and mfa", () => {
           data: {
             tokens: {
               accessToken: "access-new",
-              refreshToken: "refresh-new",
             },
             session: {
               activeTenantId: "tenant-2",
@@ -128,19 +126,25 @@ describe("api client integration: refresh and mfa", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
 
     const firstInit = fetchMock.mock.calls[0][1] as RequestInit
+    const secondUrl = fetchMock.mock.calls[1][0] as string
+    const secondInit = fetchMock.mock.calls[1][1] as RequestInit
     const thirdInit = fetchMock.mock.calls[2][1] as RequestInit
     expect((firstInit.headers as Record<string, string>).Authorization).toBe("Bearer access-old")
+    expect(secondUrl).toContain("/auth/refresh")
+    expect(secondInit.body).toBe("{}")
+    expect(firstInit.credentials).toBe("include")
+    expect(secondInit.credentials).toBe("include")
+    expect(thirdInit.credentials).toBe("include")
     expect((thirdInit.headers as Record<string, string>).Authorization).toBe("Bearer access-new")
 
     const state = useAuthSessionStore.getState()
     expect(state.accessToken).toBe("access-new")
-    expect(state.refreshToken).toBe("refresh-new")
     expect(state.session?.activeTenantId).toBe("tenant-2")
     expect(state.session?.memberships[0]?.tenantSlug).toBe("riverside")
     expect(state.session?.memberships[0]?.status).toBe("active")
   })
 
-  it("clears session when refresh token is invalid", async () => {
+  it("clears session when cookie refresh is invalid", async () => {
     seedAuthenticatedSession()
 
     const fetchMock = vi.fn()
@@ -175,7 +179,6 @@ describe("api client integration: refresh and mfa", () => {
 
     const state = useAuthSessionStore.getState()
     expect(state.accessToken).toBeNull()
-    expect(state.refreshToken).toBeNull()
     expect(state.session).toBeNull()
   })
 

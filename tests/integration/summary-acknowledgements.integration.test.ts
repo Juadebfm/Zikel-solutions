@@ -17,7 +17,6 @@ describe("summary service integration: acknowledgements", () => {
     useAuthSessionStore.setState({
       user: null,
       accessToken: "token-123",
-      refreshToken: "refresh-123",
       session: null,
       permissions: null,
       hasHydrated: true,
@@ -125,11 +124,11 @@ describe("summary service integration: acknowledgements", () => {
 
     vi.stubGlobal("fetch", fetchMock)
 
-    await summaryService.getAllTasksToApprove(200)
+    await summaryService.getAllTasksToApprove(800)
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [firstUrl] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(firstUrl).toContain("/summary/tasks-to-approve?page=1&pageSize=100")
+    expect(firstUrl).toContain("/summary/tasks-to-approve?page=1&pageSize=500")
   })
 
   it("passes signatureFileId when processing batch approvals", async () => {
