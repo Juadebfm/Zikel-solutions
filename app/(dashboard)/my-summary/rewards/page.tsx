@@ -97,6 +97,7 @@ export default function PendingRewardsPage() {
     type: "approve" | "reject" | "approve-bulk" | "reject-bulk"
     taskIds: string[]
   } | null>(null)
+  const [processingTaskIds, setProcessingTaskIds] = useState<Set<string>>(new Set())
 
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
@@ -158,6 +159,13 @@ export default function PendingRewardsPage() {
   const isPending = taskActionMutation.isPending
 
   const handleAction = async (ids: string[], action: "approve" | "reject") => {
+    setProcessingTaskIds((prev) => {
+      const next = new Set(prev)
+      for (const id of ids) next.add(id)
+      return next
+    })
+    setConfirmDialog(null)
+
     let processed = 0
     let failed = 0
     for (const taskId of ids) {
@@ -168,13 +176,19 @@ export default function PendingRewardsPage() {
         failed++
       }
     }
+
+    setProcessingTaskIds((prev) => {
+      const next = new Set(prev)
+      for (const id of ids) next.delete(id)
+      return next
+    })
+
     if (failed > 0) {
       showError(`${action === "approve" ? "Approved" : "Rejected"} ${processed}, ${failed} failed.`)
     } else {
       showToast(`${action === "approve" ? "Approved" : "Rejected"} ${processed} task(s).`)
     }
     setSelectedRows(new Set())
-    setConfirmDialog(null)
   }
 
   const colors = statusColors.pending
@@ -299,8 +313,22 @@ export default function PendingRewardsPage() {
               </TableRow>
             ) : (
               allTasks.map((task, index) => {
+                const isProcessing = processingTaskIds.has(task.id)
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
                 const youngPerson = task.relatedEntity?.type === "young_person" ? task.relatedEntity : null
+
+                if (isProcessing) {
+                  return (
+                    <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+                      {Array.from({ length: 9 }).map((_, j) => (
+                        <TableCell key={j} className={j === 0 ? "pl-4 py-3" : ""}>
+                          <Skeleton className="h-4 w-full max-w-[120px] animate-pulse" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                }
+
                 return (
                   <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
                     <TableCell className="pl-4 py-3">

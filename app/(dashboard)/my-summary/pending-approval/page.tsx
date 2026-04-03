@@ -158,6 +158,7 @@ export default function PendingApprovalPage() {
   const isPending = taskActionMutation.isPending || batchReassignMutation.isPending
 
   const handleApprove = (ids: string[]) => {
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     let processed = 0
     let failed = 0
     const total = ids.length
@@ -172,6 +173,7 @@ export default function PendingApprovalPage() {
               if (failed > 0) showError(`Approved ${processed}, ${failed} failed.`)
               else showToast(`Approved ${processed} task(s).`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
           onError: () => {
@@ -179,6 +181,7 @@ export default function PendingApprovalPage() {
             if (processed + failed === total) {
               showError(`Approved ${processed}, ${failed} failed.`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
         }
@@ -188,6 +191,7 @@ export default function PendingApprovalPage() {
   }
 
   const handleReject = (ids: string[]) => {
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     let processed = 0
     let failed = 0
     const total = ids.length
@@ -202,6 +206,7 @@ export default function PendingApprovalPage() {
               if (failed > 0) showError(`Rejected ${processed}, ${failed} failed.`)
               else showToast(`Rejected ${processed} task(s).`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
           onError: () => {
@@ -209,6 +214,7 @@ export default function PendingApprovalPage() {
             if (processed + failed === total) {
               showError(`Rejected ${processed}, ${failed} failed.`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
         }
@@ -219,14 +225,19 @@ export default function PendingApprovalPage() {
 
   const handleReassign = (ids: string[]) => {
     if (!reassigneeId) { showError("Please select an employee."); return }
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     batchReassignMutation.mutate({ taskIds: ids, assigneeId: reassigneeId }, {
       onSuccess: (r) => {
         if (r.failed.length > 0) showError(`Reassigned ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Reassigned ${r.processed} task(s).`)
         setSelectedRows(new Set())
         setReassigneeId("")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks."),
+      onError: (err) => {
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks.")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+      },
     })
     setConfirmDialog(null)
   }
@@ -357,7 +368,16 @@ export default function PendingApprovalPage() {
             ) : (
               allTasks.map((task, index: number) => {
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
-                return (
+                const isProcessing = processingTaskIds.has(task.id)
+                return isProcessing ? (
+                  <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <TableCell key={j} className={j === 0 ? "pl-4 py-3" : ""}>
+                        <Skeleton className="h-4 w-full max-w-[120px]" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ) : (
                   <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
                     <TableCell className="pl-4 py-3">
                       <Checkbox checked={selectedRows.has(task.id)} onCheckedChange={() => toggleRow(task.id)} />

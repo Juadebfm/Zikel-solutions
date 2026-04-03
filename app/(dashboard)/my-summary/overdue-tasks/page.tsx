@@ -100,6 +100,7 @@ export default function OverdueTasksPage() {
   } | null>(null)
   const [reassigneeId, setReassigneeId] = useState("")
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null)
+  const [processingTaskIds, setProcessingTaskIds] = useState<Set<string>>(new Set())
   const [resolvingTaskIds, setResolvingTaskIds] = useState<Set<string>>(new Set())
 
   const showError = useErrorModalStore((s) => s.show)
@@ -158,18 +159,24 @@ export default function OverdueTasksPage() {
   const isPending = batchArchiveMutation.isPending || batchPostponeMutation.isPending || batchReassignMutation.isPending
 
   const handleDelete = (ids: string[]) => {
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     batchArchiveMutation.mutate({ taskIds: ids }, {
       onSuccess: (r) => {
         if (r.failed.length > 0) showError(`Archived ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Archived ${r.processed} task(s).`)
         setSelectedRows(new Set())
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to delete tasks."),
+      onError: (err) => {
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to delete tasks.")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+      },
     })
     setConfirmDialog(null)
   }
 
   const handlePostpone = (ids: string[]) => {
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(9, 0, 0, 0)
@@ -178,22 +185,31 @@ export default function OverdueTasksPage() {
         if (r.failed.length > 0) showError(`Postponed ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Postponed ${r.processed} task(s) to tomorrow.`)
         setSelectedRows(new Set())
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to postpone tasks."),
+      onError: (err) => {
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to postpone tasks.")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+      },
     })
     setConfirmDialog(null)
   }
 
   const handleReassign = (ids: string[]) => {
     if (!reassigneeId) { showError("Please select an employee."); return }
+    setProcessingTaskIds((prev) => new Set([...prev, ...ids]))
     batchReassignMutation.mutate({ taskIds: ids, assigneeId: reassigneeId }, {
       onSuccess: (r) => {
         if (r.failed.length > 0) showError(`Reassigned ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Reassigned ${r.processed} task(s).`)
         setSelectedRows(new Set())
         setReassigneeId("")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks."),
+      onError: (err) => {
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks.")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+      },
     })
     setConfirmDialog(null)
   }
@@ -360,7 +376,16 @@ export default function OverdueTasksPage() {
             ) : (
               allTasks.map((task, index) => {
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
-                return (
+                const isProcessing = processingTaskIds.has(task.id) || resolvingTaskIds.has(task.id)
+                return isProcessing ? (
+                  <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <TableCell key={j} className={j === 0 ? "pl-4 py-3" : ""}>
+                        <Skeleton className="h-4 w-full max-w-[120px]" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ) : (
                   <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
                     <TableCell className="pl-4 py-3">
                       <Checkbox checked={selectedRows.has(task.id)} onCheckedChange={() => toggleRow(task.id)} />

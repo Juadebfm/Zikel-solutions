@@ -93,6 +93,7 @@ function formatShortDate(iso: string | null | undefined): string {
 export default function DraftTasksPage() {
   const router = useRouter()
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+  const [processingTaskIds, setProcessingTaskIds] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState("20")
   const [searchQuery, setSearchQuery] = useState("")
@@ -162,6 +163,8 @@ export default function DraftTasksPage() {
     let failed = 0
     const total = ids.length
 
+    setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next })
+
     ids.forEach((taskId) => {
       deleteTaskMutation.mutate(taskId, {
         onSuccess: () => {
@@ -170,6 +173,7 @@ export default function DraftTasksPage() {
             if (failed > 0) showError(`Deleted ${processed}, ${failed} failed.`)
             else showToast(`Deleted ${processed} task(s).`)
             setSelectedRows(new Set())
+            setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
           }
         },
         onError: () => {
@@ -177,6 +181,7 @@ export default function DraftTasksPage() {
           if (processed + failed === total) {
             showError(`Deleted ${processed}, ${failed} failed.`)
             setSelectedRows(new Set())
+            setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
           }
         },
       })
@@ -189,6 +194,8 @@ export default function DraftTasksPage() {
     let failed = 0
     const total = ids.length
 
+    setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next })
+
     ids.forEach((taskId) => {
       taskActionMutation.mutate(
         { taskId, payload: { action: "submit" } },
@@ -199,6 +206,7 @@ export default function DraftTasksPage() {
               if (failed > 0) showError(`Submitted ${processed}, ${failed} failed.`)
               else showToast(`Submitted ${processed} task(s).`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
           onError: () => {
@@ -206,6 +214,7 @@ export default function DraftTasksPage() {
             if (processed + failed === total) {
               showError(`Submitted ${processed}, ${failed} failed.`)
               setSelectedRows(new Set())
+              setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
             }
           },
         }
@@ -216,14 +225,21 @@ export default function DraftTasksPage() {
 
   const handleReassign = (ids: string[]) => {
     if (!reassigneeId) { showError("Please select an employee."); return }
+
+    setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next })
+
     batchReassignMutation.mutate({ taskIds: ids, assigneeId: reassigneeId }, {
       onSuccess: (r) => {
         if (r.failed.length > 0) showError(`Reassigned ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Reassigned ${r.processed} task(s).`)
         setSelectedRows(new Set())
         setReassigneeId("")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks."),
+      onError: (err) => {
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks.")
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+      },
     })
     setConfirmDialog(null)
   }
@@ -353,6 +369,17 @@ export default function DraftTasksPage() {
               </TableRow>
             ) : (
               allTasks.map((task, index: number) => {
+                if (processingTaskIds.has(task.id)) {
+                  return (
+                    <TableRow key={task.id} className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50/60"} animate-pulse`}>
+                      {Array.from({ length: 9 }).map((_, j) => (
+                        <TableCell key={j} className={j === 0 ? "pl-4 py-3" : ""}>
+                          <Skeleton className="h-4 w-full max-w-[120px]" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                }
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
                 const createdAt = task.timestamps?.createdAt
                 return (

@@ -159,6 +159,7 @@ export default function DueTodayPage() {
     taskIds: string[]
   } | null>(null)
   const [reassigneeId, setReassigneeId] = useState("")
+  const [processingTaskIds, setProcessingTaskIds] = useState<Set<string>>(new Set())
 
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
@@ -268,27 +269,37 @@ export default function DueTodayPage() {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(9, 0, 0, 0)
+    setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next })
     batchPostponeMutation.mutate({ taskIds: ids, dueDate: tomorrow.toISOString() }, {
       onSuccess: (r) => {
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
         if (r.failed.length > 0) showError(`Postponed ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Postponed ${r.processed} task(s) to tomorrow.`)
         setSelectedRows(new Set())
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to postpone tasks."),
+      onError: (err) => {
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to postpone tasks.")
+      },
     })
     setConfirmDialog(null)
   }
 
   const handleReassign = (ids: string[]) => {
     if (!reassigneeId) { showError("Please select an employee."); return }
+    setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.add(id)); return next })
     batchReassignMutation.mutate({ taskIds: ids, assigneeId: reassigneeId }, {
       onSuccess: (r) => {
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
         if (r.failed.length > 0) showError(`Reassigned ${r.processed}, ${r.failed.length} failed.`)
         else showToast(`Reassigned ${r.processed} task(s).`)
         setSelectedRows(new Set())
         setReassigneeId("")
       },
-      onError: (err) => showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks."),
+      onError: (err) => {
+        setProcessingTaskIds((prev) => { const next = new Set(prev); ids.forEach((id) => next.delete(id)); return next })
+        showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign tasks.")
+      },
     })
     setConfirmDialog(null)
   }
@@ -444,6 +455,39 @@ export default function DueTodayPage() {
               </TableRow>
             ) : (
               paginated.map((task, index) => {
+                const isProcessing = processingTaskIds.has(task.id)
+
+                if (isProcessing) {
+                  return (
+                    <TableRow key={task.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+                      <TableCell className="pl-4 py-3"><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell>
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-[140px] sm:w-[180px]" />
+                          <Skeleton className="h-3 w-[100px] sm:w-[140px]" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-4 w-[80px]" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
+                      <TableCell className="text-center"><Skeleton className="h-5 w-14 rounded-full mx-auto" /></TableCell>
+                      <TableCell>
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-4"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                    </TableRow>
+                  )
+                }
+
                 const bucket = getDueBucket(task.dueAt, boundaries) ?? "due today"
                 const badgeColors = BUCKET_BADGE_COLORS[bucket]
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
