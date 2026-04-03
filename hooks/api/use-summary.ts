@@ -50,6 +50,25 @@ export function useSummaryTodos(params?: {
   })
 }
 
+export function useAllSummaryTodos(params?: {
+  sortBy?: string
+  sortOrder?: "asc" | "desc"
+  search?: string
+}) {
+  const resolvedParams = {
+    sortBy: params?.sortBy,
+    sortOrder: params?.sortOrder,
+    search: params?.search,
+  }
+
+  return useQuery({
+    queryKey: queryKeys.summary.todosAll(resolvedParams),
+    queryFn: () => summaryService.getAllTodos(undefined, resolvedParams),
+    staleTime: SUMMARY_STALE_TIME,
+    gcTime: SUMMARY_GC_TIME,
+  })
+}
+
 export function useSummaryTasksToApprove(
   params?: { page?: number; pageSize?: number; scope?: SummaryTaskScope },
   enabled = true
@@ -75,7 +94,7 @@ export function useAllSummaryTasksToApprove(enabled = true) {
 
   return useQuery({
     queryKey: queryKeys.summary.tasksToApproveAll(scope),
-    queryFn: () => summaryService.getAllTasksToApprove(500, scope),
+    queryFn: () => summaryService.getAllTasksToApprove(undefined, scope),
     staleTime: SUMMARY_STALE_TIME,
     gcTime: SUMMARY_GC_TIME,
     enabled,

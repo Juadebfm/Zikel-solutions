@@ -30,16 +30,18 @@ import { useHomeList } from "@/hooks/api/use-homes"
 import { useYoungPersonList } from "@/hooks/api/use-young-people"
 import { useFormList } from "@/hooks/api/use-forms"
 import { useCreateDailyLog } from "@/hooks/api/use-daily-logs"
+import { useReflectivePrompts } from "@/hooks/api/use-safeguarding"
 import { useErrorModalStore } from "@/components/shared/error-modal"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { CreateDailyLogPayload } from "@/services/daily-logs.service"
 
 // ─── Constants ───────────────────────────────────────────────────
 
 const LOG_CATEGORIES = [
   "General",
-  "Incident",
+  "Observation",
   "Medication",
-  "Behaviour",
+  "Regulation & Communication",
   "Health",
   "Education",
   "Safeguarding",
@@ -77,6 +79,7 @@ export function CreateDailyLogDialog({
   const [category, setCategory] = useState("")
   const [triggerTaskFormKey, setTriggerTaskFormKey] = useState("")
   const [note, setNote] = useState("")
+  const [promptResponses, setPromptResponses] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const showError = useErrorModalStore((s) => s.show)
 
@@ -93,9 +96,19 @@ export function CreateDailyLogDialog({
   })
   const formsQuery = useFormList({ page: 1, pageSize: 100, status: "released" })
 
+  const reflectivePromptsQuery = useReflectivePrompts(Boolean(category))
+
   const homes = homesQuery.data?.items ?? []
   const youngPeople = youngPeopleQuery.data?.items ?? []
   const forms = formsQuery.data?.items ?? []
+
+  // Filter prompts matching the current category
+  const activePrompts = useMemo(() => {
+    if (!category || !reflectivePromptsQuery.data) return []
+    return reflectivePromptsQuery.data.prompts
+      .filter((p) => p.category.toLowerCase() === category.toLowerCase() || p.category === "*")
+      .sort((a, b) => a.order - b.order)
+  }, [category, reflectivePromptsQuery.data])
 
   function handleHomeChange(value: string) {
     setHomeId(value)
@@ -140,6 +153,7 @@ export function CreateDailyLogDialog({
     setCategory("")
     setTriggerTaskFormKey("")
     setNote("")
+    setPromptResponses({})
     setError(null)
   }
 
@@ -162,12 +176,18 @@ export function CreateDailyLogDialog({
     // Parse relates-to value ("young_person:id")
     const [type, id] = relatesToValue.split(":")
 
+    // Build reflective prompt responses for submission
+    const reflectiveResponses = Object.entries(promptResponses)
+      .filter(([, value]) => value.trim())
+      .map(([promptId, response]) => ({ promptId, response }))
+
     const payload: CreateDailyLogPayload = {
       homeId,
       noteDate: new Date(noteDate).toISOString(),
       category,
       note,
       relatesTo: { type: type as "young_person" | "vehicle", id },
+      ...(reflectiveResponses.length > 0 && { reflectivePrompts: reflectiveResponses }),
     }
 
     if (triggerTaskFormKey) {
@@ -307,7 +327,49 @@ export function CreateDailyLogDialog({
             </div>
           )}
 
-          {/* 5. Daily Log content */}
+          {/* 5. Reflective prompts (loaded from BE) */}
+          {homeId && relatesToValue && category && activePrompts.length > 0 && (
+            <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm font-medium text-primary">
+                Reflective Prompts
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Take a moment to reflect before recording. These questions help
+                support therapeutic thinking.
+              </p>
+              {activePrompts.map((prompt) => (
+                <div key={prompt.id} className="space-y-1">
+                  <Label className="text-sm font-normal italic">
+                    {prompt.prompt}
+                  </Label>
+                  {prompt.helpText && (
+                    <p className="text-xs text-muted-foreground">{prompt.helpText}</p>
+                  )}
+                  <Textarea
+                    value={promptResponses[prompt.id] ?? ""}
+                    onChange={(e) =>
+                      setPromptResponses((prev) => ({ ...prev, [prompt.id]: e.target.value }))
+                    }
+                    placeholder="Your reflection..."
+                    className="min-h-[60px] resize-y text-sm"
+                    rows={2}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {homeId && relatesToValue && category && reflectivePromptsQuery.isLoading && (
+            <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          )}
+
+          {/* 6. Daily Log content */}
           {homeId && relatesToValue && category && (
             <div className="space-y-1.5">
               <Label htmlFor="note" className="text-sm">
@@ -317,7 +379,7 @@ export function CreateDailyLogDialog({
                 id="note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Describe what happened, observations, actions taken..."
+                placeholder="What did you observe? What might the child have been communicating? How did you respond with empathy?"
                 className="min-h-[160px] resize-y"
                 maxLength={10000}
               />

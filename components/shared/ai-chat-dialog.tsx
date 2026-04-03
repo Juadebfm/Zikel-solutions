@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
 import { useErrorModalStore } from "@/components/shared/error-modal"
+import { AiAnalysisSections } from "@/components/shared/ai-analysis-sections"
 import type { AskAiContext, AskAiPage, AskAiResponse } from "@/services/ai.service"
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ interface AiChatMessage {
   createdAt: string
   meta?: AiMessageMetadata
   suggestions?: AskAiResponse["suggestions"]
+  analysis?: AskAiResponse["analysis"]
 }
 
 export interface AiChatDialogProps {
@@ -84,6 +86,12 @@ function buildAskAiQuery(query: string, conversation: AiChatMessage[]): string {
 
 function getAskAiErrorMessage(error: unknown): string {
   if (isApiClientError(error)) {
+    if (error.status === 403 && error.code === "AI_ACCESS_DISABLED") {
+      return "AI access is disabled for your account. Contact your administrator."
+    }
+    if (error.status === 403 && error.code === "MFA_REQUIRED") {
+      return "Additional verification is required before using AI."
+    }
     if (error.status === 400 || error.status === 422) {
       return "Your prompt was invalid. Please enter a clearer question."
     }
@@ -312,6 +320,7 @@ export function AiChatDialog({
               generatedAt: response.generatedAt,
             },
             suggestions: response.suggestions,
+            analysis: response.analysis,
           },
         ])
       } catch (err) {
@@ -345,6 +354,15 @@ export function AiChatDialog({
       onSuggestionAction(action)
     }
     void submitQuery(label)
+  }
+
+  const handleQuickActionClick = (action: string, label: string) => {
+    if (onSuggestionAction) {
+      onSuggestionAction(action)
+      return
+    }
+
+    setQuery(label)
   }
 
   const handleReset = () => {
@@ -402,6 +420,10 @@ export function AiChatDialog({
                   ) : message.role === "assistant" ? (
                     <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3">
                       <FormattedAiContent content={message.content} />
+                      <AiAnalysisSections
+                        analysis={message.analysis}
+                        onQuickAction={handleQuickActionClick}
+                      />
 
                       {message.suggestions && message.suggestions.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">

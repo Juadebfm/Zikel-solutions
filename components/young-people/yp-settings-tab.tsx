@@ -47,7 +47,7 @@ import type { YPSettingCategory } from "@/types"
 
 const settingsCategories: { key: string; label: string }[] = [
   { key: "reward-types", label: "Reward Types" },
-  { key: "behaviour-categories", label: "Behaviour Categories" },
+  { key: "behaviour-categories", label: "Response Patterns" },
   { key: "outcome-star-factors", label: "Outcome Star Factors" },
   { key: "key-worker-types", label: "Key Worker Types" },
   { key: "placement-types", label: "Placement Types" },

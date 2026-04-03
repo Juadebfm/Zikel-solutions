@@ -90,6 +90,50 @@ export interface SummaryReferenceSummary {
   total: number
 }
 
+export interface SummaryTaskAttachment {
+  id?: string
+  name?: string
+  contentType?: string
+  sizeBytes?: number
+  [key: string]: unknown
+}
+
+export interface SummaryTaskApprovalChainEntry {
+  userId?: string
+  name?: string
+  avatarUrl?: string | null
+  status?: string
+  respondedAt?: string | null
+  comment?: string | null
+  [key: string]: unknown
+}
+
+export interface SummaryTaskActivityEntry {
+  id?: string
+  action?: string
+  by?: string
+  at?: string
+  note?: string | null
+  [key: string]: unknown
+}
+
+export interface SummaryTaskComment {
+  id?: string
+  by?: { name?: string; avatarUrl?: string | null } | string
+  text?: string
+  at?: string
+  [key: string]: unknown
+}
+
+export interface SummaryTaskAuditTrailEntry {
+  field?: string
+  from?: string | null
+  to?: string | null
+  by?: string
+  at?: string
+  [key: string]: unknown
+}
+
 export interface SummaryTaskContext {
   formName?: string | null
   formGroup?: string | null
@@ -155,6 +199,13 @@ export interface SummaryTaskItem {
     createdAt: string
     updatedAt: string
   }
+
+  attachments?: SummaryTaskAttachment[]
+  approvalChain?: SummaryTaskApprovalChainEntry[]
+  activityLog?: SummaryTaskActivityEntry[]
+  comments?: SummaryTaskComment[]
+  auditTrail?: SummaryTaskAuditTrailEntry[]
+  formData?: Record<string, unknown> | null
 
   references: Array<{
     id: string
@@ -345,7 +396,7 @@ const DEFAULT_META: ApiMeta = {
   totalPages: 0,
 }
 
-const SUMMARY_MAX_PAGE_SIZE = 500
+const SUMMARY_MAX_PAGE_SIZE = 100
 
 const SUMMARY_LABEL_KEYS: Array<keyof SummaryListLabels> = [
   "listTitle",
@@ -440,6 +491,47 @@ export const summaryService = {
       meta: response.meta ?? DEFAULT_META,
       labels: extractSummaryLabels(response),
     }
+  },
+
+  async getAllTodos(
+    pageSize = SUMMARY_MAX_PAGE_SIZE,
+    params?: {
+      sortBy?: string
+      sortOrder?: "asc" | "desc"
+      search?: string
+    }
+  ): Promise<SummaryTaskItem[]> {
+    const allRows: SummaryTaskItem[] = []
+    const safePageSize = clampPageSize(pageSize, SUMMARY_MAX_PAGE_SIZE)
+    let page = 1
+    let totalPages = 1
+
+    while (page <= totalPages) {
+      const result = await summaryService.getTodos({
+        page,
+        pageSize: safePageSize,
+        sortBy: params?.sortBy,
+        sortOrder: params?.sortOrder,
+        search: params?.search,
+      })
+      allRows.push(...result.items)
+
+      const metaTotalPages = result.meta.totalPages
+      if (Number.isFinite(metaTotalPages) && metaTotalPages > 0) {
+        totalPages = metaTotalPages
+      } else if (result.items.length < safePageSize) {
+        break
+      }
+
+      page += 1
+    }
+
+    const deduped = new Map<string, SummaryTaskItem>()
+    for (const row of allRows) {
+      deduped.set(row.id, row)
+    }
+
+    return Array.from(deduped.values())
   },
 
   async getTasksToApprove(params?: {

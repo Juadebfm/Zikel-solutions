@@ -39,7 +39,7 @@ import type { CreateTaskPayload } from "@/services/tasks.service"
 const CATEGORIES = [
   { value: "general", label: "General" },
   { value: "compliance", label: "Compliance" },
-  { value: "incident", label: "Incident" },
+  { value: "incident", label: "Observation" },
   { value: "maintenance", label: "Maintenance" },
   { value: "meeting", label: "Meeting" },
   { value: "documentation", label: "Documentation" },

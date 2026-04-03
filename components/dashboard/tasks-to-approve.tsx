@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export interface ApprovalTask {
   /** Raw internal id (CUID) — used only for API calls (/tasks-to-approve/:id). */
@@ -73,6 +74,7 @@ interface TasksToApproveProps {
   pageSize?: number
   onPageChange?: (page: number) => void
   allReviewed?: boolean
+  approvingTaskIds?: Set<string>
 }
 
 const statusConfig = {
@@ -139,11 +141,13 @@ export function TasksToApprove({
   pageSize = 10,
   onPageChange,
   allReviewed = false,
+  approvingTaskIds = new Set<string>(),
 }: TasksToApproveProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const canPaginate = totalPages > 1 && Boolean(onPageChange)
   const allSelected = items.length > 0 && selectedIds.size === items.length
   const pendingCount = totalItems
+  const isAnyApproving = approvingTaskIds.size > 0
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -179,7 +183,7 @@ export function TasksToApprove({
   }
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="flex flex-col">
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <CardTitle className="text-xl font-bold text-gray-900">Approvals</CardTitle>
@@ -204,7 +208,7 @@ export function TasksToApprove({
               variant="ghost"
               size="sm"
               className="text-emerald-600 hover:text-emerald-700 text-xs gap-1.5 font-semibold"
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || isAnyApproving}
               onClick={() => {
                 if (onApproveAll) {
                   onApproveAll(Array.from(selectedIds))
@@ -220,7 +224,7 @@ export function TasksToApprove({
               variant="ghost"
               size="sm"
               className="text-red-500 hover:text-red-600 text-xs gap-1.5 font-semibold"
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || isAnyApproving}
               onClick={() => onRejectAll?.(Array.from(selectedIds))}
             >
               <XCircle className="h-3.5 w-3.5" />
@@ -245,10 +249,51 @@ export function TasksToApprove({
               const status = statusConfig[item.status]
               const displayDomain = item.domain ?? item.taskRef
               const displayId = item.requestId ?? item.taskRef
+              const itemApproving = approvingTaskIds.has(item.id)
+
+              if (itemApproving) {
+                return (
+                  <div
+                    key={item.id}
+                    className="border border-gray-200 rounded-xl p-4 bg-white animate-pulse"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-3 w-40" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-11/12" />
+                        <Skeleton className="h-3 w-8/12" />
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
+                          <div className="space-y-1">
+                            <Skeleton className="h-2 w-16" />
+                            <Skeleton className="h-3 w-20" />
+                          </div>
+                          <div className="space-y-1">
+                            <Skeleton className="h-2 w-16" />
+                            <Skeleton className="h-3 w-20" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Skeleton className="h-8 w-28 rounded-md" />
+                          <Skeleton className="h-8 w-20 rounded-md" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
               return (
                 <div
                   key={item.id}
-                  className="border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow bg-white"
+                  className={cn(
+                    "border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow bg-white",
+                    itemApproving && "opacity-80"
+                  )}
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
@@ -286,7 +331,6 @@ export function TasksToApprove({
                           {item.statusLabel || status.label}
                         </span>
                       </div>
-
                       {/* Title */}
                       <h3 className="text-sm font-semibold text-gray-900 mb-0.5 line-clamp-1">
                         {item.title}
@@ -349,7 +393,7 @@ export function TasksToApprove({
                             size="sm"
                             className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold px-6 rounded-md gap-1.5 flex-1 sm:flex-none"
                             onClick={() => onApprove(item.id)}
-                            disabled={!item.reviewed}
+                            disabled={!item.reviewed || itemApproving}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             {getApproveLabel(item.domain)}
@@ -360,6 +404,7 @@ export function TasksToApprove({
                           size="sm"
                           className="text-xs font-semibold px-4 rounded-md border-gray-300 text-gray-700"
                           onClick={() => onView?.(item.id)}
+                          disabled={itemApproving}
                         >
                           REVIEW
                         </Button>

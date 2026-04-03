@@ -129,6 +129,38 @@ async function safeList(path: string, query?: QueryParams): Promise<JsonRecord[]
   return normalizeListData(response.data)
 }
 
+/**
+ * Fetches all pages of a paginated endpoint (pageSize capped at 100).
+ * Use this instead of safeList when you need every record.
+ */
+async function safeListAll(path: string, query?: QueryParams): Promise<JsonRecord[]> {
+  const PAGE_SIZE = 100
+  const allRows: JsonRecord[] = []
+  let page = 1
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const response = await apiRequest<unknown>({
+      path,
+      auth: true,
+      query: { ...query, page, pageSize: PAGE_SIZE },
+    })
+
+    const rows = normalizeListData(response.data)
+    allRows.push(...rows)
+
+    const meta = (response.meta ?? {}) as Record<string, unknown>
+    const totalPages = Number(meta.totalPages ?? 1) || 1
+
+    if (page >= totalPages || rows.length < PAGE_SIZE) {
+      break
+    }
+    page++
+  }
+
+  return allRows
+}
+
 async function safeDetail(path: string): Promise<JsonRecord | null> {
   const response = await apiRequest<unknown>({
     path,
@@ -307,9 +339,7 @@ function mapAuditBase(record: JsonRecord, index: number, category: string) {
 
 export const backendDataService = {
   async listCareGroups(): Promise<CareGroup[]> {
-    const rows = await safeList("/care-groups", {
-      page: 1,
-      pageSize: 200,
+    const rows = await safeListAll("/care-groups", {
       isActive: true,
     })
 
@@ -332,9 +362,7 @@ export const backendDataService = {
   },
 
   async listHomes(careGroupId?: number): Promise<CareGroupHome[]> {
-    const rows = await safeList("/homes", {
-      page: 1,
-      pageSize: 500,
+    const rows = await safeListAll("/homes", {
       isActive: true,
     })
 
@@ -348,9 +376,7 @@ export const backendDataService = {
   },
 
   async listEmployees(): Promise<Employee[]> {
-    const rows = await safeList("/employees", {
-      page: 1,
-      pageSize: 500,
+    const rows = await safeListAll("/employees", {
       isActive: true,
     })
 
@@ -358,9 +384,7 @@ export const backendDataService = {
   },
 
   async listYoungPeople(): Promise<YoungPerson[]> {
-    const rows = await safeList("/young-people", {
-      page: 1,
-      pageSize: 500,
+    const rows = await safeListAll("/young-people", {
       isActive: true,
     })
 
@@ -368,10 +392,7 @@ export const backendDataService = {
   },
 
   async listVehicles(): Promise<Vehicle[]> {
-    const rows = await safeList("/vehicles", {
-      page: 1,
-      pageSize: 500,
-    })
+    const rows = await safeListAll("/vehicles")
 
     return rows.map(mapVehicle)
   },
@@ -454,7 +475,7 @@ export const backendDataService = {
   },
 
   async listTaskExplorerLogs(): Promise<TaskExplorerLogEntry[]> {
-    const rows = await safeList("/tasks", { page: 1, pageSize: 500 })
+    const rows = await safeListAll("/tasks")
 
     return rows.map((row, index) => ({
       id: pickString(row, ["id"], `log-${index + 1}`),

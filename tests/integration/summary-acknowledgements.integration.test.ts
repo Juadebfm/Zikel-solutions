@@ -128,7 +128,7 @@ describe("summary service integration: acknowledgements", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [firstUrl] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(firstUrl).toContain("/summary/tasks-to-approve?page=1&pageSize=500")
+    expect(firstUrl).toContain("/summary/tasks-to-approve?page=1&pageSize=100")
   })
 
   it("passes signatureFileId when processing batch approvals", async () => {

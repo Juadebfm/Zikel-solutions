@@ -54,6 +54,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useTaskList, useDeleteTask } from "@/hooks/api/use-tasks"
 import { useBatchReassign } from "@/hooks/api/use-summary"
 import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
+import type { TaskListItem } from "@/services/tasks.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
@@ -111,7 +112,7 @@ export default function RejectedTasksPage() {
     search: searchQuery || undefined,
   })
 
-  const allTasks = data?.items ?? []
+  const allTasks: TaskListItem[] = data?.items ?? []
   const meta = data?.meta
   const totalPages = Math.max(meta?.totalPages ?? 1, 1)
   const totalItems = meta?.total ?? allTasks.length
@@ -125,12 +126,12 @@ export default function RejectedTasksPage() {
   // Summary stats derived from current page data
   const summary = useMemo(() => {
     const priorities = { urgent: 0, high: 0, medium: 0, low: 0 }
-    const unassigned = allTasks.filter((t: any) => !t.assignee).length
+    const unassigned = allTasks.filter((t) => !t.assignee).length
     const categories = new Set<string>()
 
     for (const t of allTasks) {
-      if ((t as any).priority in priorities) priorities[(t as any).priority as keyof typeof priorities]++
-      if ((t as any).categoryLabel) categories.add((t as any).categoryLabel)
+      priorities[t.priority]++
+      if (t.categoryLabel) categories.add(t.categoryLabel)
     }
 
     return { priorities, unassigned, categoryCount: categories.size }
@@ -148,7 +149,7 @@ export default function RejectedTasksPage() {
 
   const toggleAllRows = () => {
     if (selectedRows.size === allTasks.length) setSelectedRows(new Set())
-    else setSelectedRows(new Set(allTasks.map((t: any) => t.id)))
+    else setSelectedRows(new Set(allTasks.map((t) => t.id)))
   }
 
   // Handlers
@@ -316,7 +317,7 @@ export default function RejectedTasksPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              allTasks.map((task: any, index: number) => {
+              allTasks.map((task, index: number) => {
                 const prio = priorityConfig[task.priority as keyof typeof priorityConfig] ?? priorityConfig.medium
                 const rejectedAt = task.timestamps?.updatedAt
                 return (

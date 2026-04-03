@@ -49,10 +49,10 @@ import type { YPAuditCategory } from "@/types"
 const auditCategories: { key: string; label: string }[] = [
   { key: "placements", label: "Placements" },
   { key: "rewards", label: "Rewards" },
-  { key: "behaviours", label: "Behaviours" },
+  { key: "behaviours", label: "Regulation & Communication" },
   { key: "outcome-stars", label: "Outcome Stars" },
   { key: "key-sessions", label: "Key Sessions" },
-  { key: "incidents", label: "Incidents" },
+  { key: "incidents", label: "Observations" },
   { key: "file-uploads", label: "File Uploads" },
 ]
 

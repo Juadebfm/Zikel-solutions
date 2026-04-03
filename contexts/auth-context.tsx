@@ -131,7 +131,8 @@ function isSessionTerminalError(error: unknown): boolean {
   return (
     error.code === "SESSION_IDLE_EXPIRED" ||
     error.code === "SESSION_ABSOLUTE_EXPIRED" ||
-    error.code === "REFRESH_TOKEN_INVALID"
+    error.code === "REFRESH_TOKEN_INVALID" ||
+    error.code === "REFRESH_TOKEN_REUSED"
   )
 }
 

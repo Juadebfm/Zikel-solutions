@@ -31,7 +31,7 @@ export type TaskEntityType =
   | "document"
   | "event"
 
-export type TaskScope = "all" | "my_tasks" | "assigned_to_me" | "approvals"
+export type TaskScope = "all" | "my_tasks" | "assigned_to_me" | "approvals" | "approved"
 
 export type TaskActionType =
   | "submit"
@@ -178,6 +178,7 @@ export interface UpdateTaskPayload {
   type?: TaskEntityType
   relatedEntityId?: string
   priority?: TaskPriority
+  status?: string
   dueAt?: string
   assigneeId?: string
   approverIds?: string[]
@@ -218,6 +219,7 @@ export interface TaskListParams {
   dateFrom?: string
   dateTo?: string
   scope?: TaskScope
+  approvalStatus?: string
   formGroup?: string
 }
 
@@ -251,6 +253,7 @@ export const tasksService = {
         dateFrom: params?.dateFrom,
         dateTo: params?.dateTo,
         scope: params?.scope,
+        approvalStatus: params?.approvalStatus,
         formGroup: params?.formGroup,
       },
     })

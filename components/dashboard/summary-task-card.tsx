@@ -17,6 +17,7 @@ interface SummaryTaskCardProps {
   avatarColor: string
   badges?: ReactNode
   actions?: ReactNode
+  className?: string
 }
 
 export function SummaryTaskCard({
@@ -31,9 +32,10 @@ export function SummaryTaskCard({
   avatarColor,
   badges,
   actions,
+  className,
 }: SummaryTaskCardProps) {
   return (
-    <article className="rounded-xl border border-amber-200/70 bg-amber-50/40 p-4 sm:p-5">
+    <article className={cn("rounded-xl border border-amber-200/70 bg-amber-50/40 p-4 sm:p-5", className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <Avatar className="h-12 w-12 sm:h-14 sm:w-14 shrink-0">

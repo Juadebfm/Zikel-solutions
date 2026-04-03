@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Archive,
@@ -28,7 +28,7 @@ export interface TodoItem {
   domain?: string
   /** Human-readable status label from BE. Falls back to local statusConfig. */
   statusLabel?: string
-  status: "draft" | "not-started" | "in-progress" | "overdue"
+  status: "draft" | "not-started" | "in-progress" | "overdue" | "completed" | "cancelled"
   /** ISO timestamp — used to derive "2h ago" display. */
   submittedAt?: string | null
   dueDate: string
@@ -75,6 +75,8 @@ const statusConfig = {
     className: "bg-blue-50 text-blue-600 border-blue-200",
   },
   overdue: { label: "Overdue", className: "bg-red-50 text-red-600 border-red-200" },
+  completed: { label: "Completed", className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  cancelled: { label: "Cancelled", className: "bg-gray-100 text-gray-500 border-gray-200" },
 }
 
 const categoryColors: Record<string, string> = {
@@ -108,14 +110,26 @@ function formatTimeAgo(isoDate: string | null | undefined): string | undefined {
 }
 
 function resolveTaskHref(item: TodoItem): string {
-  if (item.taskUrl) return item.taskUrl
-  return `/tasks?taskId=${encodeURIComponent(item.id)}`
+  return `/my-summary/todos?taskId=${encodeURIComponent(item.id)}&openDrawer=1`
 }
 
 function getActionButton(item: TodoItem) {
   const href = resolveTaskHref(item)
 
-  if (item.status === "overdue") {
+  if (item.status === "completed" || item.status === "cancelled") {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        disabled
+        className="text-xs font-semibold px-4 rounded-md border-gray-300 text-gray-500"
+      >
+        COMPLETED
+      </Button>
+    )
+  }
+
+  if (item.status === "overdue" || item.status === "not-started" || item.status === "in-progress") {
     return (
       <Link href={href}>
         <Button
@@ -127,18 +141,7 @@ function getActionButton(item: TodoItem) {
       </Link>
     )
   }
-  if (item.status === "not-started" || item.status === "draft") {
-    return (
-      <Link href={href}>
-        <Button
-          size="sm"
-          className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold px-4 rounded-md"
-        >
-          EXECUTE
-        </Button>
-      </Link>
-    )
-  }
+
   return (
     <Link href={href}>
       <Button
@@ -164,8 +167,19 @@ export function TodoList({
   onPostpone,
 }: TodoListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const visibleItemIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
   const canPaginate = totalPages > 1 && Boolean(onPageChange)
-  const allSelected = items.length > 0 && selectedIds.size === items.length
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.has(item.id))
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set<string>()
+      prev.forEach((id) => {
+        if (visibleItemIds.has(id)) next.add(id)
+      })
+      return next.size === prev.size ? prev : next
+    })
+  }, [visibleItemIds])
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -180,7 +194,7 @@ export function TodoList({
     if (allSelected) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(items.map((i) => i.id)))
+      setSelectedIds(new Set(items.map((item) => item.id)))
     }
   }
 
@@ -201,12 +215,12 @@ export function TodoList({
   }
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="flex flex-col">
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <CardTitle className="text-xl font-bold text-gray-900">To Do List</CardTitle>
         <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 rounded-full">
-          {totalItems} ACTIVE TASKS
+          {items.length} ACTIVE TASKS
         </Badge>
       </CardHeader>
 
@@ -254,7 +268,7 @@ export function TodoList({
             </div>
           ) : items.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">
-              No tasks to display
+              No active tasks to display
             </p>
           ) : (
             items.map((item) => {

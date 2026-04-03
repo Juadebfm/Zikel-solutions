@@ -8,7 +8,6 @@ import {
   FileText,
   MessageSquare,
   UserPlus,
-  Loader2,
   Paperclip,
   Calendar,
   User2,
@@ -33,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import type {
   TaskDetail,
@@ -267,10 +267,57 @@ export function TaskDetailDrawer({
           task && `border-l-4 ${status.border}`
         )}
       >
-        {/* Loading */}
+        <SheetTitle className="sr-only">
+          {task ? `Task detail: ${task.title}` : "Task detail"}
+        </SheetTitle>
+        <SheetDescription className="sr-only">
+          {task ? `Task detail view for ${task.title}` : "Task detail view"}
+        </SheetDescription>
+
+        {/* Loading skeleton */}
         {isLoading && (
-          <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <div className="flex flex-col flex-1">
+            {/* Header skeleton */}
+            <div className="px-6 pt-5 pb-4 space-y-3">
+              <Skeleton className="h-6 w-3/4" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-28 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+
+            {/* Metadata card skeleton */}
+            <div className="mx-6 rounded-lg bg-muted/50 border p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabs skeleton */}
+            <div className="px-6 pt-4 space-y-4">
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-16 rounded-md" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-md border p-3 space-y-2">
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -293,12 +340,9 @@ export function TaskDetailDrawer({
           <>
             {/* ── Header ────────────────────────────────── */}
             <div className="px-6 pt-5 pb-4 space-y-3">
-              <SheetTitle className="text-xl font-semibold leading-tight pr-8">
+              <h2 className="text-xl font-semibold leading-tight pr-8">
                 {task.title}
-              </SheetTitle>
-              <SheetDescription className="sr-only">
-                Task detail view for {task.title}
-              </SheetDescription>
+              </h2>
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">

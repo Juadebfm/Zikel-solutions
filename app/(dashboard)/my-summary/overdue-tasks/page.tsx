@@ -50,8 +50,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SummaryTaskDrawer } from "@/components/dashboard/summary-task-drawer"
 import { useSummaryOverdueTasks } from "@/hooks/api/use-summary"
 import { useBatchArchive, useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
+import { useUpdateTask } from "@/hooks/api/use-tasks"
 import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
@@ -97,6 +99,8 @@ export default function OverdueTasksPage() {
     taskIds: string[]
   } | null>(null)
   const [reassigneeId, setReassigneeId] = useState("")
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null)
+  const [resolvingTaskIds, setResolvingTaskIds] = useState<Set<string>>(new Set())
 
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
@@ -117,6 +121,7 @@ export default function OverdueTasksPage() {
   const batchArchiveMutation = useBatchArchive()
   const batchPostponeMutation = useBatchPostpone()
   const batchReassignMutation = useBatchReassign()
+  const updateTaskMutation = useUpdateTask()
   const employeesQuery = useEmployeesDropdown()
   const employees = employeesQuery.data ?? []
 
@@ -192,6 +197,42 @@ export default function OverdueTasksPage() {
     })
     setConfirmDialog(null)
   }
+
+  const handleResolveNow = (taskId: string) => {
+    if (resolvingTaskIds.has(taskId)) {
+      return
+    }
+
+    setResolvingTaskIds((previous) => {
+      const next = new Set(previous)
+      next.add(taskId)
+      return next
+    })
+
+    updateTaskMutation.mutate(
+      { taskId, payload: { status: "completed" } },
+      {
+        onSuccess: () => {
+          showToast("Task marked as completed.")
+        },
+        onError: (error) => {
+          showError(getApiErrorMessage(error, "Unable to mark task as completed."))
+        },
+        onSettled: () => {
+          setResolvingTaskIds((previous) => {
+            const next = new Set(previous)
+            next.delete(taskId)
+            return next
+          })
+        },
+      }
+    )
+  }
+
+  const selectedTask = useMemo(
+    () => (drawerTaskId ? allTasks.find((task) => task.id === drawerTaskId) ?? null : null),
+    [allTasks, drawerTaskId]
+  )
 
   const colors = statusColors.overdue
 
@@ -327,9 +368,13 @@ export default function OverdueTasksPage() {
                     <TableCell className="font-mono text-xs text-gray-500">{task.taskRef}</TableCell>
                     <TableCell>
                       <div className="space-y-0.5">
-                        <Link href={`/tasks?taskId=${task.id}`} className="text-sm text-primary hover:underline font-medium line-clamp-1">
+                        <button
+                          type="button"
+                          className="text-left text-sm text-primary hover:underline font-medium line-clamp-1"
+                          onClick={() => setDrawerTaskId(task.id)}
+                        >
                           {task.title}
-                        </Link>
+                        </button>
                         {task.description && (
                           <p className="text-xs text-gray-400 line-clamp-1">{task.description}</p>
                         )}
@@ -486,6 +531,18 @@ export default function OverdueTasksPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SummaryTaskDrawer
+        task={selectedTask}
+        open={drawerTaskId !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDrawerTaskId(null)
+          }
+        }}
+        onResolve={handleResolveNow}
+        resolving={Boolean(selectedTask && resolvingTaskIds.has(selectedTask.id))}
+      />
     </div>
   )
 }

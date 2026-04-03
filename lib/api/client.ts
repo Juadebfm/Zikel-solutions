@@ -246,6 +246,7 @@ async function refreshAccessToken(): Promise<string | null> {
         if (
           isApiFailurePayload(payload) &&
           (payload.error.code === "REFRESH_TOKEN_INVALID" ||
+            payload.error.code === "REFRESH_TOKEN_REUSED" ||
             payload.error.code === "SESSION_IDLE_EXPIRED" ||
             payload.error.code === "SESSION_ABSOLUTE_EXPIRED")
         ) {

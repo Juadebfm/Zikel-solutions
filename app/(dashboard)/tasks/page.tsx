@@ -29,7 +29,8 @@ const SCOPE_TABS: Array<{ value: TaskScope; label: string }> = [
   { value: "all", label: "All Tasks" },
   { value: "my_tasks", label: "My Tasks" },
   { value: "assigned_to_me", label: "Assigned to Me" },
-  { value: "approvals", label: "Approvals" },
+  { value: "approvals", label: "Sent for Approval" },
+  { value: "approved", label: "Approved" },
 ]
 
 export default function TasksPage() {

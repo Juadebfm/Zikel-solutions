@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, MessageCircleDashed, Sparkles, User2 } from "lucide-react"
+import { CheckCircle2, Loader2, MessageCircleDashed, Sparkles, User2, XCircle } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
 import { CreateTaskDialog } from "@/components/task-explorer/create-task-dialog"
@@ -15,6 +15,7 @@ import { AccessBanner } from "@/components/permission/access-banner"
 import { NoPermissionModal } from "@/components/permission/no-permission-modal"
 import { usePermissionGuard } from "@/components/permission/use-permission-guard"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -30,18 +31,19 @@ import { useAskAi } from "@/hooks/api/use-ai"
 import type { AskAiResponse } from "@/services/ai.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
+import { AiAnalysisSections } from "@/components/shared/ai-analysis-sections"
 import {
   useApproveSummaryTask,
   useBatchArchive,
   useBatchPostpone,
   useBatchReassign,
+  useAllSummaryTodos,
   useProcessSummaryBatch,
   useRecordSummaryTaskReviewEvent,
   useSummaryProvisions,
   useSummaryStats,
   useSummaryTasksToApprove,
   useSummaryTaskToApproveDetail,
-  useSummaryTodos,
 } from "@/hooks/api/use-summary"
 
 const AVATAR_COLORS = [
@@ -82,6 +84,7 @@ interface AiChatMessage {
   createdAt: string
   meta?: AiMessageMetadata
   suggestions?: AskAiResponse["suggestions"]
+  analysis?: AskAiResponse["analysis"]
 }
 
 const SUMMARY_PANEL_PAGE_SIZE = 10
@@ -99,13 +102,12 @@ export default function MySummaryPage() {
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
   const [reviewedTaskIds, setReviewedTaskIds] = useState<Set<string>>(new Set())
   const [reviewEventErrors, setReviewEventErrors] = useState<Record<string, string>>({})
+  const [approvingTaskIds, setApprovingTaskIds] = useState<Set<string>>(new Set())
   const [todoPage, setTodoPage] = useState(1)
   const [approvalPage, setApprovalPage] = useState(1)
 
   const statsQuery = useSummaryStats()
-  const todosQuery = useSummaryTodos({
-    page: todoPage,
-    pageSize: SUMMARY_PANEL_PAGE_SIZE,
+  const todosQuery = useAllSummaryTodos({
     sortBy: "dueAt",
     sortOrder: "asc",
   })
@@ -127,11 +129,18 @@ export default function MySummaryPage() {
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
 
-  const todoMeta = todosQuery.data?.meta
   const approvalMeta = tasksToApproveQuery.data?.meta
-  const todoTotalPages = Math.max(todoMeta?.totalPages ?? 1, 1)
+  const activeTodoRows = useMemo(
+    () =>
+      (todosQuery.data ?? []).filter((item) => {
+        const normalizedStatus = toTodoStatus(item.status, item.dueAt)
+        return normalizedStatus !== "completed" && normalizedStatus !== "cancelled"
+      }),
+    [todosQuery.data]
+  )
+  const todoTotalItems = activeTodoRows.length
+  const todoTotalPages = Math.max(Math.ceil(todoTotalItems / SUMMARY_PANEL_PAGE_SIZE), 1)
   const approvalTotalPages = Math.max(approvalMeta?.totalPages ?? 1, 1)
-  const todoTotalItems = todoMeta?.total ?? todosQuery.data?.items.length ?? 0
   const approvalTotalItems = approvalMeta?.total ?? tasksToApproveQuery.data?.items.length ?? 0
 
   const effectiveTodoPage = Math.min(todoPage, todoTotalPages)
@@ -151,7 +160,6 @@ export default function MySummaryPage() {
   useEffect(() => {
     if (askAiError) {
       showError(askAiError)
-      setAskAiError(null)
     }
   }, [askAiError, showError])
 
@@ -187,7 +195,10 @@ export default function MySummaryPage() {
   }, [statsQuery.data])
 
   const todoItems = useMemo<TodoItem[]>(() => {
-    return (todosQuery.data?.items ?? []).map((item) => {
+    const pageStart = (effectiveTodoPage - 1) * SUMMARY_PANEL_PAGE_SIZE
+    const pagedRows = activeTodoRows.slice(pageStart, pageStart + SUMMARY_PANEL_PAGE_SIZE)
+
+    return pagedRows.map((item) => {
       const assigneeName = item.assignee?.name || "Unassigned"
       return {
         id: item.id,
@@ -210,7 +221,7 @@ export default function MySummaryPage() {
         },
       }
     })
-  }, [todosQuery.data?.items])
+  }, [activeTodoRows, effectiveTodoPage])
 
   const approvalTasks = useMemo<ApprovalTask[]>(() => {
     return (tasksToApproveQuery.data?.items ?? []).map((item) => {
@@ -241,6 +252,16 @@ export default function MySummaryPage() {
       }
     })
   }, [tasksToApproveQuery.data?.items, reviewedTaskIds])
+  const activeApprovingTaskIds = useMemo(() => {
+    const activeIds = new Set(approvalTasks.map((task) => task.id))
+    const next = new Set<string>()
+    approvingTaskIds.forEach((taskId) => {
+      if (activeIds.has(taskId)) {
+        next.add(taskId)
+      }
+    })
+    return next
+  }, [approvalTasks, approvingTaskIds])
 
   const allTasksReviewed = approvalTasks.length > 0 && approvalTasks.every((t) => t.reviewed)
   const reviewedApprovalIds = useMemo(() => {
@@ -297,8 +318,8 @@ export default function MySummaryPage() {
       }
     }
 
-    if (todosQuery.data?.items.length) {
-      context.todos = todosQuery.data.items.slice(0, 5).map((todo) => ({
+    if (activeTodoRows.length) {
+      context.todos = activeTodoRows.slice(0, 5).map((todo) => ({
         id: todo.id,
         title: todo.title,
         relation: todo.relatedEntity?.name ?? "-",
@@ -319,7 +340,7 @@ export default function MySummaryPage() {
     }
 
     return Object.keys(context).length > 0 ? context : undefined
-  }, [statsQuery.data, todosQuery.data, tasksToApproveQuery.data])
+  }, [activeTodoRows, statsQuery.data, tasksToApproveQuery.data])
 
   useEffect(() => {
     const msg =
@@ -377,6 +398,7 @@ export default function MySummaryPage() {
           generatedAt: response.generatedAt,
         },
         suggestions: response.suggestions,
+        analysis: response.analysis,
       }
 
       setChatMessages((prev) => [...prev, assistantMessage])
@@ -435,6 +457,29 @@ export default function MySummaryPage() {
       default:
         // For unknown actions, send as a follow-up question
         void submitAskAi(label)
+    }
+  }
+
+  const handleQuickActionClick = (action: string, label: string) => {
+    switch (action) {
+      case "open_summary_todos_overdue":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/overdue-tasks")
+        return
+      case "open_summary_pending_approvals":
+        setIsAskAiOpen(false)
+        router.push("/acknowledgements")
+        return
+      case "open_summary_todos_due_today":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/due-today")
+        return
+      case "open_summary_todos_all":
+        setIsAskAiOpen(false)
+        router.push("/my-summary/todos")
+        return
+      default:
+        setAskAiQuery(label)
     }
   }
 
@@ -508,6 +553,10 @@ export default function MySummaryPage() {
   }
 
   const handleApproveTask = (id: string) => {
+    if (activeApprovingTaskIds.has(id)) {
+      return
+    }
+
     if (!reviewedApprovalIds.has(id)) {
       const reviewError = reviewEventErrors[id]
       if (reviewError) {
@@ -520,13 +569,73 @@ export default function MySummaryPage() {
     }
 
     guard(() => {
+      setApprovingTaskIds((previous) => new Set(previous).add(id))
       approveTaskMutation.mutate(
         { taskId: id, gateScope: "task" },
         {
           onSuccess: () => {
-            showToast("Task approved successfully.")
+            showToast("Approval submitted. Updating approvals queue...")
           },
           onError: (error) => {
+            setApprovingTaskIds((previous) => {
+              if (!previous.has(id)) return previous
+              const next = new Set(previous)
+              next.delete(id)
+              return next
+            })
+            showError(getTaskApprovalErrorMessage(error))
+          },
+        }
+      )
+    })
+  }
+
+  const handleRejectTask = (id: string) => {
+    if (activeApprovingTaskIds.has(id) || processBatchMutation.isPending) {
+      return
+    }
+
+    if (!reviewedApprovalIds.has(id)) {
+      const reviewError = reviewEventErrors[id]
+      if (reviewError) {
+        showError(reviewError)
+        return
+      }
+
+      showError("You must review this task before rejecting. Click \"View\" first.")
+      return
+    }
+
+    guard(() => {
+      setApprovingTaskIds((previous) => new Set(previous).add(id))
+      processBatchMutation.mutate(
+        {
+          taskIds: [id],
+          action: "reject",
+          gateScope: "task",
+        },
+        {
+          onSuccess: (result) => {
+            if (result.failed.length > 0) {
+              setApprovingTaskIds((previous) => {
+                if (!previous.has(id)) return previous
+                const next = new Set(previous)
+                next.delete(id)
+                return next
+              })
+              showError(result.failed[0]?.reason ?? "Failed to reject task.")
+              return
+            }
+
+            showToast("Rejection submitted. Updating approvals queue...")
+          },
+          onError: (error) => {
+            setApprovingTaskIds((previous) => {
+              if (!previous.has(id)) return previous
+              const next = new Set(previous)
+              next.delete(id)
+              return next
+            })
             showError(getTaskApprovalErrorMessage(error))
           },
         }
@@ -662,6 +771,9 @@ export default function MySummaryPage() {
 
   const reviewContext = taskDetailQuery.data?.context ?? selectedApprovalTask?.context ?? null
   const detailTaskReviewed = detailTaskId ? reviewedApprovalIds.has(detailTaskId) : false
+  const detailTaskProcessing = detailTaskId ? activeApprovingTaskIds.has(detailTaskId) : false
+  const detailTaskDomain = (taskDetailQuery.data?.domain ?? selectedApprovalTask?.domain ?? "").toLowerCase()
+  const detailApproveLabel = detailTaskDomain === "compliance" ? "Sign Off" : "Approve"
 
   return (
     <div className="space-y-6">
@@ -681,7 +793,7 @@ export default function MySummaryPage() {
 
       <AccessBanner show={!allowed} message="You have view-only access to approval actions on this page." />
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid items-start lg:grid-cols-2 gap-6">
         <TodoList
           items={todoItems}
           loading={todosQuery.isLoading}
@@ -710,6 +822,7 @@ export default function MySummaryPage() {
             setApprovalPage(Math.max(1, Math.min(nextPage, approvalTotalPages)))
           }
           allReviewed={allTasksReviewed}
+          approvingTaskIds={activeApprovingTaskIds}
         />
       </div>
 
@@ -726,8 +839,13 @@ export default function MySummaryPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             {taskDetailQuery.isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="space-y-2 text-sm">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                ))}
               </div>
             ) : taskDetailQuery.data ? (
               <>
@@ -799,8 +917,19 @@ export default function MySummaryPage() {
                     </div>
                   )}
                   {detailTaskReviewed && (
-                    <div className="p-2 rounded bg-emerald-50 text-emerald-700 text-xs">
-                      You have reviewed this task{taskDetailQuery.data.review?.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
+                    <div className="rounded-lg border-2 border-emerald-500/70 bg-gradient-to-r from-emerald-100 via-emerald-50 to-white px-3 py-2.5 shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        <div className="space-y-0.5">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+                            Review complete
+                          </p>
+                          <p className="text-sm font-semibold text-emerald-900">
+                            You have reviewed this task
+                            {taskDetailQuery.data.review?.reviewedAt ? ` at ${formatDateTime(taskDetailQuery.data.review.reviewedAt)}` : ""}.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -809,16 +938,36 @@ export default function MySummaryPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailTaskId(null)}>Close</Button>
-            {detailTaskId && allowed && detailTaskReviewed && (
-              <Button
-                onClick={() => {
-                  handleApproveTask(detailTaskId)
-                  setDetailTaskId(null)
-                }}
-                disabled={approveTaskMutation.isPending}
-              >
-                Approve
-              </Button>
+            {detailTaskId && allowed && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    handleRejectTask(detailTaskId)
+                    setDetailTaskId(null)
+                  }}
+                  disabled={!detailTaskReviewed || detailTaskProcessing || processBatchMutation.isPending}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleApproveTask(detailTaskId)
+                    setDetailTaskId(null)
+                  }}
+                  disabled={!detailTaskReviewed || detailTaskProcessing}
+                >
+                  {detailTaskProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {detailApproveLabel === "Sign Off" ? "Signing Off..." : "Approving..."}
+                    </>
+                  ) : (
+                    detailApproveLabel
+                  )}
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
@@ -871,6 +1020,10 @@ export default function MySummaryPage() {
                     ) : message.role === "assistant" ? (
                       <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3 break-words">
                         <FormattedAiContent content={message.content} />
+                        <AiAnalysisSections
+                          analysis={message.analysis}
+                          onQuickAction={handleQuickActionClick}
+                        />
 
                         {message.suggestions && message.suggestions.length > 0 && (
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -971,6 +1124,18 @@ function toTodoStatus(status: string, dueDate: string | null): TodoItem["status"
     return "draft"
   }
 
+  if (status === "completed") {
+    return "completed"
+  }
+
+  if (status === "cancelled") {
+    return "cancelled"
+  }
+
+  if (status === "in_progress") {
+    return "in-progress"
+  }
+
   if (dueDate) {
     const dueTimestamp = Date.parse(dueDate)
     if (!Number.isNaN(dueTimestamp) && dueTimestamp < Date.now()) {
@@ -1055,6 +1220,14 @@ function getErrorMessage(error: unknown): string | null {
 
 function getAskAiErrorMessage(error: unknown): string {
   if (isApiClientError(error)) {
+    if (error.status === 403 && error.code === "AI_ACCESS_DISABLED") {
+      return "AI access is disabled for your account. Contact your administrator."
+    }
+
+    if (error.status === 403 && error.code === "MFA_REQUIRED") {
+      return "Additional verification is required before using AI."
+    }
+
     if (error.status === 400 || error.status === 422) {
       return "Your prompt was invalid. Please enter a clearer question."
     }
@@ -1111,7 +1284,8 @@ function shouldForceLoginAfterReviewError(error: unknown): boolean {
   return (
     error.status === 401 ||
     error.code === "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED" ||
-    error.code === "REFRESH_TOKEN_INVALID"
+    error.code === "REFRESH_TOKEN_INVALID" ||
+    error.code === "REFRESH_TOKEN_REUSED"
   )
 }
 

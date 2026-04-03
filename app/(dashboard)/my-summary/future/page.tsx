@@ -92,6 +92,7 @@ function formatShortDate(iso: string | null | undefined): string {
 
 export default function FutureTasksPage() {
   const router = useRouter()
+  const [summaryNowMs] = useState(() => Date.now())
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState("20")
@@ -131,11 +132,10 @@ export default function FutureTasksPage() {
     const priorities = { urgent: 0, high: 0, medium: 0, low: 0 }
     const unassigned = allTasks.filter((t) => !t.assignee).length
 
-    const now = Date.now()
     const sevenDaysMs = 7 * 86_400_000
     const thisWeek = allTasks.filter((t) => {
       if (!t.dueAt) return false
-      const diff = new Date(t.dueAt).getTime() - now
+      const diff = new Date(t.dueAt).getTime() - summaryNowMs
       return diff >= 0 && diff <= sevenDaysMs
     }).length
 
@@ -144,7 +144,7 @@ export default function FutureTasksPage() {
     }
 
     return { priorities, unassigned, thisWeek }
-  }, [allTasks])
+  }, [allTasks, summaryNowMs])
 
   // Selection
   const toggleRow = (id: string) => {

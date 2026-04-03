@@ -62,6 +62,7 @@ export interface CreateDailyLogPayload {
   note: string
   relatesTo?: DailyLogRelatesTo | null
   triggerTaskFormKey?: string | null
+  reflectivePrompts?: Array<{ promptId: string; response: string }>
 }
 
 export interface UpdateDailyLogPayload {

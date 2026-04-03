@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -49,23 +49,13 @@ function ConfigureWidgetForm() {
   const [title, setTitle] = useState("")
   const [period, setPeriod] = useState("")
   const [reportsOn, setReportsOn] = useState("")
-  const [error, setError] = useState<string | null>(null)
   const createWidgetMutation = useCreateDashboardWidget()
   const showError = useErrorModalStore((s) => s.show)
-
-  useEffect(() => {
-    if (error) {
-      showError(error)
-      setError(null)
-    }
-  }, [error, showError])
 
   const Icon = widgetTypeIcons[widgetType] || BarChart3
   const typeName = widgetTypeLabels[widgetType] || "Widget"
 
   const handleSave = async () => {
-    setError(null)
-
     try {
       await createWidgetMutation.mutateAsync({
         title: title.trim(),
@@ -75,7 +65,7 @@ function ConfigureWidgetForm() {
 
       router.push("/my-dashboard")
     } catch (error) {
-      setError(getApiErrorMessage(error, "Failed to save widget. Please try again."))
+      showError(getApiErrorMessage(error, "Failed to save widget. Please try again."))
     }
   }
 

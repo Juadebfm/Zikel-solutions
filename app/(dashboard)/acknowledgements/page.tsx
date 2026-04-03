@@ -164,7 +164,7 @@ const CATEGORY_LABELS: Record<SummaryTaskItem["category"], string> = {
   document: "Document",
   system_link: "System Link",
   checklist: "Checklist",
-  incident: "Incident",
+  incident: "Observation",
   other: "Other",
 }
 

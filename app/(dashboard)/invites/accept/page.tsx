@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -21,25 +21,16 @@ export default function AcceptInvitePage() {
   const acceptInviteMutation = useAcceptTenantInvite()
 
   const [tokenInput, setTokenInput] = useState(() => searchParams.get("token") ?? "")
-  const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const showError = useErrorModalStore((s) => s.show)
-
-  useEffect(() => {
-    if (error) {
-      showError(error)
-      setError(null)
-    }
-  }, [error, showError])
 
   const handleAcceptInvite = async () => {
     const token = tokenInput.trim()
     if (!token) {
-      setError("Invite token is required.")
+      showError("Invite token is required.")
       return
     }
 
-    setError(null)
     setSuccess(null)
 
     try {
@@ -50,7 +41,7 @@ export default function AcceptInvitePage() {
         await switchTenant(payload.tenantId)
       }
     } catch (acceptError) {
-      setError(getApiErrorMessage(acceptError, "Unable to accept invite."))
+      showError(getApiErrorMessage(acceptError, "Unable to accept invite."))
     }
   }
 

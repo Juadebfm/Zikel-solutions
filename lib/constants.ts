@@ -194,7 +194,7 @@ export const statusColors = {
 export const ioiTechniques = [
   "Active Listening",
   "Reflective Practice",
-  "Cognitive Behavioral Techniques",
+  "Connection-Based Strategies",
   "Trauma-Informed Care",
   "Positive Reinforcement",
   "De-escalation",
@@ -324,7 +324,7 @@ export const taskCategories = [
   "Daily Care",
   "Health & Medical",
   "Education",
-  "Behavioral",
+  "Relationship & Regulation",
   "Administrative",
   "Training",
   "Review & Assessment",

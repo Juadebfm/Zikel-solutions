@@ -11,6 +11,8 @@ export const queryKeys = {
     stats: ["summary", "stats"] as const,
     todos: (params: { page: number; pageSize: number; sortBy?: string; sortOrder?: string; search?: string }) =>
       ["summary", "todos", params] as const,
+    todosAll: (params: { sortBy?: string; sortOrder?: string; search?: string }) =>
+      ["summary", "todos", "all", params] as const,
     tasksToApprove: (params: { page: number; pageSize: number; scope?: "gate" | "popup" | "all" }) =>
       ["summary", "tasks-to-approve", params] as const,
     tasksToApproveAll: (scope: "gate" | "popup" | "all" = "all") =>
@@ -136,5 +138,31 @@ export const queryKeys = {
   dailyLogs: {
     list: (params: Record<string, unknown>) => ["daily-logs", "list", params] as const,
     detail: (id: string) => ["daily-logs", "detail", id] as const,
+  },
+  safeguarding: {
+    chronologyYoungPerson: (id: string, params: Record<string, unknown>) =>
+      ["safeguarding", "chronology", "young-person", id, params] as const,
+    chronologyHome: (id: string, params: Record<string, unknown>) =>
+      ["safeguarding", "chronology", "home", id, params] as const,
+    riskAlerts: (params: Record<string, unknown>) =>
+      ["safeguarding", "risk-alerts", params] as const,
+    riskAlertDetail: (id: string) =>
+      ["safeguarding", "risk-alerts", "detail", id] as const,
+    riskAlertRules: ["safeguarding", "risk-alerts", "rules"] as const,
+    patternsYoungPerson: (id: string, params: Record<string, unknown>) =>
+      ["safeguarding", "patterns", "young-person", id, params] as const,
+    patternsHome: (id: string, params: Record<string, unknown>) =>
+      ["safeguarding", "patterns", "home", id, params] as const,
+    reflectivePrompts: ["safeguarding", "reflective-prompts"] as const,
+  },
+  reports: {
+    reg44Pack: (params: Record<string, unknown>) =>
+      ["reports", "reg44-pack", params] as const,
+    reg45Pack: (params: Record<string, unknown>) =>
+      ["reports", "reg45-pack", params] as const,
+    riDashboard: (params: Record<string, unknown>) =>
+      ["reports", "ri-dashboard", params] as const,
+    riDrilldown: (params: Record<string, unknown>) =>
+      ["reports", "ri-drilldown", params] as const,
   },
 } as const

@@ -94,12 +94,14 @@ export const useTaskExplorerStore = create<TaskExplorerState>((set, get) => ({
 
   getQueryParams: () => {
     const state = get()
+    const isApprovedTab = state.scope === "approved"
     const params: TaskListParams = {
       page: state.page,
       pageSize: state.pageSize,
-      sortBy: state.sortBy,
-      sortOrder: state.sortOrder,
-      scope: state.scope,
+      sortBy: isApprovedTab ? "updatedAt" : state.sortBy,
+      sortOrder: isApprovedTab ? "desc" : state.sortOrder,
+      scope: isApprovedTab ? "all" : state.scope,
+      ...(isApprovedTab && { approvalStatus: "approved" }),
     }
 
     if (state.search) params.search = state.search

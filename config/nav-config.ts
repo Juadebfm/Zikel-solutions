@@ -56,9 +56,11 @@ export const navItems: NavItemConfig[] = [
   { label: "Young People", href: "/young-people", icon: UserCircle },
   { label: "Employees", href: "/employees", icon: Briefcase },
   { label: "Vehicles", href: "/vehicles", icon: Car },
+  { label: "Safeguarding", href: "/safeguarding", icon: Shield },
+  { label: "Reports", href: "/reports", icon: PieChart, permission: "canViewReports" },
   { label: "Calendar", href: "/calendar", icon: Calendar, hidden: true },
   { label: "Rotas", href: "/rotas", icon: Clock, permission: "canManageSettings", hidden: true },
-  { label: "Bespoke Reporting", href: "/reports", icon: PieChart, permission: "canViewReports", hidden: true },
+  // Replaced by top-level "Reports" nav item above
   { label: "Uploads", href: "/uploads", icon: Upload, hidden: true },
   { label: "Sensitive Data", href: "/sensitive-data", icon: Shield, permission: "canManageSettings", hidden: true },
   { label: "Form Designer", href: "/forms", icon: ClipboardList, permission: "canManageSettings" },

@@ -5,6 +5,49 @@ export interface AskAiSuggestion {
   action: string
 }
 
+interface AskAiAnalysisBaseItem {
+  id?: string
+  title?: string
+  label?: string
+  name?: string
+  summary?: string
+  description?: string
+}
+
+export interface AskAiTopPriority extends AskAiAnalysisBaseItem {
+  urgencyScore?: number
+  recommendedAction?: string
+  priority?: string
+}
+
+export interface AskAiRisk extends AskAiAnalysisBaseItem {
+  severity?: string
+  recommendedAction?: string
+}
+
+export interface AskAiMissingData extends AskAiAnalysisBaseItem {
+  field?: string
+  message?: string
+}
+
+export interface AskAiQuickAction {
+  action: string
+  label?: string
+  title?: string
+  description?: string
+}
+
+export interface AskAiAnalysis {
+  strengthProfile?: "owner" | "admin" | "staff" | string
+  responseMode?: "comprehensive" | "balanced" | "focused" | string
+  contextSummary?: string
+  topPriorities?: AskAiTopPriority[]
+  risks?: AskAiRisk[]
+  missingData?: AskAiMissingData[]
+  quickActions?: AskAiQuickAction[]
+  platformSnapshot?: Record<string, unknown> | null
+}
+
 /** Summary-page context (backward-compatible) */
 export interface AskAiSummaryContext {
   stats?: Record<string, unknown>
@@ -29,6 +72,7 @@ export type AskAiContext = AskAiSummaryContext | AskAiPageContext
 export type AskAiPage =
   | "summary"
   | "tasks"
+  | "daily_logs"
   | "care_groups"
   | "homes"
   | "young_people"
@@ -51,6 +95,7 @@ export interface AskAiResponse {
   model: string | null
   statsSource: "client" | "server" | "none"
   generatedAt: string
+  analysis?: AskAiAnalysis
 }
 
 export const aiService = {
