@@ -27,6 +27,7 @@ export function useTaskList(params?: TaskListParams) {
     dateTo: params?.dateTo,
     scope: params?.scope,
     formGroup: params?.formGroup,
+    summaryScope: params?.summaryScope,
   }
 
   return useQuery({
