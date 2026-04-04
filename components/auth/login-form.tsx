@@ -27,7 +27,8 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
-  const { login, isLoading } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { login } = useAuth()
   const { t } = useLanguage()
 
   useEffect(() => {
@@ -48,25 +49,30 @@ export function LoginForm() {
   })
 
   const onSubmit = async (data: LoginFormValues) => {
-    if (cooldownSeconds > 0) return
+    if (cooldownSeconds > 0 || isSubmitting) return
     setError(null)
+    setIsSubmitting(true)
 
-    const result = await login(data.email, data.password)
-    if (!result.success && result.requiresVerification) {
-      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
-      return
-    }
-
-    if (!result.success) {
-      const message = result.message || "Invalid email or password. Please try again."
-      if (message.toLowerCase().includes("too many") || message.toLowerCase().includes("rate")) {
-        setCooldownSeconds(30)
+    try {
+      const result = await login(data.email, data.password)
+      if (!result.success && result.requiresVerification) {
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
+        return
       }
-      setError(message)
+
+      if (!result.success) {
+        const message = result.message || "Invalid email or password. Please try again."
+        if (message.toLowerCase().includes("too many") || message.toLowerCase().includes("rate")) {
+          setCooldownSeconds(30)
+        }
+        setError(message)
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const isDisabled = isLoading || cooldownSeconds > 0
+  const isDisabled = isSubmitting || cooldownSeconds > 0
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -167,7 +173,7 @@ export function LoginForm() {
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
               disabled={isDisabled}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : cooldownSeconds > 0 ? (
                 `Try again in ${cooldownSeconds}s`

@@ -104,8 +104,7 @@ export default function PendingRewardsPage() {
 
   const pageSizeNum = parseInt(pageSize)
   const { data, isLoading } = useTaskList({
-    category: "reward",
-    status: "submitted",
+    summaryScope: "rewards",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,

@@ -109,7 +109,7 @@ export default function FutureTasksPage() {
 
   const pageSizeNum = parseInt(pageSize)
   const { data, isLoading } = useTaskList({
-    period: "future",
+    summaryScope: "future",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,

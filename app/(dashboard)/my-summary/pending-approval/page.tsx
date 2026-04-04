@@ -107,8 +107,7 @@ export default function PendingApprovalPage() {
 
   const pageSizeNum = parseInt(pageSize)
   const { data, isLoading } = useTaskList({
-    status: "sent_for_approval",
-    scope: "approvals",
+    summaryScope: "pending_approval",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,

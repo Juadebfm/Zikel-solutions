@@ -48,6 +48,13 @@ import {
   type RiMetricSummary,
 } from "@/services/reports.service"
 import { useToastStore } from "@/components/shared/toast"
+import { useExportList, useCreateExport } from "@/hooks/api/use-exports"
+import {
+  exportsService,
+  type ExportEntity,
+  type ExportFormat,
+  type ExportStatus,
+} from "@/services/exports.service"
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -88,6 +95,7 @@ export default function ReportsPage() {
         <TabsList>
           <TabsTrigger value="evidence-packs">Evidence Packs</TabsTrigger>
           <TabsTrigger value="ri-dashboard">RI Dashboard</TabsTrigger>
+          <TabsTrigger value="bulk-exports">Bulk Exports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="evidence-packs" className="mt-6">
@@ -96,6 +104,10 @@ export default function ReportsPage() {
 
         <TabsContent value="ri-dashboard" className="mt-6">
           <RiDashboardTab />
+        </TabsContent>
+
+        <TabsContent value="bulk-exports" className="mt-6">
+          <BulkExportsTab />
         </TabsContent>
       </Tabs>
 
@@ -507,5 +519,219 @@ function MetricCard({
         </Badge>
       </CardContent>
     </Card>
+  )
+}
+
+// ─── Bulk Exports Tab ──────────────────────────────────────────
+
+const ENTITY_OPTIONS: { value: ExportEntity; label: string }[] = [
+  { value: "homes", label: "Homes" },
+  { value: "employees", label: "Employees" },
+  { value: "young_people", label: "Young People" },
+  { value: "vehicles", label: "Vehicles" },
+  { value: "care_groups", label: "Care Groups" },
+  { value: "tasks", label: "Tasks" },
+  { value: "daily_logs", label: "Daily Logs" },
+  { value: "audit", label: "Audit" },
+]
+
+const FORMAT_OPTIONS: { value: ExportFormat; label: string }[] = [
+  { value: "pdf", label: "PDF" },
+  { value: "excel", label: "Excel" },
+  { value: "csv", label: "CSV" },
+]
+
+const exportStatusBadge: Record<ExportStatus, { className: string; label: string }> = {
+  pending: { className: "bg-gray-100 text-gray-700 border-gray-200", label: "Pending" },
+  processing: { className: "bg-blue-50 text-blue-700 border-blue-200", label: "Processing" },
+  completed: { className: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Completed" },
+  failed: { className: "bg-red-50 text-red-700 border-red-200", label: "Failed" },
+}
+
+function BulkExportsTab() {
+  const [entity, setEntity] = useState<ExportEntity | "">("")
+  const [exportFormat, setExportFormat] = useState<ExportFormat | "">("")
+  const [page, setPage] = useState(1)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const showToast = useToastStore((s) => s.show)
+
+  const listQuery = useExportList({ page, pageSize: 20 })
+  const createExport = useCreateExport()
+
+  const jobs = listQuery.data?.items ?? []
+  const meta = listQuery.data?.meta
+  const totalPages = Math.max(meta?.totalPages ?? 1, 1)
+
+  const handleCreate = useCallback(async () => {
+    if (!entity || !exportFormat) return
+    try {
+      await createExport.mutateAsync({ entity, format: exportFormat })
+      showToast("Export job created successfully.")
+      setEntity("")
+      setExportFormat("")
+    } catch {
+      showToast("Failed to create export job.")
+    }
+  }, [entity, exportFormat, createExport, showToast])
+
+  const handleDownload = useCallback(async (id: string, fileName?: string | null) => {
+    setDownloadingId(id)
+    try {
+      const blob = await exportsService.download(id)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = fileName ?? `export-${id}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      showToast("Download started.")
+    } catch {
+      showToast("Failed to download export.")
+    } finally {
+      setDownloadingId(null)
+    }
+  }, [showToast])
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Create Bulk Export</CardTitle>
+          <CardDescription>
+            Export data across your organisation. Select an entity and format to generate a downloadable file.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <Label>Entity</Label>
+              <Select value={entity} onValueChange={(v) => setEntity(v as ExportEntity)}>
+                <SelectTrigger><SelectValue placeholder="Select entity..." /></SelectTrigger>
+                <SelectContent>
+                  {ENTITY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Format</Label>
+              <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as ExportFormat)}>
+                <SelectTrigger><SelectValue placeholder="Select format..." /></SelectTrigger>
+                <SelectContent>
+                  {FORMAT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Button
+                onClick={handleCreate}
+                disabled={!entity || !exportFormat || createExport.isPending}
+                className="w-full sm:w-auto gap-2"
+              >
+                {createExport.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create Export
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Export Jobs</CardTitle>
+          <CardDescription>
+            Track the status of your bulk data exports.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {listQuery.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton className="h-4 w-1/5" />
+                  <Skeleton className="h-4 w-1/6" />
+                  <Skeleton className="h-4 w-1/6" />
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-4 w-1/6" />
+                </div>
+              ))}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="py-10 text-center">
+              <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No export jobs yet. Create one above to get started.</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Entity</TableHead>
+                    <TableHead>Format</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => {
+                    const badge = exportStatusBadge[job.status] ?? exportStatusBadge.pending
+                    const entityLabel = ENTITY_OPTIONS.find((o) => o.value === job.entity)?.label ?? job.entity
+                    return (
+                      <TableRow key={job.id}>
+                        <TableCell className="font-medium">{entityLabel}</TableCell>
+                        <TableCell className="uppercase text-xs">{job.format}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn("text-xs", badge.className)}>
+                            {badge.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(job.createdAt)}</TableCell>
+                        <TableCell className="text-right">
+                          {job.status === "completed" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              disabled={downloadingId === job.id}
+                              onClick={() => handleDownload(job.id, job.fileName)}
+                            >
+                              {downloadingId === job.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Download className="h-3 w-3" />
+                              )}
+                              Download
+                            </Button>
+                          ) : job.status === "failed" ? (
+                            <span className="text-xs text-red-500">{job.errorMessage ?? "Export failed"}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">--</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4">
+                  <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

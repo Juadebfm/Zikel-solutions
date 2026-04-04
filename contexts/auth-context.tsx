@@ -422,9 +422,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isCancelled) {
           if (isTenantContextError(error)) {
             setPermissions(null)
-          } else {
+          } else if (isSessionTerminalError(error)) {
             clearSession()
           }
+          // For transient errors (network, 5xx, timeouts), keep the
+          // current session intact — clearing it would briefly flash
+          // the login page before the user is redirected back.
         }
       } finally {
         if (!isCancelled) {

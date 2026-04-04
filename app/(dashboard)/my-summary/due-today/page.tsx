@@ -49,7 +49,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSummaryTodos } from "@/hooks/api/use-summary"
+import { useTaskList } from "@/hooks/api/use-tasks"
 import { useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
 import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useErrorModalStore } from "@/components/shared/error-modal"
@@ -164,15 +164,16 @@ export default function DueTodayPage() {
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
 
-  // Fetch all todos sorted by dueDate -- bucket client-side
-  const { data, isLoading } = useSummaryTodos({
+  // Fetch due-today tasks sorted by dueDate
+  const { data, isLoading } = useTaskList({
+    summaryScope: "due_today",
     page: 1,
     pageSize: 100,
-    sortBy: "dueDate",
+    sortBy: "dueAt",
     sortOrder: "asc",
   })
 
-  const allTodos = data?.items ?? []
+  const allTodos = (data?.items ?? []) as unknown as SummaryTaskItem[]
   const boundaries = useMemo(() => computeBoundaries(), [])
 
   // Mutations

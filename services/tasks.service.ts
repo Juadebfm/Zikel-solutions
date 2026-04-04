@@ -219,9 +219,20 @@ export interface TaskListParams {
   dateFrom?: string
   dateTo?: string
   scope?: TaskScope
+  summaryScope?: SummaryScope
   approvalStatus?: string
   formGroup?: string
 }
+
+export type SummaryScope =
+  | "overdue"
+  | "due_today"
+  | "pending_approval"
+  | "rejected"
+  | "draft"
+  | "future"
+  | "comments"
+  | "rewards"
 
 // ─── Paginated Result ─────────────────────────────────────────────
 
@@ -253,6 +264,7 @@ export const tasksService = {
         dateFrom: params?.dateFrom,
         dateTo: params?.dateTo,
         scope: params?.scope,
+        summaryScope: params?.summaryScope,
         approvalStatus: params?.approvalStatus,
         formGroup: params?.formGroup,
       },

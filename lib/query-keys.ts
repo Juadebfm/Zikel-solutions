@@ -165,4 +165,36 @@ export const queryKeys = {
     riDrilldown: (params: Record<string, unknown>) =>
       ["reports", "ri-drilldown", params] as const,
   },
+  documents: {
+    list: (params: Record<string, unknown>) => ["documents", "list", params] as const,
+    detail: (id: string) => ["documents", "detail", id] as const,
+    categories: ["documents", "categories"] as const,
+  },
+  exports: {
+    list: (params: Record<string, unknown>) => ["exports", "list", params] as const,
+    detail: (id: string) => ["exports", "detail", id] as const,
+  },
+  settings: {
+    organisation: ["settings", "organisation"] as const,
+    notifications: ["settings", "notifications"] as const,
+  },
+  scheduling: {
+    events: (params: Record<string, unknown>) => ["scheduling", "events", params] as const,
+    eventDetail: (id: string) => ["scheduling", "events", "detail", id] as const,
+    rotas: (params: Record<string, unknown>) => ["scheduling", "rotas", params] as const,
+    rotaDetail: (id: string) => ["scheduling", "rotas", "detail", id] as const,
+    rotaTemplates: ["scheduling", "rotas", "templates"] as const,
+  },
+  organisation: {
+    regions: (params: Record<string, unknown>) => ["organisation", "regions", params] as const,
+    regionDetail: (id: string) => ["organisation", "regions", "detail", id] as const,
+    groupings: (params: Record<string, unknown>) => ["organisation", "groupings", params] as const,
+    groupingDetail: (id: string) => ["organisation", "groupings", "detail", id] as const,
+  },
+  sensitiveData: {
+    list: (params: Record<string, unknown>) => ["sensitive-data", "list", params] as const,
+    detail: (id: string) => ["sensitive-data", "detail", id] as const,
+    categories: ["sensitive-data", "categories"] as const,
+    accessLog: (id: string) => ["sensitive-data", "access-log", id] as const,
+  },
 } as const

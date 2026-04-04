@@ -108,7 +108,7 @@ export default function DraftTasksPage() {
 
   const pageSizeNum = parseInt(pageSize)
   const { data, isLoading } = useTaskList({
-    status: "draft",
+    summaryScope: "draft",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,

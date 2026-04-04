@@ -8,7 +8,7 @@ export default function CommentsPage() {
       title="Tasks with Comments"
       statusLabel="Has Comments"
       statusKey="active"
-      queryParams={{ sortBy: "updatedAt", sortOrder: "desc" }}
+      queryParams={{ summaryScope: "comments", sortBy: "updatedAt", sortOrder: "desc" }}
       actions={[]}
       emptyMessage="No tasks with comments."
     />

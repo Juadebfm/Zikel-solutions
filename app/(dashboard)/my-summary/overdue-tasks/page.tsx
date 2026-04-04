@@ -51,9 +51,8 @@ import {
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SummaryTaskDrawer } from "@/components/dashboard/summary-task-drawer"
-import { useSummaryOverdueTasks } from "@/hooks/api/use-summary"
 import { useBatchArchive, useBatchPostpone, useBatchReassign } from "@/hooks/api/use-summary"
-import { useUpdateTask } from "@/hooks/api/use-tasks"
+import { useTaskList, useUpdateTask } from "@/hooks/api/use-tasks"
 import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
@@ -107,13 +106,14 @@ export default function OverdueTasksPage() {
   const showToast = useToastStore((s) => s.show)
 
   const pageSizeNum = parseInt(pageSize)
-  const { data, isLoading } = useSummaryOverdueTasks({
+  const { data, isLoading } = useTaskList({
+    summaryScope: "overdue",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,
   })
 
-  const allTasks = data?.items ?? []
+  const allTasks = (data?.items ?? []) as unknown as import("@/services/summary.service").SummaryTaskItem[]
   const meta = data?.meta
   const totalPages = Math.max(meta?.totalPages ?? 1, 1)
   const totalItems = meta?.total ?? allTasks.length

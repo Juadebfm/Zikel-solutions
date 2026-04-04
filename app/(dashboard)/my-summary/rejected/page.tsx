@@ -107,7 +107,7 @@ export default function RejectedTasksPage() {
 
   const pageSizeNum = parseInt(pageSize)
   const { data, isLoading } = useTaskList({
-    status: "rejected",
+    summaryScope: "rejected",
     page,
     pageSize: pageSizeNum,
     search: searchQuery || undefined,

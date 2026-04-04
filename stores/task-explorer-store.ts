@@ -63,7 +63,7 @@ export const useTaskExplorerStore = create<TaskExplorerState>((set, get) => ({
   drawerOpen: false,
   createModalOpen: false,
 
-  setScope: (scope) => set({ scope, page: 1 }),
+  setScope: (scope) => set({ scope, page: 1, status: "", type: "", category: "", formGroup: "" }),
   setSearch: (search) => set({ search, page: 1 }),
   setStatus: (status) => set({ status, page: 1 }),
   setType: (type) => set({ type, page: 1 }),
