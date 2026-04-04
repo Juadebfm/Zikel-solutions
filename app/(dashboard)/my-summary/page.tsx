@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Loader2, MessageCircleDashed, Sparkles, User2, XCircle } from "lucide-react"
+import { CheckCircle2, Loader2, Maximize2, MessageCircleDashed, Minimize2, Sparkles, User2, XCircle } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
 import { CreateTaskDialog } from "@/components/task-explorer/create-task-dialog"
@@ -28,10 +28,10 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
-import type { AskAiResponse } from "@/services/ai.service"
+import type { AskAiAction, AskAiHighlight, AskAiResponse } from "@/services/ai.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
-import { AiAnalysisSections } from "@/components/shared/ai-analysis-sections"
+import { AiResponseSections } from "@/components/shared/ai-analysis-sections"
 import {
   useApproveSummaryTask,
   useBatchArchive,
@@ -70,21 +70,14 @@ const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
 
 type AiChatRole = "user" | "assistant" | "system"
 
-interface AiMessageMetadata {
-  source: AskAiResponse["source"]
-  model: AskAiResponse["model"]
-  statsSource: AskAiResponse["statsSource"]
-  generatedAt: AskAiResponse["generatedAt"]
-}
-
 interface AiChatMessage {
   id: string
   role: AiChatRole
   content: string
   createdAt: string
-  meta?: AiMessageMetadata
-  suggestions?: AskAiResponse["suggestions"]
-  analysis?: AskAiResponse["analysis"]
+  highlights?: AskAiHighlight[]
+  tip?: string | null
+  actions?: AskAiAction[]
 }
 
 const SUMMARY_PANEL_PAGE_SIZE = 10
@@ -95,6 +88,7 @@ export default function MySummaryPage() {
   const { guard, allowed, showModal, setShowModal } = usePermissionGuard("canApproveIOILogs")
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [isAskAiOpen, setIsAskAiOpen] = useState(false)
+  const [isAiFullscreen, setIsAiFullscreen] = useState(false)
   const [askAiQuery, setAskAiQuery] = useState("")
   const [askAiError, setAskAiError] = useState<string | null>(null)
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([])
@@ -389,16 +383,11 @@ export default function MySummaryPage() {
       const assistantMessage: AiChatMessage = {
         id: createChatMessageId(),
         role: "assistant",
-        content: response.answer,
+        content: response.message,
         createdAt: response.generatedAt,
-        meta: {
-          source: response.source,
-          model: response.model,
-          statsSource: response.statsSource,
-          generatedAt: response.generatedAt,
-        },
-        suggestions: response.suggestions,
-        analysis: response.analysis,
+        highlights: response.highlights,
+        tip: response.tip,
+        actions: response.actions,
       }
 
       setChatMessages((prev) => [...prev, assistantMessage])
@@ -457,29 +446,6 @@ export default function MySummaryPage() {
       default:
         // For unknown actions, send as a follow-up question
         void submitAskAi(label)
-    }
-  }
-
-  const handleQuickActionClick = (action: string, label: string) => {
-    switch (action) {
-      case "open_summary_todos_overdue":
-        setIsAskAiOpen(false)
-        router.push("/my-summary/overdue-tasks")
-        return
-      case "open_summary_pending_approvals":
-        setIsAskAiOpen(false)
-        router.push("/acknowledgements")
-        return
-      case "open_summary_todos_due_today":
-        setIsAskAiOpen(false)
-        router.push("/my-summary/due-today")
-        return
-      case "open_summary_todos_all":
-        setIsAskAiOpen(false)
-        router.push("/my-summary/todos")
-        return
-      default:
-        setAskAiQuery(label)
     }
   }
 
@@ -782,9 +748,8 @@ export default function MySummaryPage() {
         <PageHeader
           title="My Summary"
           subtitle="Here's an overview of your tasks and activities."
-          showNewTask={true}
+          showNewTask={false}
           showAskAI={true}
-          onNewTask={handleNewTask}
           onAskAI={handleAskAI}
         />
       </div>
@@ -974,7 +939,15 @@ export default function MySummaryPage() {
       </Dialog>
 
       <Dialog open={isAskAiOpen} onOpenChange={setIsAskAiOpen}>
-        <DialogContent className="sm:max-w-3xl p-0 overflow-hidden gap-0">
+        <DialogContent className={`p-0 overflow-hidden gap-0 transition-all duration-300 ${isAiFullscreen ? "sm:max-w-[95vw] sm:h-[95vh] flex flex-col" : "sm:max-w-3xl"}`}>
+          <button
+            type="button"
+            className="absolute top-4 right-12 z-10 rounded-sm opacity-70 transition-opacity hover:opacity-100 ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+            onClick={() => setIsAiFullscreen(!isAiFullscreen)}
+            title={isAiFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          >
+            {isAiFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 px-6 pt-6">
               <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -985,9 +958,9 @@ export default function MySummaryPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="px-6 pb-6 space-y-4">
-            <div className="rounded-2xl border border-gray-200 bg-[radial-gradient(circle_at_12%_20%,rgba(249,115,22,0.08),transparent_36%),radial-gradient(circle_at_88%_0%,rgba(16,185,129,0.09),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
-              <div className="max-h-[40vh] sm:max-h-[26rem] overflow-y-auto space-y-3 pr-1">
+          <div className={`px-6 pb-6 space-y-4 ${isAiFullscreen ? "flex-1 flex flex-col min-h-0" : ""}`}>
+            <div className={`rounded-2xl border border-gray-200 bg-[radial-gradient(circle_at_12%_20%,rgba(249,115,22,0.08),transparent_36%),radial-gradient(circle_at_88%_0%,rgba(16,185,129,0.09),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] p-3 ${isAiFullscreen ? "flex-1 min-h-0 flex flex-col" : ""}`}>
+              <div className={`overflow-y-auto space-y-3 pr-1 ${isAiFullscreen ? "flex-1 min-h-0" : "max-h-[40vh] sm:max-h-[26rem]"}`}>
                 {chatMessages.length === 0 && (
                   <div className="rounded-xl border border-dashed border-gray-300 bg-white/80 p-5 text-center">
                     <MessageCircleDashed className="h-5 w-5 text-gray-500 mx-auto mb-2" />
@@ -1020,24 +993,24 @@ export default function MySummaryPage() {
                     ) : message.role === "assistant" ? (
                       <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3 break-words">
                         <FormattedAiContent content={message.content} />
-                        <AiAnalysisSections
-                          analysis={message.analysis}
-                          onQuickAction={handleQuickActionClick}
+                        <AiResponseSections
+                          highlights={message.highlights}
+                          tip={message.tip}
                         />
 
-                        {message.suggestions && message.suggestions.length > 0 && (
+                        {message.actions && message.actions.length > 0 && (
                           <div className="flex flex-wrap gap-2 pt-1">
-                            {message.suggestions.map((suggestion, index) => (
+                            {message.actions.map((action, index) => (
                               <Button
-                                key={`${message.id}-${suggestion.action}-${index}`}
+                                key={`${message.id}-${action.action}-${index}`}
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleSuggestionClick(suggestion.action, suggestion.label)}
+                                onClick={() => handleSuggestionClick(action.action, action.label)}
                                 disabled={askAiMutation.isPending}
                                 className="bg-white"
                               >
-                                {suggestion.label}
+                                {action.label}
                               </Button>
                             ))}
                           </div>

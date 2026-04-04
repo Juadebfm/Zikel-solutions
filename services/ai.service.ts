@@ -1,69 +1,86 @@
 import { apiRequest } from "@/lib/api/client"
 
-export interface AskAiSuggestion {
+// ─── Response Types ─────────────────────────────────────────────
+
+export interface AskAiHighlight {
+  title: string
+  reason: string
+  urgency: "low" | "medium" | "high" | "critical"
+  action: string
+}
+
+export interface AskAiAction {
   label: string
   action: string
 }
 
-interface AskAiAnalysisBaseItem {
-  id?: string
-  title?: string
-  label?: string
-  name?: string
-  summary?: string
-  description?: string
+export interface AskAiResponseMeta {
+  model: string | null
+  page: string
+  strengthProfile: "owner" | "admin" | "staff"
+  responseMode: "comprehensive" | "balanced" | "focused"
+  statsSource: "client" | "server" | "none"
+  languageSafetyPassed: boolean
 }
 
-export interface AskAiTopPriority extends AskAiAnalysisBaseItem {
-  urgencyScore?: number
-  recommendedAction?: string
-  priority?: string
+export interface AskAiResponse {
+  message: string
+  highlights: AskAiHighlight[]
+  tip: string | null
+  actions: AskAiAction[]
+  source: "model" | "fallback"
+  generatedAt: string
+  meta: AskAiResponseMeta
 }
 
-export interface AskAiRisk extends AskAiAnalysisBaseItem {
-  severity?: string
-  recommendedAction?: string
-}
+// ─── Request Types ──────────────────────────────────────────────
 
-export interface AskAiMissingData extends AskAiAnalysisBaseItem {
-  field?: string
-  message?: string
-}
-
-export interface AskAiQuickAction {
-  action: string
-  label?: string
-  title?: string
-  description?: string
-}
-
-export interface AskAiAnalysis {
-  strengthProfile?: "owner" | "admin" | "staff" | string
-  responseMode?: "comprehensive" | "balanced" | "focused" | string
-  contextSummary?: string
-  topPriorities?: AskAiTopPriority[]
-  risks?: AskAiRisk[]
-  missingData?: AskAiMissingData[]
-  quickActions?: AskAiQuickAction[]
-  platformSnapshot?: Record<string, unknown> | null
-}
-
-/** Summary-page context (backward-compatible) */
 export interface AskAiSummaryContext {
-  stats?: Record<string, unknown>
-  todos?: Array<Record<string, unknown>>
-  tasksToApprove?: Array<Record<string, unknown>>
+  stats?: {
+    overdue?: number
+    dueToday?: number
+    pendingApproval?: number
+    rejected?: number
+    draft?: number
+    future?: number
+    comments?: number
+    rewards?: number
+  }
+  todos?: Array<{
+    title: string
+    status?: string
+    priority?: string
+    dueDate?: string | null
+  }>
+  tasksToApprove?: Array<{
+    title: string
+    status?: string
+    priority?: string
+    dueDate?: string | null
+  }>
 }
 
-/** Generic page context (tasks, homes, employees, etc.) */
+export interface AskAiPageItem {
+  id?: string
+  title: string
+  status?: string
+  priority?: string
+  category?: string
+  type?: string
+  dueDate?: string | null
+  assignee?: string
+  home?: string
+  extra?: Record<string, string>
+}
+
 export interface AskAiPageContext {
-  items?: Array<Record<string, unknown>>
-  filters?: Record<string, unknown>
+  items?: AskAiPageItem[]
+  filters?: Record<string, string>
   meta?: {
-    total: number
-    page: number
-    pageSize: number
-    totalPages: number
+    total?: number
+    page?: number
+    pageSize?: number
+    totalPages?: number
   }
 }
 
@@ -85,18 +102,11 @@ export type AskAiPage =
 export interface AskAiPayload {
   query: string
   page?: AskAiPage
+  displayMode?: "auto" | "standard" | "minimal"
   context?: AskAiContext
 }
 
-export interface AskAiResponse {
-  answer: string
-  suggestions: AskAiSuggestion[]
-  source: "model" | "fallback"
-  model: string | null
-  statsSource: "client" | "server" | "none"
-  generatedAt: string
-  analysis?: AskAiAnalysis
-}
+// ─── Service ────────────────────────────────────────────────────
 
 export const aiService = {
   async ask(payload: AskAiPayload): Promise<AskAiResponse> {

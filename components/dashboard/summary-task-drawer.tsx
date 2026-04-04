@@ -1,9 +1,10 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { format } from "date-fns"
 import {
   CheckCircle2,
+  ChevronDown,
   FileText,
   ListChecks,
   MessageSquare,
@@ -92,6 +93,10 @@ export function SummaryTaskDrawer({
   onResolve,
   resolving = false,
 }: SummaryTaskDrawerProps) {
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [showMoreMeta, setShowMoreMeta] = useState(false)
+  const [formDataExpanded, setFormDataExpanded] = useState(false)
+
   const canResolve = Boolean(task && (task.status === "pending" || task.status === "in_progress"))
   const attachments = task?.attachments ?? []
   const approvalChain = task?.approvalChain ?? []
@@ -102,8 +107,19 @@ export function SummaryTaskDrawer({
     ? Object.entries(task.formData)
     : []
 
+  const descriptionIsLong = (task?.description?.length ?? 0) > 120
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setDescriptionExpanded(false)
+      setShowMoreMeta(false)
+      setFormDataExpanded(false)
+    }
+    onOpenChange(isOpen)
+  }
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0 gap-0">
         <SheetTitle className="sr-only">
           {task ? `Task detail: ${task.title}` : "Task detail"}
@@ -118,20 +134,38 @@ export function SummaryTaskDrawer({
           </div>
         ) : (
           <>
+            {/* ── Header ────────────────────────────────── */}
             <div className="px-6 py-5 border-b space-y-3">
               <p className="text-xl font-semibold leading-tight pr-8">{task.title}</p>
+
+              {/* Badges — status + priority only */}
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="font-mono text-xs">{task.taskRef}</Badge>
                 <Badge variant="outline" className="text-xs capitalize">{task.statusLabel ?? task.status}</Badge>
                 <Badge className={cn("text-xs capitalize", priorityBadgeClass[task.priority] ?? "bg-gray-100 text-gray-700")}>
                   {task.priority}
                 </Badge>
-                <Badge variant="outline" className="text-xs capitalize">
-                  {task.approvalStatusLabel ?? task.approvalStatus}
-                </Badge>
               </div>
+
+              {/* Description — truncated with expand */}
               {task.description ? (
-                <p className="text-sm text-muted-foreground">{task.description}</p>
+                <div>
+                  <p className={cn(
+                    "text-sm text-muted-foreground leading-relaxed",
+                    !descriptionExpanded && descriptionIsLong && "line-clamp-2"
+                  )}>
+                    {task.description}
+                  </p>
+                  {descriptionIsLong && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline mt-1"
+                      onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                    >
+                      {descriptionExpanded ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
               ) : null}
             </div>
 
@@ -147,13 +181,32 @@ export function SummaryTaskDrawer({
 
               <ScrollArea className="flex-1 px-6 py-4">
                 <TabsContent value="details" className="mt-0 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <Field label="Related To" value={task.relatedEntity?.name ?? "-"} />
-                    <Field label="Category" value={task.categoryLabel || task.domain || "-"} />
-                    <Field label="Due Date" value={formatDateTime(task.dueAt)} />
-                    <Field label="Submitted" value={formatDateTime(task.submittedAt)} />
-                    <Field label="Assignee" value={task.assignee?.name ?? "Unassigned"} />
-                    <Field label="Created By" value={task.createdBy?.name ?? "-"} />
+                  {/* Key metadata — compact */}
+                  <div className="rounded-lg bg-muted/50 border p-4 space-y-3">
+                    {/* Primary fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <Field label="Related To" value={task.relatedEntity?.name ?? "-"} />
+                      <Field label="Due Date" value={formatDateTime(task.dueAt)} />
+                      <Field label="Assignee" value={task.assignee?.name ?? "Unassigned"} />
+                    </div>
+
+                    {/* Secondary fields — collapsed */}
+                    {showMoreMeta && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm pt-2 border-t border-border/50">
+                        <Field label="Category" value={task.categoryLabel || task.domain || "-"} />
+                        <Field label="Submitted" value={formatDateTime(task.submittedAt)} />
+                        <Field label="Created By" value={task.createdBy?.name ?? "-"} />
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center pt-1"
+                      onClick={() => setShowMoreMeta(!showMoreMeta)}
+                    >
+                      <span>{showMoreMeta ? "Less details" : "More details"}</span>
+                      <ChevronDown className={cn("size-3 transition-transform", showMoreMeta && "rotate-180")} />
+                    </button>
                   </div>
 
                   <SectionTitle icon={<ListChecks className="h-4 w-4" />} label="Approval Chain" />
@@ -176,17 +229,34 @@ export function SummaryTaskDrawer({
                     </div>
                   )}
 
-                  <SectionTitle icon={<FileText className="h-4 w-4" />} label="Form Data" />
-                  {formDataEntries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No form data.</p>
-                  ) : (
+                  {/* Form Data — collapsible */}
+                  {formDataEntries.length > 0 && (
                     <div className="space-y-2">
-                      {formDataEntries.map(([key, value]) => (
-                        <div key={key} className="rounded-md border p-3 text-sm">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{key}</p>
-                          <p className="mt-1 break-words">{formatValue(value)}</p>
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 w-full group"
+                        onClick={() => setFormDataExpanded(!formDataExpanded)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm font-semibold">Form Data</span>
+                        <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                          {formDataEntries.length}
+                        </span>
+                        <ChevronDown className={cn(
+                          "size-4 text-muted-foreground ml-auto transition-transform",
+                          formDataExpanded && "rotate-180"
+                        )} />
+                      </button>
+                      {formDataExpanded && (
+                        <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
+                          {formDataEntries.map(([key, value]) => (
+                            <div key={key} className="rounded-md border p-3 text-sm">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">{key}</p>
+                              <p className="mt-1 break-words">{formatValue(value)}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </TabsContent>
@@ -279,9 +349,9 @@ export function SummaryTaskDrawer({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-medium">{value || "-"}</p>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-medium text-sm">{value || "-"}</p>
     </div>
   )
 }

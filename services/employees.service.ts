@@ -17,6 +17,11 @@ export interface EmployeeRecord {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  user?: {
+    firstName?: string
+    lastName?: string
+    name?: string
+  }
 }
 
 export interface EmployeeListResult {

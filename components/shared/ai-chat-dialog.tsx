@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react"
-import { Loader2, MessageCircleDashed, Sparkles, User2 } from "lucide-react"
+import { Loader2, Maximize2, MessageCircleDashed, Minimize2, Sparkles, User2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,28 +16,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
 import { useErrorModalStore } from "@/components/shared/error-modal"
-import { AiAnalysisSections } from "@/components/shared/ai-analysis-sections"
-import type { AskAiContext, AskAiPage, AskAiResponse } from "@/services/ai.service"
+import { AiResponseSections } from "@/components/shared/ai-analysis-sections"
+import type { AskAiAction, AskAiContext, AskAiHighlight, AskAiPage, AskAiResponse } from "@/services/ai.service"
 
 // ─── Types ───────────────────────────────────────────────────────
 
 type AiChatRole = "user" | "assistant" | "system"
-
-interface AiMessageMetadata {
-  source: AskAiResponse["source"]
-  model: AskAiResponse["model"]
-  statsSource: AskAiResponse["statsSource"]
-  generatedAt: AskAiResponse["generatedAt"]
-}
 
 interface AiChatMessage {
   id: string
   role: AiChatRole
   content: string
   createdAt: string
-  meta?: AiMessageMetadata
-  suggestions?: AskAiResponse["suggestions"]
-  analysis?: AskAiResponse["analysis"]
+  highlights?: AskAiHighlight[]
+  tip?: string | null
+  actions?: AskAiAction[]
 }
 
 export interface AiChatDialogProps {
@@ -268,6 +261,7 @@ export function AiChatDialog({
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([])
   const [query, setQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const showError = useErrorModalStore((s) => s.show)
 
@@ -311,16 +305,11 @@ export function AiChatDialog({
           {
             id: createChatMessageId(),
             role: "assistant",
-            content: response.answer,
+            content: response.message,
             createdAt: response.generatedAt,
-            meta: {
-              source: response.source,
-              model: response.model,
-              statsSource: response.statsSource,
-              generatedAt: response.generatedAt,
-            },
-            suggestions: response.suggestions,
-            analysis: response.analysis,
+            highlights: response.highlights,
+            tip: response.tip,
+            actions: response.actions,
           },
         ])
       } catch (err) {
@@ -356,15 +345,6 @@ export function AiChatDialog({
     void submitQuery(label)
   }
 
-  const handleQuickActionClick = (action: string, label: string) => {
-    if (onSuggestionAction) {
-      onSuggestionAction(action)
-      return
-    }
-
-    setQuery(label)
-  }
-
   const handleReset = () => {
     setError(null)
     setChatMessages([])
@@ -373,7 +353,15 @@ export function AiChatDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl p-0 overflow-hidden gap-0">
+      <DialogContent className={`p-0 overflow-hidden gap-0 transition-all duration-300 ${isFullscreen ? "sm:max-w-[95vw] sm:h-[95vh] flex flex-col" : "sm:max-w-3xl"}`}>
+        <button
+          type="button"
+          className="absolute top-4 right-12 z-10 rounded-sm opacity-70 transition-opacity hover:opacity-100 ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 px-6 pt-6">
             <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -384,10 +372,10 @@ export function AiChatDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 pb-6 space-y-4">
+        <div className={`px-6 pb-6 space-y-4 ${isFullscreen ? "flex-1 flex flex-col min-h-0" : ""}`}>
           {/* Chat area */}
-          <div className="rounded-2xl border border-gray-200 bg-[radial-gradient(circle_at_12%_20%,rgba(249,115,22,0.08),transparent_36%),radial-gradient(circle_at_88%_0%,rgba(16,185,129,0.09),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
-            <div className="max-h-[26rem] overflow-y-auto space-y-3 pr-1">
+          <div className={`rounded-2xl border border-gray-200 bg-[radial-gradient(circle_at_12%_20%,rgba(249,115,22,0.08),transparent_36%),radial-gradient(circle_at_88%_0%,rgba(16,185,129,0.09),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] p-3 ${isFullscreen ? "flex-1 min-h-0 flex flex-col" : ""}`}>
+            <div className={`overflow-y-auto space-y-3 pr-1 ${isFullscreen ? "flex-1 min-h-0" : "max-h-[26rem]"}`}>
               {chatMessages.length === 0 && (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white/80 p-5 text-center">
                   <MessageCircleDashed className="h-5 w-5 text-gray-500 mx-auto mb-2" />
@@ -420,24 +408,24 @@ export function AiChatDialog({
                   ) : message.role === "assistant" ? (
                     <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 shadow-sm space-y-3">
                       <FormattedAiContent content={message.content} />
-                      <AiAnalysisSections
-                        analysis={message.analysis}
-                        onQuickAction={handleQuickActionClick}
+                      <AiResponseSections
+                        highlights={message.highlights}
+                        tip={message.tip}
                       />
 
-                      {message.suggestions && message.suggestions.length > 0 && (
+                      {message.actions && message.actions.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {message.suggestions.map((suggestion, index) => (
+                          {message.actions.map((action, index) => (
                             <Button
-                              key={`${message.id}-${suggestion.action}-${index}`}
+                              key={`${message.id}-${action.action}-${index}`}
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => handleSuggestionClick(suggestion.action, suggestion.label)}
+                              onClick={() => handleSuggestionClick(action.action, action.label)}
                               disabled={askAiMutation.isPending}
                               className="bg-white"
                             >
-                              {suggestion.label}
+                              {action.label}
                             </Button>
                           ))}
                         </div>

@@ -16,6 +16,7 @@ import {
   Building2,
   Tag,
   Download,
+  ChevronDown,
 } from "lucide-react"
 
 import {
@@ -27,7 +28,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
@@ -119,6 +119,15 @@ function formatRelativeTime(value: string): string {
   return formatShortDate(value)
 }
 
+function safeDisplayName(value: unknown): string {
+  if (!value) return "System"
+  if (typeof value === "string") return value
+  if (typeof value === "object" && value !== null && "name" in value) {
+    return String((value as { name?: string }).name || "System")
+  }
+  return String(value)
+}
+
 function formatFieldLabel(key: string): string {
   const normalized = key
     .replace(/_/g, " ")
@@ -155,7 +164,6 @@ function formatFormValue(value: unknown, depth = 0): string {
   if (typeof value === "object") {
     const record = value as Record<string, unknown>
 
-    // Prefer human-friendly object fields when available.
     const preferredKeys = ["label", "name", "title", "value", "text"]
     for (const key of preferredKeys) {
       const candidate = record[key]
@@ -229,6 +237,9 @@ export function TaskDetailDrawer({
 }: TaskDetailDrawerProps) {
   const [commentText, setCommentText] = useState("")
   const [activeTab, setActiveTab] = useState("details")
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [showMoreMeta, setShowMoreMeta] = useState(false)
+  const [formDataExpanded, setFormDataExpanded] = useState(false)
 
   const {
     data: task,
@@ -252,6 +263,8 @@ export function TaskDetailDrawer({
   const status = statusConfig[task?.status ?? "draft"] ?? statusConfig.draft
   const priority = priorityConfig[task?.priority ?? "medium"] ?? priorityConfig.medium
 
+  const descriptionIsLong = (task?.description?.length ?? 0) > 120
+
   function handleComment() {
     if (!task || !commentText.trim() || !onAction) return
     onAction(task.id, "comment", { comment: commentText.trim() })
@@ -259,7 +272,14 @@ export function TaskDetailDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Sheet open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        onClose()
+        setDescriptionExpanded(false)
+        setShowMoreMeta(false)
+        setFormDataExpanded(false)
+      }
+    }}>
       <SheetContent
         side="right"
         className={cn(
@@ -277,7 +297,6 @@ export function TaskDetailDrawer({
         {/* Loading skeleton */}
         {isLoading && (
           <div className="flex flex-col flex-1">
-            {/* Header skeleton */}
             <div className="px-6 pt-5 pb-4 space-y-3">
               <Skeleton className="h-6 w-3/4" />
               <div className="flex gap-2">
@@ -288,11 +307,9 @@ export function TaskDetailDrawer({
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-2/3" />
             </div>
-
-            {/* Metadata card skeleton */}
             <div className="mx-6 rounded-lg bg-muted/50 border p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="space-y-1.5">
                     <Skeleton className="h-3 w-16" />
                     <Skeleton className="h-4 w-28" />
@@ -300,14 +317,11 @@ export function TaskDetailDrawer({
                 ))}
               </div>
             </div>
-
-            {/* Tabs skeleton */}
             <div className="px-6 pt-4 space-y-4">
               <div className="flex gap-2">
                 <Skeleton className="h-8 w-20 rounded-md" />
                 <Skeleton className="h-8 w-20 rounded-md" />
                 <Skeleton className="h-8 w-24 rounded-md" />
-                <Skeleton className="h-8 w-16 rounded-md" />
               </div>
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -344,7 +358,7 @@ export function TaskDetailDrawer({
                 {task.title}
               </h2>
 
-              {/* Badges row */}
+              {/* Badges — status + priority only */}
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="font-mono text-xs px-2 py-0.5">
                   {task.taskRef}
@@ -358,23 +372,35 @@ export function TaskDetailDrawer({
                 </Badge>
               </div>
 
-              {/* Description */}
+              {/* Description — truncated with expand */}
               {task.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {task.description}
-                </p>
+                <div>
+                  <p className={cn(
+                    "text-sm text-muted-foreground leading-relaxed",
+                    !descriptionExpanded && descriptionIsLong && "line-clamp-2"
+                  )}>
+                    {task.description}
+                  </p>
+                  {descriptionIsLong && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline mt-1"
+                      onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                    >
+                      {descriptionExpanded ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* ── Metadata Card ─────────────────────────── */}
-            <div className="mx-6 rounded-lg bg-muted/50 border p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <MetaField
-                  icon={<User2 className="size-3.5" />}
-                  label="Assignee"
-                >
+            {/* ── Key Metadata (compact) ───────────────── */}
+            <div className="mx-6 rounded-lg bg-muted/50 border p-4 space-y-3">
+              {/* Primary fields — always visible */}
+              <div className="grid grid-cols-3 gap-3">
+                <MetaField icon={<User2 className="size-3.5" />} label="Assignee">
                   {task.assignee ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Avatar className="size-5">
                         {task.assignee.avatarUrl && (
                           <AvatarImage src={task.assignee.avatarUrl} alt={task.assignee.name} />
@@ -383,62 +409,61 @@ export function TaskDetailDrawer({
                           {getInitials(task.assignee.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{task.assignee.name}</span>
+                      <span className="text-sm font-medium truncate">{task.assignee.name}</span>
                     </div>
                   ) : (
                     <span className="text-sm text-muted-foreground">Unassigned</span>
                   )}
                 </MetaField>
 
-                <MetaField
-                  icon={<User2 className="size-3.5" />}
-                  label="Created By"
-                >
-                  {task.createdBy ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="size-5">
-                        {task.createdBy.avatarUrl && (
-                          <AvatarImage src={task.createdBy.avatarUrl} alt={task.createdBy.name} />
-                        )}
-                        <AvatarFallback className="text-[9px]">
-                          {getInitials(task.createdBy.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{task.createdBy.name}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">-</span>
-                  )}
-                </MetaField>
-
-                <MetaField
-                  icon={<Calendar className="size-3.5" />}
-                  label="Due Date"
-                >
+                <MetaField icon={<Calendar className="size-3.5" />} label="Due Date">
                   <span className="text-sm font-medium">{formatDate(task.dueAt)}</span>
                 </MetaField>
 
-                <MetaField
-                  icon={<Tag className="size-3.5" />}
-                  label="Category"
-                >
-                  <span className="text-sm font-medium">{task.categoryLabel}</span>
-                </MetaField>
-
-                <MetaField
-                  icon={<Building2 className="size-3.5" />}
-                  label="Entity"
-                >
-                  <span className="text-sm font-medium">{task.relatedEntity?.name ?? "-"}</span>
-                </MetaField>
-
-                <MetaField
-                  icon={<Calendar className="size-3.5" />}
-                  label="Submitted At"
-                >
-                  <span className="text-sm font-medium">{formatDate(task.submittedAt)}</span>
+                <MetaField icon={<Building2 className="size-3.5" />} label="Related To">
+                  <span className="text-sm font-medium truncate block">{task.relatedEntity?.name ?? "-"}</span>
                 </MetaField>
               </div>
+
+              {/* Secondary fields — collapsed by default */}
+              {showMoreMeta && (
+                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/50">
+                  <MetaField icon={<User2 className="size-3.5" />} label="Created By">
+                    {task.createdBy ? (
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="size-5">
+                          {task.createdBy.avatarUrl && (
+                            <AvatarImage src={task.createdBy.avatarUrl} alt={task.createdBy.name} />
+                          )}
+                          <AvatarFallback className="text-[9px]">
+                            {getInitials(task.createdBy.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium truncate">{task.createdBy.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </MetaField>
+
+                  <MetaField icon={<Tag className="size-3.5" />} label="Category">
+                    <span className="text-sm font-medium">{task.categoryLabel}</span>
+                  </MetaField>
+
+                  <MetaField icon={<Calendar className="size-3.5" />} label="Submitted">
+                    <span className="text-sm font-medium">{formatDate(task.submittedAt)}</span>
+                  </MetaField>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center pt-1"
+                onClick={() => setShowMoreMeta(!showMoreMeta)}
+              >
+                <span>{showMoreMeta ? "Less details" : "More details"}</span>
+                <ChevronDown className={cn("size-3 transition-transform", showMoreMeta && "rotate-180")} />
+              </button>
             </div>
 
             {/* ── Sticky Tabs ───────────────────────────── */}
@@ -447,32 +472,32 @@ export function TaskDetailDrawer({
               onValueChange={setActiveTab}
               className="flex flex-1 flex-col min-h-0 mt-4"
             >
-              <div className="px-6 border-b">
-                <TabsList className="w-full bg-transparent h-auto p-0 gap-0">
+              <div className="px-6 pt-1 pb-0">
+                <TabsList className="w-full bg-muted/60 rounded-lg p-1 h-auto gap-1">
                   <TabsTrigger
                     value="details"
-                    className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-2.5 pt-1 text-sm"
+                    className="flex-1 rounded-md py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
                   >
                     Details
                   </TabsTrigger>
                   <TabsTrigger
                     value="activity"
-                    className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-2.5 pt-1 text-sm"
+                    className="flex-1 rounded-md py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
                   >
                     Activity
                     {task.activityLog.length > 0 && (
-                      <span className="ml-1.5 text-xs text-muted-foreground">
+                      <span className="ml-1.5 text-xs opacity-60">
                         ({task.activityLog.length})
                       </span>
                     )}
                   </TabsTrigger>
                   <TabsTrigger
                     value="comments"
-                    className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-2.5 pt-1 text-sm"
+                    className="flex-1 rounded-md py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
                   >
                     Comments
                     {task.comments.length > 0 && (
-                      <span className="ml-1.5 text-xs text-muted-foreground">
+                      <span className="ml-1.5 text-xs opacity-60">
                         ({task.comments.length})
                       </span>
                     )}
@@ -522,7 +547,7 @@ export function TaskDetailDrawer({
                     ) : (
                       <div className="space-y-1">
                         {task.approvalChain.map(
-                          (entry: TaskApprovalChainEntry, index: number) => (
+                          (entry: TaskApprovalChainEntry) => (
                             <div
                               key={entry.userId}
                               className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-muted/30 transition-colors"
@@ -574,25 +599,41 @@ export function TaskDetailDrawer({
                     )}
                   </Section>
 
-                  {/* Form Data */}
+                  {/* Form Data — collapsible */}
                   {task.formData && Object.keys(task.formData).length > 0 && (
-                    <Section title="Form Data">
-                      <div className="rounded-lg border divide-y">
-                        {Object.entries(task.formData).map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="flex justify-between gap-4 px-3 py-2.5 text-sm"
-                          >
-                            <span className="text-muted-foreground capitalize">
-                              {formatFieldLabel(key)}
-                            </span>
-                            <span className="font-medium text-right">
-                              {formatFormValue(value)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </Section>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 w-full group"
+                        onClick={() => setFormDataExpanded(!formDataExpanded)}
+                      >
+                        <h4 className="text-sm font-medium">Form Data</h4>
+                        <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                          {Object.keys(task.formData).length}
+                        </span>
+                        <ChevronDown className={cn(
+                          "size-4 text-muted-foreground ml-auto transition-transform",
+                          formDataExpanded && "rotate-180"
+                        )} />
+                      </button>
+                      {formDataExpanded && (
+                        <div className="rounded-lg border divide-y animate-in slide-in-from-top-1 duration-200">
+                          {Object.entries(task.formData).map(([key, value]) => (
+                            <div
+                              key={key}
+                              className="flex justify-between gap-4 px-3 py-2.5 text-sm"
+                            >
+                              <span className="text-muted-foreground capitalize shrink-0">
+                                {formatFieldLabel(key)}
+                              </span>
+                              <span className="font-medium text-right break-words min-w-0">
+                                {formatFormValue(value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </TabsContent>
 
@@ -602,7 +643,6 @@ export function TaskDetailDrawer({
                     <EmptyBlock icon={<Clock className="size-5" />} text="No activity yet" />
                   ) : (
                     <div className="relative pl-6">
-                      {/* Timeline line */}
                       <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
 
                       <div className="space-y-4">
@@ -612,7 +652,6 @@ export function TaskDetailDrawer({
 
                           return (
                             <div key={entry.id} className="relative">
-                              {/* Colored dot */}
                               <span
                                 className={cn(
                                   "absolute -left-6 top-1.5 size-[9px] rounded-full ring-2 ring-white",
@@ -620,10 +659,10 @@ export function TaskDetailDrawer({
                                 )}
                               />
                               <div>
-                                <p className="text-sm font-medium">{entry.action}</p>
+                                <p className="text-sm font-medium capitalize">{formatFieldLabel(entry.action)}</p>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-xs text-muted-foreground">
-                                    {entry.by}
+                                    {safeDisplayName(entry.by)}
                                   </span>
                                   <span className="text-xs text-muted-foreground/50">&middot;</span>
                                   <span className="text-xs text-muted-foreground">
@@ -688,7 +727,6 @@ export function TaskDetailDrawer({
 
             {/* ── Footer ────────────────────────────────── */}
             <div className="border-t bg-white">
-              {/* Action buttons for approval tasks */}
               {onAction && hasActions && (
                 <div className="px-6 pt-3 pb-2 flex items-center gap-2">
                   {canApprove && (
@@ -726,7 +764,6 @@ export function TaskDetailDrawer({
                 </div>
               )}
 
-              {/* Inline comment input */}
               {onAction && canComment && (
                 <div className="px-6 py-3">
                   <div className="flex items-end gap-2">
@@ -773,7 +810,7 @@ function MetaField({
   children: React.ReactNode
 }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 min-w-0">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-xs">{label}</span>

@@ -160,8 +160,7 @@ export function PageHeader({
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
         {showAskAI && (
           <Button
-            variant="outline"
-            className="gap-2 w-full sm:w-auto"
+            className="gap-2 w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
             onClick={onAskAI}
           >
             <Sparkles className="h-4 w-4" />

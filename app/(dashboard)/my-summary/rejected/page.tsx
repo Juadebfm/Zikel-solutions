@@ -299,7 +299,7 @@ export default function RejectedTasksPage() {
                 <Checkbox checked={allTasks.length > 0 && selectedRows.size === allTasks.length} onCheckedChange={toggleAllRows} />
               </TableHead>
               <TableHead className="font-semibold text-gray-700 w-20 sm:w-28">Ref</TableHead>
-              <TableHead className="font-semibold text-gray-700 min-w-[150px] sm:min-w-[200px]">Task</TableHead>
+              <TableHead className="font-semibold text-gray-700 min-w-[150px] sm:min-w-[200px] max-w-[300px]">Task</TableHead>
               <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Category</TableHead>
               <TableHead className="font-semibold text-gray-700">Assigned To</TableHead>
               <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Related To</TableHead>
@@ -347,13 +347,13 @@ export default function RejectedTasksPage() {
                       <Checkbox checked={selectedRows.has(task.id)} onCheckedChange={() => toggleRow(task.id)} />
                     </TableCell>
                     <TableCell className="font-mono text-xs text-gray-500">{task.taskRef}</TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <Link href={`/tasks?taskId=${task.id}`} className="text-sm text-primary hover:underline font-medium line-clamp-1">
+                    <TableCell className="max-w-[300px]">
+                      <div className="space-y-0.5 min-w-0">
+                        <Link href={`/tasks?taskId=${task.id}`} className="text-sm text-primary hover:underline font-medium truncate block w-full">
                           {task.title}
                         </Link>
                         {task.description && (
-                          <p className="text-xs text-gray-400 line-clamp-1">{task.description}</p>
+                          <p className="text-xs text-gray-400 truncate">{task.description}</p>
                         )}
                       </div>
                     </TableCell>

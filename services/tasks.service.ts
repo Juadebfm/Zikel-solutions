@@ -156,6 +156,7 @@ export interface CreateTaskPayload {
   type?: TaskEntityType
   priority?: TaskPriority
   status?: string
+  approvalStatus?: string
   dueAt?: string
   homeId?: string
   youngPersonId?: string
@@ -169,6 +170,17 @@ export interface CreateTaskPayload {
   submissionPayload?: Record<string, unknown>
   attachmentFileIds?: string[]
   signatureFileId?: string
+  references?: Array<{
+    type: "entity" | "upload" | "internal_route" | "external_url" | "document_url"
+    entityType?: string
+    entityId?: string
+    fileId?: string
+    url?: string
+    label?: string
+    metadata?: Record<string, unknown>
+  }>
+  submittedAt?: string
+  createdById?: string
 }
 
 export interface UpdateTaskPayload {

@@ -34,10 +34,16 @@ export function useYoungPeopleDropdown(homeId?: string) {
     staleTime: DROPDOWN_STALE_TIME,
     enabled: !!homeId,
     select: (data) =>
-      data.items.map((yp) => ({
-        value: yp.id,
-        label: `${yp.firstName} ${yp.lastName}`.trim(),
-      })),
+      data.items.map((yp) => {
+        const rec = yp as unknown as Record<string, unknown>
+        const first = yp.firstName ?? rec.first_name ?? ""
+        const last = yp.lastName ?? rec.last_name ?? ""
+        const full = `${first} ${last}`.trim()
+        return {
+          value: yp.id,
+          label: full || (rec.name as string) || "Unknown",
+        }
+      }),
   })
 }
 
@@ -53,10 +59,17 @@ export function useEmployeesDropdown(homeId?: string) {
       }),
     staleTime: DROPDOWN_STALE_TIME,
     select: (data) =>
-      data.items.map((e) => ({
-        value: e.id,
-        label: `${e.firstName} ${e.lastName}`.trim(),
-      })),
+      data.items.map((e) => {
+        const rec = e as unknown as Record<string, unknown>
+        const user = rec.user as Record<string, unknown> | undefined
+        const first = e.firstName ?? user?.firstName ?? rec.first_name ?? user?.first_name ?? ""
+        const last = e.lastName ?? user?.lastName ?? rec.last_name ?? user?.last_name ?? ""
+        const full = `${first} ${last}`.trim()
+        return {
+          value: e.id,
+          label: full || (rec.name as string) || (user?.name as string) || e.email || "Unknown",
+        }
+      }),
   })
 }
 

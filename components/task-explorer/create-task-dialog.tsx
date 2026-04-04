@@ -37,14 +37,15 @@ import type { CreateTaskPayload } from "@/services/tasks.service"
 // ─── Constants ───────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { value: "general", label: "General" },
+  { value: "task_log", label: "General Task" },
+  { value: "daily_log", label: "Daily Log" },
+  { value: "incident", label: "Incident / Observation" },
+  { value: "document", label: "Document" },
+  { value: "checklist", label: "Checklist / Inspection" },
+  { value: "report", label: "Report" },
   { value: "compliance", label: "Compliance" },
-  { value: "incident", label: "Observation" },
   { value: "maintenance", label: "Maintenance" },
   { value: "meeting", label: "Meeting" },
-  { value: "documentation", label: "Documentation" },
-  { value: "report", label: "Report" },
-  { value: "checklist", label: "Checklist" },
   { value: "other", label: "Other" },
 ]
 
@@ -115,6 +116,14 @@ export function CreateTaskDialog({
     setYoungPersonId("")
     setAssigneeId("")
     setError(null)
+  }
+
+  function handleTypeChange(value: string) {
+    setType(value)
+    // Reset entity fields when type changes
+    setHomeId("")
+    setYoungPersonId("")
+    setAssigneeId("")
   }
 
   function handleHomeChange(value: string) {
@@ -244,10 +253,10 @@ export function CreateTaskDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-gray-800">Type</Label>
-              <Select value={type} onValueChange={setType}>
+              <Label className="text-sm font-semibold text-gray-800">Related To</Label>
+              <Select value={type} onValueChange={handleTypeChange}>
                 <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="Select type..." />
+                  <SelectValue placeholder="Select what this relates to..." />
                 </SelectTrigger>
                 <SelectContent>
                   {ENTITY_TYPES.map((t) => (
@@ -258,23 +267,25 @@ export function CreateTaskDialog({
             </div>
           </div>
 
-          {/* Home */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-gray-800">Home</Label>
-            <Select value={homeId} onValueChange={handleHomeChange}>
-              <SelectTrigger className={triggerClass}>
-                <SelectValue placeholder="Select home..." />
-              </SelectTrigger>
-              <SelectContent>
-                {homes.map((h) => (
-                  <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Home — shown for home, young_person, and employee types */}
+          {(type === "home" || type === "young_person" || type === "employee") && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Home</Label>
+              <Select value={homeId} onValueChange={handleHomeChange}>
+                <SelectTrigger className={triggerClass}>
+                  <SelectValue placeholder="Select home..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {homes.map((h) => (
+                    <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-          {/* Young Person (shown when home is selected and type-relevant) */}
-          {homeId && youngPeople.length > 0 && (
+          {/* Young Person — only when type is young_person and a home is selected */}
+          {type === "young_person" && homeId && youngPeople.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-800">Young Person</Label>
               <Select value={youngPersonId} onValueChange={setYoungPersonId}>
@@ -290,7 +301,7 @@ export function CreateTaskDialog({
             </div>
           )}
 
-          {/* Assignee (shown when home is selected) */}
+          {/* Assignee — shown when a home is selected */}
           {homeId && employees.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-800">Assignee</Label>
