@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
-import type { AskAiAction, AskAiHighlight, AskAiResponse } from "@/services/ai.service"
+import type { AskAiAction, AskAiHighlight, AskAiResponse, AskAiSummaryContext } from "@/services/ai.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
 import { AiResponseSections } from "@/components/shared/ai-analysis-sections"
@@ -292,12 +292,8 @@ export default function MySummaryPage() {
     }))
   }, [provisionsQuery.data])
 
-  const askAiContext = useMemo(() => {
-    const context: {
-      stats?: Record<string, unknown>
-      todos?: Array<Record<string, unknown>>
-      tasksToApprove?: Array<Record<string, unknown>>
-    } = {}
+  const askAiContext = useMemo((): AskAiSummaryContext | undefined => {
+    const context: AskAiSummaryContext = {}
 
     if (statsQuery.data) {
       context.stats = {
