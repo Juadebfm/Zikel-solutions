@@ -322,6 +322,7 @@ export interface BatchPostponeResult {
 export interface BatchReassignPayload {
   taskIds: string[]
   assigneeId: string
+  dueDate?: string | null
   reason?: string
 }
 
@@ -699,7 +700,7 @@ export const summaryService = {
 
   async batchReassign(payload: BatchReassignPayload): Promise<BatchReassignResult> {
     const response = await apiRequest<BatchReassignResult>({
-      path: "/tasks/batch-reassign",
+      path: "/tasks/reassign",
       method: "POST",
       auth: true,
       body: payload,

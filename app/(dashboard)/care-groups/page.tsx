@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { Loader2, Plus, Search, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -21,6 +20,7 @@ import { useErrorModalStore } from "@/components/shared/error-modal"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useCareGroupList } from "@/hooks/api/use-care-groups"
 import { CreateCareGroupDialog } from "@/components/care-groups/create-care-group-dialog"
+import { CareGroupDetailDrawer } from "@/components/care-groups/care-group-detail-drawer"
 import type { AskAiPageContext } from "@/services/ai.service"
 
 function formatDate(value: string | null | undefined): string {
@@ -48,6 +48,7 @@ export default function CareGroupsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedCareGroupId, setSelectedCareGroupId] = useState<string | null>(null)
 
   const careGroupsQuery = useCareGroupList({
     page,
@@ -156,65 +157,39 @@ export default function CareGroupsPage() {
                 </div>
               ) : null}
 
-              <Table className="min-w-[1900px]">
+              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Care Group Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Manager</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Phone Number</TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Fax</TableHead>
-                    <TableHead>Website</TableHead>
-                    <TableHead>Address Line 1</TableHead>
-                    <TableHead>Address Line 2</TableHead>
                     <TableHead>City</TableHead>
-                    <TableHead>Country / Region</TableHead>
-                    <TableHead>Postcode</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>IP Restriction</TableHead>
-                    <TableHead>Twilio SID</TableHead>
-                    <TableHead>Twilio Number</TableHead>
+                    <TableHead className="text-center">Homes</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Homes</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Updated</TableHead>
                     <TableHead className="w-20 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {careGroupsQuery.isLoading ? (
-                    Array.from({ length: 5 }).map((_, index) => (
+                    Array.from({ length: 3 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`}>
                         <TableCell><Skeleton className="h-4 w-44" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
                       </TableRow>
                     ))
                   ) : items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={22} className="h-40 text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="h-40 text-center text-muted-foreground">
                         No care groups found
                       </TableCell>
                     </TableRow>
@@ -222,51 +197,24 @@ export default function CareGroupsPage() {
                     items.map((careGroup) => (
                       <TableRow key={careGroup.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Link
-                            href={`/care-groups/${careGroup.id}`}
-                            className="font-medium text-primary hover:underline"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCareGroupId(careGroup.id)}
+                            className="font-medium text-primary hover:underline text-left"
                           >
                             {careGroup.name}
-                          </Link>
+                          </button>
                         </TableCell>
-                        <TableCell className="capitalize">{careGroup.type}</TableCell>
-                        <TableCell>{compactText(careGroup.manager)}</TableCell>
-                        <TableCell>{compactText(careGroup.contact)}</TableCell>
+                        <TableCell className="capitalize">{compactText(careGroup.type)}</TableCell>
+                        <TableCell>{compactText(careGroup.managerName ?? careGroup.manager)}</TableCell>
                         <TableCell>{compactText(careGroup.phoneNumber)}</TableCell>
                         <TableCell>{compactText(careGroup.email)}</TableCell>
-                        <TableCell>{compactText(careGroup.faxNumber)}</TableCell>
-                        <TableCell>
-                          {careGroup.website ? (
-                            <a
-                              href={careGroup.website}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {careGroup.website}
-                            </a>
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                        <TableCell>{compactText(careGroup.addressLine1)}</TableCell>
-                        <TableCell>{compactText(careGroup.addressLine2)}</TableCell>
                         <TableCell>{compactText(careGroup.city)}</TableCell>
-                        <TableCell>{compactText(careGroup.countryRegion)}</TableCell>
-                        <TableCell>{compactText(careGroup.postcode)}</TableCell>
-                        <TableCell className="max-w-[260px]">
-                          <p className="truncate">{compactText(careGroup.description)}</p>
-                        </TableCell>
-                        <TableCell>{careGroup.defaultUserIpRestriction ? "Enabled" : "Disabled"}</TableCell>
-                        <TableCell>{compactText(careGroup.twilioSid)}</TableCell>
-                        <TableCell>{compactText(careGroup.twilioPhoneNumber)}</TableCell>
+                        <TableCell className="text-center">{careGroup.homesCount ?? careGroup.homes?.length ?? 0}</TableCell>
                         <TableCell>{careGroup.isActive ? "Active" : "Inactive"}</TableCell>
-                        <TableCell>{careGroup.homes?.length ?? 0}</TableCell>
-                        <TableCell>{formatDate(careGroup.createdAt)}</TableCell>
-                        <TableCell>{formatDate(careGroup.updatedAt)}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/care-groups/${careGroup.id}`}>View</Link>
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedCareGroupId(careGroup.id)}>
+                            View
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -356,6 +304,12 @@ export default function CareGroupsPage() {
       />
 
       <CreateCareGroupDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+      <CareGroupDetailDrawer
+        careGroupId={selectedCareGroupId}
+        open={selectedCareGroupId !== null}
+        onClose={() => setSelectedCareGroupId(null)}
+      />
     </div>
   )
 }

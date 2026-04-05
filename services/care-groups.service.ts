@@ -4,20 +4,25 @@ import type { ApiMeta } from "@/lib/api/types"
 export interface CareGroupRecord {
   id: string
   name: string
-  type: "private" | "public" | "charity"
+  type?: string
   phoneNumber?: string
   email?: string
   faxNumber?: string
   description?: string
-  website?: string
-  defaultUserIpRestriction: boolean
-  homes: string[]
-  manager: string
+  website?: string | null
+  defaultUserIpRestriction?: boolean
+  homes?: string[]
+  homesCount?: number
+  manager?: string
+  managerName?: string
   contact?: string
+  contactName?: string
   addressLine1?: string
   addressLine2?: string
   city?: string
+  county?: string
   countryRegion?: string
+  country?: string
   postcode?: string
   twilioSid?: string
   twilioToken?: string
@@ -51,18 +56,20 @@ export interface CreateCareGroupInput {
 
 export interface UpdateCareGroupInput {
   name?: string
-  type?: "private" | "public" | "charity"
+  type?: string
+  managerName?: string
+  contactName?: string
   phoneNumber?: string
   email?: string
   faxNumber?: string
   description?: string
-  website?: string
+  website?: string | null
   defaultUserIpRestriction?: boolean
-  contact?: string
   addressLine1?: string
   addressLine2?: string
   city?: string
-  countryRegion?: string
+  county?: string
+  country?: string
   postcode?: string
 }
 
