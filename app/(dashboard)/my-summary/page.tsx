@@ -292,7 +292,7 @@ export default function MySummaryPage() {
     }))
   }, [provisionsQuery.data])
 
-  const askAiContext = useMemo((): AskAiSummaryContext | undefined => {
+  const askAiContext = useMemo<AskAiSummaryContext | undefined>(() => {
     const context: AskAiSummaryContext = {}
 
     if (statsQuery.data) {
@@ -308,25 +308,44 @@ export default function MySummaryPage() {
       }
     }
 
-    if (activeTodoRows.length) {
-      context.todos = activeTodoRows.slice(0, 5).map((todo) => ({
-        id: todo.id,
-        title: todo.title,
-        relation: todo.relatedEntity?.name ?? "-",
-        status: todo.status,
-        dueDate: todo.dueAt,
-      }))
+    const todosForAi = activeTodoRows
+      .slice(0, 5)
+      .map((todo) => {
+        const title = typeof todo.title === "string" ? todo.title : ""
+        const status = typeof todo.status === "string" ? todo.status : undefined
+        const priority = typeof todo.priority === "string" ? todo.priority : undefined
+        const dueDate =
+          typeof todo.dueAt === "string" || todo.dueAt === null
+            ? todo.dueAt
+            : undefined
+
+        if (!title) return null
+        return { title, status, priority, dueDate }
+      })
+      .filter((todo): todo is NonNullable<typeof todo> => Boolean(todo))
+
+    if (todosForAi.length) {
+      context.todos = todosForAi
     }
 
-    if (tasksToApproveQuery.data?.items.length) {
-      context.tasksToApprove = tasksToApproveQuery.data.items.slice(0, 5).map((task) => ({
-        id: task.id,
-        title: task.title,
-        relation: task.relatedEntity?.name ?? "-",
-        status: task.status,
-        priority: task.priority,
-        dueDate: task.dueAt,
-      }))
+    const tasksToApproveForAi = (tasksToApproveQuery.data?.items ?? [])
+      .slice(0, 5)
+      .map((task) => {
+        const title = typeof task.title === "string" ? task.title : ""
+        const status = typeof task.status === "string" ? task.status : undefined
+        const priority = typeof task.priority === "string" ? task.priority : undefined
+        const dueDate =
+          typeof task.dueAt === "string" || task.dueAt === null
+            ? task.dueAt
+            : undefined
+
+        if (!title) return null
+        return { title, status, priority, dueDate }
+      })
+      .filter((task): task is NonNullable<typeof task> => Boolean(task))
+
+    if (tasksToApproveForAi.length) {
+      context.tasksToApprove = tasksToApproveForAi
     }
 
     return Object.keys(context).length > 0 ? context : undefined

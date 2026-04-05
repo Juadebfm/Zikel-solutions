@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Loader2, Settings } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,11 @@ import {
   useOrganisationSettings,
   useUpdateOrganisationSettings,
 } from "@/hooks/api/use-settings"
+import type {
+  DigestFrequency,
+  NotificationSettings,
+  OrganisationSettings,
+} from "@/services/settings.service"
 import { useToastStore } from "@/components/shared/toast"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 
@@ -85,18 +90,6 @@ function ProfileSection() {
   const { user } = useAuth()
   const showToast = useToastStore((s) => s.show)
 
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
-
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName ?? "")
-      setLastName(user.lastName ?? "")
-      setEmail(user.email ?? "")
-    }
-  }, [user])
-
   if (!user) {
     return (
       <Card>
@@ -125,6 +118,36 @@ function ProfileSection() {
     )
   }
 
+  const profileFormKey = `${user.id}:${user.firstName ?? ""}:${user.lastName ?? ""}:${user.email ?? ""}`
+
+  return (
+    <ProfileForm
+      key={profileFormKey}
+      initialFirstName={user.firstName ?? ""}
+      initialLastName={user.lastName ?? ""}
+      initialEmail={user.email ?? ""}
+      onSaved={() => showToast("Profile saved successfully.")}
+    />
+  )
+}
+
+interface ProfileFormProps {
+  initialFirstName: string
+  initialLastName: string
+  initialEmail: string
+  onSaved: () => void
+}
+
+function ProfileForm({
+  initialFirstName,
+  initialLastName,
+  initialEmail,
+  onSaved,
+}: ProfileFormProps) {
+  const [firstName, setFirstName] = useState(initialFirstName)
+  const [lastName, setLastName] = useState(initialLastName)
+  const [email, setEmail] = useState(initialEmail)
+
   return (
     <Card>
       <CardHeader>
@@ -141,7 +164,7 @@ function ProfileSection() {
             e.preventDefault()
             // Profile update would go through a dedicated hook when the endpoint
             // is available. For now, show confirmation.
-            showToast("Profile saved successfully.")
+            onSaved()
           }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -188,18 +211,6 @@ function NotificationSection() {
   const notificationsQuery = useNotificationSettings()
   const updateNotifications = useUpdateNotificationSettings()
 
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(false)
-  const [digestFrequency, setDigestFrequency] = useState<string>("off")
-
-  useEffect(() => {
-    if (notificationsQuery.data) {
-      setEmailNotifications(notificationsQuery.data.emailNotifications)
-      setPushNotifications(notificationsQuery.data.pushNotifications)
-      setDigestFrequency(notificationsQuery.data.digestFrequency)
-    }
-  }, [notificationsQuery.data])
-
   if (notificationsQuery.isLoading) {
     return (
       <Card>
@@ -223,20 +234,39 @@ function NotificationSection() {
     )
   }
 
-  const handleSave = () => {
-    updateNotifications.mutate(
-      {
-        emailNotifications,
-        pushNotifications,
-        digestFrequency: digestFrequency as "off" | "daily" | "weekly" | "monthly",
-      },
-      {
-        onSuccess: () => showToast("Notification preferences saved."),
-        onError: () =>
-          showError("We could not save your notification preferences right now. Please try again."),
-      }
-    )
+  const initialSettings: NotificationSettings = notificationsQuery.data ?? {
+    emailNotifications: true,
+    pushNotifications: false,
+    digestFrequency: "off",
   }
+  const notificationFormKey = `${initialSettings.emailNotifications}:${initialSettings.pushNotifications}:${initialSettings.digestFrequency}`
+
+  return (
+    <NotificationForm
+      key={notificationFormKey}
+      initialSettings={initialSettings}
+      isSaving={updateNotifications.isPending}
+      onSave={(payload) =>
+        updateNotifications.mutate(payload, {
+          onSuccess: () => showToast("Notification preferences saved."),
+          onError: () =>
+            showError("We could not save your notification preferences right now. Please try again."),
+        })
+      }
+    />
+  )
+}
+
+interface NotificationFormProps {
+  initialSettings: NotificationSettings
+  isSaving: boolean
+  onSave: (payload: NotificationSettings) => void
+}
+
+function NotificationForm({ initialSettings, isSaving, onSave }: NotificationFormProps) {
+  const [emailNotifications, setEmailNotifications] = useState(initialSettings.emailNotifications)
+  const [pushNotifications, setPushNotifications] = useState(initialSettings.pushNotifications)
+  const [digestFrequency, setDigestFrequency] = useState<DigestFrequency>(initialSettings.digestFrequency)
 
   return (
     <Card>
@@ -287,7 +317,7 @@ function NotificationSection() {
               A summary of activity sent at regular intervals so nothing slips
               through the cracks.
             </p>
-            <Select value={digestFrequency} onValueChange={setDigestFrequency}>
+            <Select value={digestFrequency} onValueChange={(value) => setDigestFrequency(value as DigestFrequency)}>
               <SelectTrigger id="digestFrequency" className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -300,10 +330,17 @@ function NotificationSection() {
             </Select>
           </div>
 
-          <Button onClick={handleSave} disabled={updateNotifications.isPending}>
-            {updateNotifications.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+          <Button
+            onClick={() =>
+              onSave({
+                emailNotifications,
+                pushNotifications,
+                digestFrequency,
+              })
+            }
+            disabled={isSaving}
+          >
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save
           </Button>
         </div>
@@ -320,26 +357,6 @@ function OrganisationTab() {
 
   const orgQuery = useOrganisationSettings()
   const updateOrg = useUpdateOrganisationSettings()
-
-  const [name, setName] = useState("")
-  const [timezone, setTimezone] = useState("")
-  const [locale, setLocale] = useState("")
-  const [dateFormat, setDateFormat] = useState("")
-  const [sessionTimeout, setSessionTimeout] = useState(30)
-  const [mfaRequired, setMfaRequired] = useState(false)
-  const [dataRetentionDays, setDataRetentionDays] = useState(365)
-
-  useEffect(() => {
-    if (orgQuery.data) {
-      setName(orgQuery.data.name)
-      setTimezone(orgQuery.data.timezone)
-      setLocale(orgQuery.data.locale)
-      setDateFormat(orgQuery.data.dateFormat)
-      setSessionTimeout(orgQuery.data.sessionTimeout)
-      setMfaRequired(orgQuery.data.mfaRequired)
-      setDataRetentionDays(orgQuery.data.dataRetentionDays)
-    }
-  }, [orgQuery.data])
 
   if (orgQuery.isLoading) {
     return (
@@ -361,26 +378,57 @@ function OrganisationTab() {
     )
   }
 
-  const handleSave = () => {
-    updateOrg.mutate(
-      {
-        name,
-        timezone,
-        locale,
-        dateFormat,
-        sessionTimeout,
-        mfaRequired,
-        dataRetentionDays,
-      },
-      {
-        onSuccess: () => showToast("Organisation settings saved."),
-        onError: () =>
-          showError(
-            "We could not update the organisation settings right now. Please try again shortly."
-          ),
-      }
-    )
+  const initialSettings: OrganisationSettings = orgQuery.data ?? {
+    name: "",
+    timezone: "Europe/London",
+    locale: "en-GB",
+    dateFormat: "dd/MM/yyyy",
+    sessionTimeout: 30,
+    mfaRequired: false,
+    dataRetentionDays: 365,
   }
+  const organisationFormKey = [
+    initialSettings.name,
+    initialSettings.timezone,
+    initialSettings.locale,
+    initialSettings.dateFormat,
+    initialSettings.sessionTimeout,
+    initialSettings.mfaRequired,
+    initialSettings.dataRetentionDays,
+  ].join(":")
+
+  return (
+    <OrganisationForm
+      key={organisationFormKey}
+      initialSettings={initialSettings}
+      isSaving={updateOrg.isPending}
+      onSave={(payload) =>
+        updateOrg.mutate(payload, {
+          onSuccess: () => showToast("Organisation settings saved."),
+          onError: () =>
+            showError(
+              "We could not update the organisation settings right now. Please try again shortly."
+            ),
+        })
+      }
+    />
+  )
+}
+
+interface OrganisationFormProps {
+  initialSettings: OrganisationSettings
+  isSaving: boolean
+  onSave: (payload: Partial<OrganisationSettings>) => void
+}
+
+function OrganisationForm({ initialSettings, isSaving, onSave }: OrganisationFormProps) {
+  const [name, setName] = useState(initialSettings.name)
+  const [timezone, setTimezone] = useState(initialSettings.timezone)
+  const [locale, setLocale] = useState(initialSettings.locale)
+  const [dateFormat, setDateFormat] = useState(initialSettings.dateFormat)
+  const [sessionTimeout, setSessionTimeout] = useState(initialSettings.sessionTimeout)
+  const [mfaRequired, setMfaRequired] = useState(initialSettings.mfaRequired)
+  const [dataRetentionDays, setDataRetentionDays] = useState(initialSettings.dataRetentionDays)
 
   return (
     <Card>
@@ -396,7 +444,15 @@ function OrganisationTab() {
           className="space-y-6"
           onSubmit={(e) => {
             e.preventDefault()
-            handleSave()
+            onSave({
+              name,
+              timezone,
+              locale,
+              dateFormat,
+              sessionTimeout,
+              mfaRequired,
+              dataRetentionDays,
+            })
           }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -493,8 +549,8 @@ function OrganisationTab() {
             />
           </div>
 
-          <Button type="submit" disabled={updateOrg.isPending}>
-            {updateOrg.isPending && (
+          <Button type="submit" disabled={isSaving}>
+            {isSaving && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             Save
