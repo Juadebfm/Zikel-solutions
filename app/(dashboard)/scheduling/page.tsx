@@ -14,7 +14,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -45,7 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import { useHomesDropdown } from "@/hooks/api/use-dropdown-data"
+import { useHomesDropdown, useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import {
   useCalendarEvents,
   useCreateCalendarEvent,
@@ -60,12 +60,12 @@ import type {
   CalendarEvent,
   CalendarEventType,
   CreateCalendarEventPayload,
-  Rota,
   RotaShift,
 } from "@/services/scheduling.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
 import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
+import { MultiSelectDropdown } from "@/components/task-explorer/multi-select-dropdown"
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -442,11 +442,13 @@ function EventFormDialog({
   const [endDate, setEndDate] = useState("")
   const [endTime, setEndTime] = useState("")
   const [homeId, setHomeId] = useState("")
+  const [attendeeIds, setAttendeeIds] = useState<string[]>([])
   const [allDay, setAllDay] = useState(false)
 
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
   const homesQuery = useHomesDropdown()
+  const employeesQuery = useEmployeesDropdown(homeId || undefined)
   const createMutation = useCreateCalendarEvent()
   const updateMutation = useUpdateCalendarEvent()
 
@@ -460,6 +462,7 @@ function EventFormDialog({
       setType(event.type)
       setAllDay(event.allDay)
       setHomeId(event.homeId ?? "")
+      setAttendeeIds(event.attendeeIds ?? [])
       const start = new Date(event.startAt)
       const end = new Date(event.endAt)
       if (!Number.isNaN(start.getTime())) {
@@ -479,6 +482,7 @@ function EventFormDialog({
       setEndDate("")
       setEndTime("")
       setHomeId("")
+      setAttendeeIds([])
       setAllDay(false)
     }
   }, [mode, event])
@@ -523,6 +527,7 @@ function EventFormDialog({
         startAt,
         endAt,
         homeId: homeId || undefined,
+        attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
         allDay,
       }
       createMutation.mutate(payload, {
@@ -545,6 +550,7 @@ function EventFormDialog({
             startAt,
             endAt,
             homeId: homeId || undefined,
+            attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
             allDay,
           },
         },
@@ -560,9 +566,14 @@ function EventFormDialog({
       )
     }
   }, [
-    title, description, type, startDate, startTime, endDate, endTime, homeId, allDay,
+    title, description, type, startDate, startTime, endDate, endTime, homeId, attendeeIds, allDay,
     mode, event, createMutation, updateMutation, showError, showToast, onClose,
   ])
+
+  const attendeeOptions = (employeesQuery.data ?? []).map((item) => ({
+    value: item.value,
+    label: item.label,
+  }))
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -617,6 +628,20 @@ function EventFormDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Attendees</Label>
+            <MultiSelectDropdown
+              options={attendeeOptions}
+              selected={attendeeIds}
+              onChange={setAttendeeIds}
+              placeholder="Select attendees..."
+              searchable
+            />
+            <p className="text-xs text-muted-foreground">
+              Attendees use User IDs behind the scenes.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">

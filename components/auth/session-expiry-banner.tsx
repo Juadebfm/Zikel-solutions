@@ -1,10 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { Loader2, ShieldAlert } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Loader2, LogOut, ShieldAlert } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 function parseIso(value: string | null): number | null {
   if (!value) return null
@@ -33,10 +41,12 @@ export function SessionExpiryBanner() {
     sessionExpiry,
     serverTimeOffsetMs,
     staySignedIn,
+    logout,
   } = useAuth()
 
   const [nowClientMs, setNowClientMs] = useState(() => Date.now())
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const hasTriggeredAutoLogout = useRef(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -63,15 +73,29 @@ export function SessionExpiryBanner() {
     return nowServerMs >= signOutAtMs - warningWindowMs
   }, [nowServerMs, signOutAtMs, warningWindowMs])
 
+  useEffect(() => {
+    if (!shouldShow || signOutAtMs === null) {
+      hasTriggeredAutoLogout.current = false
+      return
+    }
+
+    const msRemaining = signOutAtMs - nowServerMs
+    if (msRemaining <= 0 && !hasTriggeredAutoLogout.current) {
+      hasTriggeredAutoLogout.current = true
+      void logout()
+    }
+  }, [logout, nowServerMs, shouldShow, signOutAtMs])
+
   if (!shouldShow || signOutAtMs === null) {
     return null
   }
 
   const msRemaining = Math.max(signOutAtMs - nowServerMs, 0)
   const countdown = formatCountdown(msRemaining)
+  const isExpired = msRemaining <= 0
 
   const handleStaySignedIn = async () => {
-    if (isRefreshing) return
+    if (isRefreshing || isExpired) return
     setIsRefreshing(true)
     try {
       await staySignedIn()
@@ -80,26 +104,65 @@ export function SessionExpiryBanner() {
     }
   }
 
-  return (
-    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 lg:px-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-sm text-amber-900">
-          <ShieldAlert className="h-4 w-4 shrink-0" />
-          <span>
-            You will be signed out in <span className="font-semibold tabular-nums">{countdown}</span>.
-          </span>
-        </div>
+  const handleSignOutNow = () => {
+    if (isRefreshing) return
+    hasTriggeredAutoLogout.current = true
+    void logout()
+  }
 
-        <Button
-          size="sm"
-          className="bg-amber-600 text-white hover:bg-amber-700"
-          onClick={handleStaySignedIn}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Stay signed in
-        </Button>
-      </div>
-    </div>
+  return (
+    <Dialog open={shouldShow} onOpenChange={() => undefined}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-md"
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+      >
+        <DialogHeader>
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+            <ShieldAlert className="h-6 w-6 text-amber-700" />
+          </div>
+          <DialogTitle className="text-center">Session Expiring</DialogTitle>
+          <DialogDescription className="text-center">
+            {isExpired
+              ? "Your session has expired. Signing you out now."
+              : (
+                <>
+                  You will be signed out in{" "}
+                  <span className="font-semibold tabular-nums text-foreground">{countdown}</span>.
+                </>
+              )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="pt-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleSignOutNow}
+            disabled={isRefreshing}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out now
+          </Button>
+          <Button
+            type="button"
+            className="bg-amber-600 text-white hover:bg-amber-700"
+            onClick={handleStaySignedIn}
+            disabled={isRefreshing || isExpired}
+          >
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Stay signed in
+          </Button>
+        </DialogFooter>
+
+        {isExpired ? (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Redirecting to sign in...
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   )
 }

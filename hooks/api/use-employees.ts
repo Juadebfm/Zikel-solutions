@@ -5,6 +5,7 @@ import {
   employeesService,
   type EmployeeListParams,
   type CreateEmployeeInput,
+  type CreateEmployeeWithUserInput,
   type UpdateEmployeeInput,
 } from "@/services/employees.service"
 
@@ -14,6 +15,8 @@ export function useEmployeeList(params?: EmployeeListParams) {
     pageSize: params?.pageSize ?? 20,
     search: params?.search,
     homeId: params?.homeId,
+    status: params?.status,
+    roleId: params?.roleId,
     isActive: params?.isActive ?? true,
   }
 
@@ -36,6 +39,17 @@ export function useCreateEmployee() {
 
   return useMutation({
     mutationFn: (input: CreateEmployeeInput) => employeesService.create(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["employees"] })
+    },
+  })
+}
+
+export function useCreateEmployeeWithUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateEmployeeWithUserInput) => employeesService.createWithUser(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["employees"] })
     },

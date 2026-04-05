@@ -1,419 +1,361 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import {
-  Search,
-  RefreshCw,
-  Columns3,
-  FileDown,
-  FileText,
-  FileSpreadsheet,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
+import { Loader2, Plus, Search, Sparkles } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { getApiErrorMessage } from "@/lib/api/error"
+import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
 import { useErrorModalStore } from "@/components/shared/error-modal"
-import { useCareGroups } from "@/hooks/api/use-backend-data"
-import type { CareGroup } from "@/types"
+import { getApiErrorMessage } from "@/lib/api/error"
+import { useCareGroupList } from "@/hooks/api/use-care-groups"
+import { CreateCareGroupDialog } from "@/components/care-groups/create-care-group-dialog"
+import type { AskAiPageContext } from "@/services/ai.service"
 
-type ColumnKey = "id" | "name" | "phoneNumber" | "email" | "reports"
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "-"
 
-interface ColumnDef {
-  key: ColumnKey
-  label: string
-  filterable: boolean
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return "-"
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
 }
 
-const allColumns: ColumnDef[] = [
-  { key: "id", label: "ID", filterable: true },
-  { key: "name", label: "Care Group Name", filterable: true },
-  { key: "phoneNumber", label: "Phone Number", filterable: true },
-  { key: "email", label: "Email", filterable: true },
-  { key: "reports", label: "Reports", filterable: false },
-]
-
-const defaultVisibleColumns: ColumnKey[] = ["id", "name", "phoneNumber", "email", "reports"]
-
-const tabs = [
-  { label: "Care Groups", href: "/care-groups", active: true },
-  { label: "Settings", href: "/care-groups/settings", active: false },
-] as const
+function compactText(value: string | null | undefined): string {
+  const normalized = value?.trim()
+  return normalized ? normalized : "-"
+}
 
 export default function CareGroupsPage() {
-  const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(defaultVisibleColumns)
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
-  const [filters, setFilters] = useState<Record<string, string>>({})
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState("20")
-  const {
-    data: allCareGroups = [],
-    error: careGroupsError,
-    isLoading: isCareGroupsLoading,
-  } = useCareGroups()
-  const careGroupsErrorMessage = careGroupsError
-    ? getApiErrorMessage(careGroupsError, "Unable to load care groups.")
-    : null
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [isAiOpen, setIsAiOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  const careGroupsQuery = useCareGroupList({
+    page,
+    pageSize,
+    search: debouncedSearch || undefined,
+    isActive: true,
+  })
 
   const showError = useErrorModalStore((s) => s.show)
 
   useEffect(() => {
-    if (careGroupsErrorMessage) {
-      showError(careGroupsErrorMessage)
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+
+    return () => window.clearTimeout(timeout)
+  }, [search])
+
+  useEffect(() => {
+    if (careGroupsQuery.error) {
+      showError(getApiErrorMessage(careGroupsQuery.error, "Unable to load care groups."))
     }
-  }, [careGroupsErrorMessage, showError])
+  }, [careGroupsQuery.error, showError])
 
-  // Filter by column search
-  const filtered = useMemo(() => {
-    return allCareGroups.filter((cg) => {
-      for (const [key, value] of Object.entries(filters)) {
-        if (!value) continue
-        const cellValue = getCellValue(cg, key as ColumnKey)
-        if (!cellValue.toLowerCase().includes(value.toLowerCase())) return false
-      }
-      return true
-    })
-  }, [allCareGroups, filters])
+  const items = useMemo(() => careGroupsQuery.data?.items ?? [], [careGroupsQuery.data?.items])
+  const meta = careGroupsQuery.data?.meta
+  const totalPages = Math.max(meta?.totalPages ?? 1, 1)
+  const totalItems = meta?.total ?? 0
+  const rangeStart = totalItems === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeEnd = Math.min(page * pageSize, totalItems)
 
-  // Pagination
-  const pageSizeNum = parseInt(pageSize)
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSizeNum))
-  const paginated = filtered.slice(page * pageSizeNum, (page + 1) * pageSizeNum)
+  const aiContext = useMemo<AskAiPageContext | undefined>(() => {
+    if (!careGroupsQuery.data) return undefined
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-    setPage(0)
-  }
-
-  // Column toggle
-  const toggleColumn = (col: ColumnKey) => {
-    setVisibleColumns((prev) =>
-      prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
-    )
-  }
-
-  const resetGrid = () => {
-    setVisibleColumns(defaultVisibleColumns)
-    setFilters({})
-    setSelectedRows(new Set())
-    setPage(0)
-  }
-
-  // Row selection
-  const toggleRow = (id: number) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const toggleAllRows = () => {
-    if (selectedRows.size === paginated.length) {
-      setSelectedRows(new Set())
-    } else {
-      setSelectedRows(new Set(paginated.map((cg) => cg.id)))
+    return {
+      items: items.slice(0, 25).map((careGroup) => ({
+        id: careGroup.id,
+        title: careGroup.name,
+        type: careGroup.type,
+        extra: {
+          phoneNumber: careGroup.phoneNumber ?? "-",
+          email: careGroup.email ?? "-",
+          homes: String(careGroup.homes?.length ?? 0),
+        },
+      })),
+      filters: {
+        search: debouncedSearch || "all",
+      },
+      meta: meta
+        ? {
+            total: meta.total,
+            page: meta.page,
+            pageSize: meta.pageSize,
+            totalPages: meta.totalPages,
+          }
+        : undefined,
     }
-  }
+  }, [careGroupsQuery.data, debouncedSearch, items, meta])
 
-  const handleExport = (_format: "pdf" | "excel") => {
-    // Export not yet implemented
-  }
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+  }, [])
 
-  const visibleColumnDefs = allColumns.filter((col) => visibleColumns.includes(col.key))
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size)
+    setPage(1)
+  }, [])
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Care Groups</h1>
-        <p className="text-gray-500 mt-1">
-          Manage care groups and their assigned homes.
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex">
-        {tabs.map((tab, index) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={`px-4 sm:px-8 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border transition-colors ${
-              tab.active
-                ? "bg-primary text-white border-primary"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-            } ${index === 0 ? "rounded-l-lg" : ""} ${index === tabs.length - 1 ? "rounded-r-lg" : ""} ${index !== 0 ? "-ml-px" : ""}`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button variant="link" size="sm" onClick={resetGrid} className="gap-1.5 text-primary">
-            <RefreshCw className="size-3.5" />
-            Reset Grid
-          </Button>
-
-          <span className="text-gray-300">|</span>
-
-          <p className="text-sm text-gray-500">
-            Drag a column header here to group by that column
-          </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Care Groups</h1>
+          <p className="text-gray-500 mt-1">Manage care groups and their assigned homes.</p>
         </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="link" size="sm" className="gap-1.5 text-primary">
-              <Columns3 className="size-3.5" />
-              Columns
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-56">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Columns</h4>
-            </div>
-            <div className="relative mb-3">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <Input placeholder="Search" className="pl-8 h-8 text-sm" />
-            </div>
-            <div className="space-y-2">
-              {allColumns.map((col) => (
-                <label key={col.key} className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={visibleColumns.includes(col.key)}
-                    onCheckedChange={() => toggleColumn(col.key)}
-                  />
-                  <span className="text-sm">{col.label}</span>
-                </label>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
+            <Sparkles className="h-4 w-4" />
+            Ask AI
+          </Button>
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add Care Group
+          </Button>
+        </div>
       </div>
 
-      {/* Export */}
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <FileDown className="size-3.5" />
-              Export
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleExport("pdf")} className="gap-2 cursor-pointer">
-              <FileText className="h-4 w-4" />
-              Export As PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("excel")} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4" />
-              Export As Excel
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Search care groups..."
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg bg-white overflow-x-auto">
-        <Table className="min-w-160">
-          <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="w-12 pl-4">
-                <Checkbox
-                  checked={paginated.length > 0 && selectedRows.size === paginated.length}
-                  onCheckedChange={toggleAllRows}
-                />
-              </TableHead>
-              {visibleColumnDefs.map((col) => (
-                <TableHead
-                  key={col.key}
-                  className={`font-semibold text-gray-700 ${
-                    col.key === "id" ? "w-28" : ""
-                  } ${col.key === "reports" ? "text-center" : ""}`}
-                >
-                  {col.label}
-                </TableHead>
-              ))}
-            </TableRow>
-            {/* Filter row */}
-            <TableRow>
-              <TableHead className="pl-4" />
-              {visibleColumnDefs.map((col) => (
-                <TableHead key={`filter-${col.key}`} className="py-1">
-                  {col.filterable && (
-                    <div className={`relative ${col.key === "id" ? "max-w-24" : ""}`}>
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
-                      <Input
-                        placeholder=""
-                        value={filters[col.key] || ""}
-                        onChange={(e) => handleFilterChange(col.key, e.target.value)}
-                        className="pl-6 h-6 text-xs border-gray-200"
-                      />
-                    </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div className="rounded-md border relative overflow-x-auto">
+              {careGroupsQuery.isFetching && !careGroupsQuery.isLoading && items.length > 0 ? (
+                <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : null}
+
+              <Table className="min-w-[1900px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Care Group Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Manager</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Fax</TableHead>
+                    <TableHead>Website</TableHead>
+                    <TableHead>Address Line 1</TableHead>
+                    <TableHead>Address Line 2</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Country / Region</TableHead>
+                    <TableHead>Postcode</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>IP Restriction</TableHead>
+                    <TableHead>Twilio SID</TableHead>
+                    <TableHead>Twilio Number</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Homes</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead className="w-20 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {careGroupsQuery.isLoading ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={`skeleton-${index}`}>
+                        <TableCell><Skeleton className="h-4 w-44" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={22} className="h-40 text-center text-muted-foreground">
+                        No care groups found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((careGroup) => (
+                      <TableRow key={careGroup.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Link
+                            href={`/care-groups/${careGroup.id}`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {careGroup.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="capitalize">{careGroup.type}</TableCell>
+                        <TableCell>{compactText(careGroup.manager)}</TableCell>
+                        <TableCell>{compactText(careGroup.contact)}</TableCell>
+                        <TableCell>{compactText(careGroup.phoneNumber)}</TableCell>
+                        <TableCell>{compactText(careGroup.email)}</TableCell>
+                        <TableCell>{compactText(careGroup.faxNumber)}</TableCell>
+                        <TableCell>
+                          {careGroup.website ? (
+                            <a
+                              href={careGroup.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {careGroup.website}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>{compactText(careGroup.addressLine1)}</TableCell>
+                        <TableCell>{compactText(careGroup.addressLine2)}</TableCell>
+                        <TableCell>{compactText(careGroup.city)}</TableCell>
+                        <TableCell>{compactText(careGroup.countryRegion)}</TableCell>
+                        <TableCell>{compactText(careGroup.postcode)}</TableCell>
+                        <TableCell className="max-w-[260px]">
+                          <p className="truncate">{compactText(careGroup.description)}</p>
+                        </TableCell>
+                        <TableCell>{careGroup.defaultUserIpRestriction ? "Enabled" : "Disabled"}</TableCell>
+                        <TableCell>{compactText(careGroup.twilioSid)}</TableCell>
+                        <TableCell>{compactText(careGroup.twilioPhoneNumber)}</TableCell>
+                        <TableCell>{careGroup.isActive ? "Active" : "Inactive"}</TableCell>
+                        <TableCell>{careGroup.homes?.length ?? 0}</TableCell>
+                        <TableCell>{formatDate(careGroup.createdAt)}</TableCell>
+                        <TableCell>{formatDate(careGroup.updatedAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/care-groups/${careGroup.id}`}>View</Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isCareGroupsLoading && allCareGroups.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={visibleColumnDefs.length + 1}
-                  className="text-center py-10 text-gray-400"
-                >
-                  Loading care groups...
-                </TableCell>
-              </TableRow>
-            ) : paginated.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={visibleColumnDefs.length + 1}
-                  className="text-center py-10 text-gray-400"
-                >
-                  No care groups found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginated.map((cg, index) => (
-                <TableRow
-                  key={cg.id}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50/60"}
-                >
-                  <TableCell className="pl-4 py-3.5">
-                    <Checkbox
-                      checked={selectedRows.has(cg.id)}
-                      onCheckedChange={() => toggleRow(cg.id)}
-                    />
-                  </TableCell>
-                  {visibleColumnDefs.map((col) => (
-                    <TableCell
-                      key={col.key}
-                      className={`py-3.5 ${col.key === "reports" ? "text-center" : ""}`}
-                    >
-                      {col.key === "name" ? (
-                        <Link
-                          href={`/care-groups/${cg.id}`}
-                          className="text-primary hover:underline font-medium text-sm"
-                        >
-                          {cg.name}
-                        </Link>
-                      ) : col.key === "reports" ? (
-                        <Link
-                          href={`/care-groups/${cg.id}/reports`}
-                          className="text-primary hover:underline font-medium text-sm"
-                        >
-                          Reports
-                        </Link>
-                      ) : (
-                        <span className="text-sm text-gray-700">
-                          {getCellValue(cg, col.key)}
-                        </span>
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                </TableBody>
+              </Table>
+            </div>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(0) }}>
-            <SelectTrigger className="w-16 h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs sm:text-sm text-gray-500">
-            Showing {pageSizeNum} records per page
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-1 text-sm">
-            <span className="px-2 py-1 border rounded text-center min-w-8">
-              {page + 1}
-            </span>
-            <span className="text-gray-500">of {totalPages}</span>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {rangeStart}-{rangeEnd} of {totalItems}
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page</span>
+                  <select
+                    className="h-8 rounded-md border bg-background px-2 text-sm"
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  >
+                    {[10, 20, 50].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={page <= 1 || careGroupsQuery.isLoading}
+                    onClick={() => setPage((current) => current - 1)}
+                  >
+                    <span className="sr-only">Previous page</span>
+                    <svg
+                      className="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </Button>
+
+                  <span className="px-2 text-sm text-muted-foreground">
+                    {page} / {totalPages}
+                  </span>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={page >= totalPages || careGroupsQuery.isLoading}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    <span className="sr-only">Next page</span>
+                    <svg
+                      className="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <AiChatDialog
+        open={isAiOpen}
+        onOpenChange={setIsAiOpen}
+        page="care_groups"
+        context={aiContext}
+        description="Ask about care group coverage, contact details, and assignments."
+      />
+
+      <CreateCareGroupDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   )
-}
-
-function getCellValue(cg: CareGroup, key: ColumnKey): string {
-  switch (key) {
-    case "id":
-      return cg.id.toString()
-    case "name":
-      return cg.name
-    case "phoneNumber":
-      return cg.phoneNumber || ""
-    case "email":
-      return cg.email || ""
-    case "reports":
-      return "Reports"
-    default:
-      return ""
-  }
 }

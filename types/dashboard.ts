@@ -447,6 +447,7 @@ export type VehicleStatus = "current" | "past" | "planned"
 
 export interface Vehicle {
   id: number
+  sourceId?: string
   name: string
   registration: string
   make: string

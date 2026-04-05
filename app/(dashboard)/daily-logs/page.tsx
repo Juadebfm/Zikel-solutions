@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useState } from "react"
-import { Plus, AlertTriangle } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
+import { Plus, Sparkles, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,9 @@ import { Search } from "lucide-react"
 import { DailyLogTable } from "@/components/daily-logs/daily-log-table"
 import { CreateDailyLogDialog } from "@/components/daily-logs/create-daily-log-dialog"
 import { DailyLogDetailDialog } from "@/components/daily-logs/daily-log-detail-dialog"
+import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
 import { useDailyLogList, useDeleteDailyLog } from "@/hooks/api/use-daily-logs"
+import type { AskAiPageContext } from "@/services/ai.service"
 
 export default function DailyLogsPage() {
   // Filters
@@ -30,6 +32,7 @@ export default function DailyLogsPage() {
 
   // UI state
   const [createOpen, setCreateOpen] = useState(false)
+  const [isAiOpen, setIsAiOpen] = useState(false)
   const [viewId, setViewId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -41,10 +44,38 @@ export default function DailyLogsPage() {
   })
   const deleteMutation = useDeleteDailyLog()
 
-  const items = logsQuery.data?.items ?? []
+  const items = useMemo(() => logsQuery.data?.items ?? [], [logsQuery.data?.items])
   const meta = logsQuery.data?.meta
   const totalPages = Math.max(meta?.totalPages ?? 1, 1)
   const totalItems = meta?.total ?? 0
+
+  const aiContext = useMemo<AskAiPageContext | undefined>(() => {
+    if (!logsQuery.data) return undefined
+
+    return {
+      items: items.slice(0, 25).map((log) => ({
+        id: log.id,
+        title: log.title,
+        status: log.statusLabel ?? log.status,
+        priority: log.priority,
+        type: log.categoryLabel || log.category,
+        dueDate: log.submittedAt ?? null,
+        assignee: log.createdBy?.name ?? "Unknown",
+        home: log.relatedEntity?.name ?? undefined,
+      })),
+      filters: {
+        search: debouncedSearch || "all",
+      },
+      meta: meta
+        ? {
+            total: meta.total,
+            page: meta.page,
+            pageSize: meta.pageSize,
+            totalPages: meta.totalPages,
+          }
+        : undefined,
+    }
+  }, [debouncedSearch, items, logsQuery.data, meta])
 
   // Debounced search
   const handleSearchChange = useCallback((value: string) => {
@@ -78,10 +109,16 @@ export default function DailyLogsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Daily Logs</h1>
           <p className="text-gray-500 mt-1">Create and manage daily log entries.</p>
         </div>
-        <Button className="gap-2" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Create Log
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
+            <Sparkles className="h-4 w-4" />
+            Ask AI
+          </Button>
+          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Create Log
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -123,6 +160,15 @@ export default function DailyLogsPage() {
 
       {/* Create dialog */}
       <CreateDailyLogDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      {/* AI chat dialog */}
+      <AiChatDialog
+        open={isAiOpen}
+        onOpenChange={setIsAiOpen}
+        page="daily_logs"
+        context={aiContext}
+        description="Ask about trends, outstanding logs, and what needs attention in daily logs."
+      />
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

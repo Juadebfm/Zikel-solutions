@@ -56,8 +56,8 @@ export const useTaskExplorerStore = create<TaskExplorerState>((set, get) => ({
   formGroup: "",
   page: 1,
   pageSize: 20,
-  sortBy: "dueAt",
-  sortOrder: "asc",
+  sortBy: "createdAt",
+  sortOrder: "desc",
   showFilters: false,
   selectedTaskId: null,
   drawerOpen: false,
@@ -90,6 +90,8 @@ export const useTaskExplorerStore = create<TaskExplorerState>((set, get) => ({
       dateTo: "",
       formGroup: "",
       page: 1,
+      sortBy: "createdAt",
+      sortOrder: "desc",
     }),
 
   getQueryParams: () => {

@@ -241,24 +241,44 @@ function mapHome(record: JsonRecord, index: number): CareGroupHome {
 
 function mapEmployee(record: JsonRecord, index: number): Employee {
   const idSource = record.id ?? record.employeeId ?? record.userId ?? record._id ?? index + 1
+  const user = (record.user ?? {}) as JsonRecord
+
+  // Name can be at root level or nested inside a `user` object
+  const firstName = pickString(record, ["firstName", "first_name"], "")
+    || pickString(user, ["firstName", "first_name", "name"], "")
+  const lastName = pickString(record, ["lastName", "last_name", "surname"], "")
+    || pickString(user, ["lastName", "last_name", "surname"], "")
+
+  // If no separate first/last, try a combined `name` or `fullName` field and split it
+  let resolvedFirst = firstName
+  let resolvedLast = lastName
+  if (!resolvedFirst && !resolvedLast) {
+    const fullName = pickString(record, ["name", "fullName", "full_name", "displayName"], "")
+      || pickString(user, ["name", "fullName", "full_name", "displayName"], "")
+    if (fullName) {
+      const parts = fullName.split(/\s+/)
+      resolvedFirst = parts[0] ?? ""
+      resolvedLast = parts.slice(1).join(" ")
+    }
+  }
 
   return {
     id: toIdNumber(idSource, index + 1),
-    firstName: pickString(record, ["firstName"], ""),
-    lastName: pickString(record, ["lastName", "surname"], ""),
-    email: pickString(record, ["email"], ""),
+    firstName: resolvedFirst,
+    lastName: resolvedLast,
+    email: pickString(record, ["email"], "") || pickString(user, ["email"], ""),
     role: (pickString(record, ["role"], "staff").toLowerCase() as Employee["role"]) || "staff",
-    homeId: pickString(record, ["homeId"], ""),
-    homeName: pickString(record, ["homeName"], ""),
-    phone: pickString(record, ["phone", "phoneNumber"], ""),
-    jobTitle: pickString(record, ["jobTitle", "position"], ""),
+    homeId: pickString(record, ["homeId", "home_id"], ""),
+    homeName: pickString(record, ["homeName", "home_name"], ""),
+    phone: pickString(record, ["phone", "phoneNumber", "phone_number"], ""),
+    jobTitle: pickString(record, ["jobTitle", "job_title", "position"], ""),
     status: toStatus(
-      pickString(record, ["status", "employmentStatus"], "current"),
+      pickString(record, ["status", "employmentStatus", "employment_status"], "current"),
       ["current", "past", "planned"],
       "current"
     ) as EmployeeStatus,
-    startDate: pickString(record, ["startDate", "createdAt"], ""),
-    avatar: pickString(record, ["avatar", "avatarUrl"], ""),
+    startDate: pickString(record, ["startDate", "start_date", "createdAt", "created_at"], ""),
+    avatar: pickString(record, ["avatar", "avatarUrl", "avatar_url"], "") || pickString(user, ["avatar", "avatarUrl", "avatar_url"], ""),
   }
 }
 
@@ -288,15 +308,29 @@ function mapYoungPerson(record: JsonRecord, index: number): YoungPerson {
 
 function mapVehicle(record: JsonRecord, index: number): Vehicle {
   const idSource = record.id ?? record.vehicleId ?? record._id ?? index + 1
+  const homeRecord = asRecord(record.home) ?? asRecord(record.homeRef) ?? asRecord(record.location)
+  const homeId =
+    pickString(record, ["homeId", "home_id"], "") ||
+    (homeRecord ? pickString(homeRecord, ["id", "homeId", "_id"], "") : "")
+  const homeName =
+    pickString(record, ["homeName", "home_name"], "") ||
+    (homeRecord ? pickString(homeRecord, ["name", "homeName", "title"], "") : "")
+  const sourceId =
+    typeof idSource === "string"
+      ? idSource.trim()
+      : typeof idSource === "number"
+        ? String(idSource)
+        : ""
 
   return {
     id: toIdNumber(idSource, index + 1),
+    sourceId: sourceId || undefined,
     name: pickString(record, ["name"], ""),
     registration: pickString(record, ["registration", "plateNumber"], ""),
     make: pickString(record, ["make"], ""),
     model: pickString(record, ["model"], ""),
-    homeId: pickString(record, ["homeId"], ""),
-    homeName: pickString(record, ["homeName"], ""),
+    homeId,
+    homeName,
     status: toStatus(pickString(record, ["status"], "current"), ["current", "past", "planned"], "current") as Vehicle["status"],
     mileage: Number(record.mileage ?? 0) || 0,
     nextServiceDate: pickString(record, ["nextServiceDate"], ""),

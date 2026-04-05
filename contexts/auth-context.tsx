@@ -143,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useAuthSessionStore((state) => state.user)
   const session = useAuthSessionStore((state) => state.session)
   const permissions = useAuthSessionStore((state) => state.permissions)
+  const accessToken = useAuthSessionStore((state) => state.accessToken)
   const accessTokenExpiresAt = useAuthSessionStore((state) => state.accessTokenExpiresAt)
   const refreshTokenExpiresAt = useAuthSessionStore((state) => state.refreshTokenExpiresAt)
   const serverTimeOffsetMs = useAuthSessionStore((state) => state.serverTimeOffsetMs)
@@ -362,41 +363,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasBootstrapped.current = true
       setIsLoading(true)
 
-      // Refresh tokens once on boot to sync MFA state from backend.
-      // Existing users may have stale JWTs with outdated mfaRequired/mfaVerified.
-      try {
-        const refreshed = await authService.refresh()
-        if (isCancelled) return
+      // Refresh tokens on boot to sync MFA state from backend.
+      // If we have a cached session, do this in the background so
+      // the user sees the dashboard immediately instead of a flash
+      // of the login page while waiting for the refresh response.
+      const hasExistingSession = Boolean(storeState.user && storeState.accessToken)
 
-        setTokens({
-          accessToken: refreshed.tokens.accessToken,
-          accessTokenExpiresAt: refreshed.tokens.accessTokenExpiresAt ?? null,
-          refreshTokenExpiresAt: refreshed.tokens.refreshTokenExpiresAt ?? null,
-          serverTime: refreshed.serverTime,
-        })
-
-        if (refreshed.user) {
-          setUser(authService.mapAuthApiUserToAppUser(refreshed.user))
-        }
-
-        if (refreshed.session) {
-          setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
-        }
-      } catch (error) {
-        if (isSessionTerminalError(error)) {
-          if (storeState.user || storeState.session) {
+      if (hasExistingSession) {
+        // Background refresh — don't block page load
+        authService.refresh().then((refreshed) => {
+          if (isCancelled) return
+          setTokens({
+            accessToken: refreshed.tokens.accessToken,
+            accessTokenExpiresAt: refreshed.tokens.accessTokenExpiresAt ?? null,
+            refreshTokenExpiresAt: refreshed.tokens.refreshTokenExpiresAt ?? null,
+            serverTime: refreshed.serverTime,
+          })
+          if (refreshed.user) {
+            setUser(authService.mapAuthApiUserToAppUser(refreshed.user))
+          }
+          if (refreshed.session) {
+            setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
+          }
+        }).catch((error) => {
+          if (isSessionTerminalError(error)) {
             forceSessionResetToLogin()
-          } else {
+          }
+          // Transient errors: keep cached session intact
+        })
+      } else {
+        // No cached session — must refresh synchronously before proceeding
+        try {
+          const refreshed = await authService.refresh()
+          if (isCancelled) return
+
+          setTokens({
+            accessToken: refreshed.tokens.accessToken,
+            accessTokenExpiresAt: refreshed.tokens.accessTokenExpiresAt ?? null,
+            refreshTokenExpiresAt: refreshed.tokens.refreshTokenExpiresAt ?? null,
+            serverTime: refreshed.serverTime,
+          })
+
+          if (refreshed.user) {
+            setUser(authService.mapAuthApiUserToAppUser(refreshed.user))
+          }
+
+          if (refreshed.session) {
+            setSessionContext(authService.mapAuthApiSessionToAppSession(refreshed.session))
+          }
+        } catch (error) {
+          if (isSessionTerminalError(error)) {
             clearSession()
             setIsLoading(false)
           }
           return
         }
-        if (storeState.user || storeState.session) {
-          clearSession()
-        }
-        setIsLoading(false)
-        return
       }
 
       try {
@@ -570,16 +591,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [accessTokenExpiresAt, serverTimeOffsetMs, staySignedIn, user])
 
   useEffect(() => {
-    if (!user) {
+    // On hard refresh, user/session hydrate from localStorage before the in-memory
+    // access token is restored via /auth/refresh. Avoid syncing session-expiry
+    // until the token is present, otherwise a transient 401 can trigger a
+    // premature redirect to /login.
+    if (!hasHydrated || isLoading || !user || !accessToken) {
       return
     }
 
     lastSessionSyncAtRef.current = Date.now()
     void syncSessionExpiry()
-  }, [syncSessionExpiry, user])
+  }, [accessToken, hasHydrated, isLoading, syncSessionExpiry, user])
 
   useEffect(() => {
-    if (!user) {
+    if (!hasHydrated || isLoading || !user || !accessToken) {
       return
     }
 
@@ -589,10 +614,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 60_000)
 
     return () => window.clearInterval(interval)
-  }, [syncSessionExpiry, user])
+  }, [accessToken, hasHydrated, isLoading, syncSessionExpiry, user])
 
   useEffect(() => {
-    if (!user) {
+    if (!hasHydrated || isLoading || !user || !accessToken) {
       return
     }
 
@@ -615,6 +640,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => window.clearTimeout(timer)
   }, [
+    accessToken,
+    hasHydrated,
+    isLoading,
     serverTimeOffsetMs,
     session?.absoluteExpiresAt,
     session?.idleExpiresAt,
@@ -623,7 +651,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ])
 
   useEffect(() => {
-    if (!user) {
+    if (!hasHydrated || isLoading || !user || !accessToken) {
       return
     }
 
@@ -647,7 +675,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.removeEventListener(eventName, maybeSyncOnActivity)
       })
     }
-  }, [syncSessionExpiry, user])
+  }, [accessToken, hasHydrated, isLoading, syncSessionExpiry, user])
 
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {

@@ -4,9 +4,19 @@ import type { ApiMeta } from "@/lib/api/types"
 // ─── Types ───────────────────────────────────────────────────────
 
 export interface DailyLogRelatesTo {
-  type: "young_person" | "vehicle"
+  type: "young_person" | "vehicle" | "employee" | "home_event"
   id: string
 }
+
+export type DailyLogCategory =
+  | "General"
+  | "Incident"
+  | "Medication"
+  | "Behaviour"
+  | "Education"
+  | "Personal Care"
+  | "Contact"
+  | "Safeguarding"
 
 export interface DailyLogListItem {
   id: string
@@ -44,7 +54,7 @@ export interface DailyLogDetail extends Omit<DailyLogListItem, "description"> {
   vehicleId: string | null
   description: string | null
   submissionPayload?: {
-    dailyLogCategory?: string
+    dailyLogCategory?: DailyLogCategory
     noteDate?: string
     relatesTo?: DailyLogRelatesTo | null
   }
@@ -58,17 +68,16 @@ export interface DailyLogDetail extends Omit<DailyLogListItem, "description"> {
 export interface CreateDailyLogPayload {
   homeId: string
   noteDate: string
-  category: string
+  category: DailyLogCategory
   note: string
   relatesTo?: DailyLogRelatesTo | null
   triggerTaskFormKey?: string | null
-  reflectivePrompts?: Array<{ promptId: string; response: string }>
 }
 
 export interface UpdateDailyLogPayload {
   homeId?: string
   noteDate?: string
-  category?: string
+  category?: DailyLogCategory
   note?: string
   relatesTo?: DailyLogRelatesTo | null
   triggerTaskFormKey?: string | null
@@ -90,6 +99,38 @@ export interface DailyLogListParams {
 export interface PaginatedDailyLogs {
   items: DailyLogListItem[]
   meta: ApiMeta
+}
+
+function buildCreateDailyLogRequestBody(payload: CreateDailyLogPayload) {
+  const body: {
+    homeId: string
+    noteDate: string
+    category: DailyLogCategory
+    note: string
+    relatesTo?: DailyLogRelatesTo | null
+    triggerTaskFormKey?: string
+  } = {
+    homeId: payload.homeId,
+    noteDate: payload.noteDate,
+    category: payload.category,
+    note: payload.note,
+  }
+
+  if (payload.relatesTo === null) {
+    body.relatesTo = null
+  } else if (payload.relatesTo?.type && payload.relatesTo?.id) {
+    body.relatesTo = {
+      type: payload.relatesTo.type,
+      id: payload.relatesTo.id,
+    }
+  }
+
+  const formKey = payload.triggerTaskFormKey?.trim()
+  if (formKey) {
+    body.triggerTaskFormKey = formKey
+  }
+
+  return body
 }
 
 // ─── Service ─────────────────────────────────────────────────────
@@ -132,7 +173,7 @@ export const dailyLogsService = {
       path: "/daily-logs",
       method: "POST",
       auth: true,
-      body: payload,
+      body: buildCreateDailyLogRequestBody(payload),
     })
     return response.data
   },

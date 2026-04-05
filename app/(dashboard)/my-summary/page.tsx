@@ -432,8 +432,9 @@ export default function MySummaryPage() {
         router.push("/my-summary/overdue-tasks")
         return
       case "open_summary_pending_approvals":
+      case "open_pending_approvals":
         setIsAskAiOpen(false)
-        router.push("/acknowledgements")
+        router.push("/my-summary/pending-approval")
         return
       case "open_summary_todos_due_today":
         setIsAskAiOpen(false)

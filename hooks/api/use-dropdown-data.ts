@@ -6,8 +6,9 @@ import { useQuery } from "@tanstack/react-query"
 
 import { homesService } from "@/services/homes.service"
 import { youngPeopleService } from "@/services/young-people.service"
-import { employeesService } from "@/services/employees.service"
+import { tenantsService } from "@/services/tenants.service"
 import { formsService } from "@/services/forms.service"
+import { useAuthSessionStore } from "@/stores/auth-session-store"
 
 const DROPDOWN_STALE_TIME = 5 * 60 * 1000 // 5 minutes
 
@@ -47,27 +48,21 @@ export function useYoungPeopleDropdown(homeId?: string) {
   })
 }
 
-export function useEmployeesDropdown(homeId?: string) {
+export function useEmployeesDropdown(_homeId?: string) {
+  const tenantId = useAuthSessionStore((s) => s.session?.activeTenantId)
+
   return useQuery({
-    queryKey: ["dropdown", "employees", homeId],
+    queryKey: ["dropdown", "employees", tenantId],
     queryFn: () =>
-      employeesService.list({
-        page: 1,
-        pageSize: 100,
-        homeId,
-        isActive: true,
-      }),
+      tenantsService.listMemberships(tenantId!, { status: "active", page: 1, limit: 100 }),
     staleTime: DROPDOWN_STALE_TIME,
+    enabled: Boolean(tenantId),
     select: (data) =>
-      data.items.map((e) => {
-        const rec = e as unknown as Record<string, unknown>
-        const user = rec.user as Record<string, unknown> | undefined
-        const first = e.firstName ?? user?.firstName ?? rec.first_name ?? user?.first_name ?? ""
-        const last = e.lastName ?? user?.lastName ?? rec.last_name ?? user?.last_name ?? ""
-        const full = `${first} ${last}`.trim()
+      data.items.map((m) => {
+        const full = `${m.firstName} ${m.lastName}`.trim()
         return {
-          value: e.id,
-          label: full || (rec.name as string) || (user?.name as string) || e.email || "Unknown",
+          value: m.userId ?? m.id,
+          label: full || m.email || "Unknown",
         }
       }),
   })

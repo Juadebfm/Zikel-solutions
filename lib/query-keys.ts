@@ -76,9 +76,29 @@ export const queryKeys = {
     detail: (id: string) => ["homes", "detail", id] as const,
   },
   employees: {
-    list: (params: { page: number; pageSize: number; search?: string; homeId?: string; isActive?: boolean }) =>
+    list: (params: {
+      page: number
+      pageSize: number
+      search?: string
+      homeId?: string
+      status?: string
+      roleId?: string
+      isActive?: boolean
+    }) =>
       ["employees", "list", params] as const,
     detail: (id: string) => ["employees", "detail", id] as const,
+  },
+  vehicles: {
+    list: (params: {
+      page: number
+      pageSize: number
+      search?: string
+      homeId?: string
+      status?: string
+      fuelType?: string
+      isActive?: boolean
+    }) => ["vehicles", "list", params] as const,
+    detail: (id: string) => ["vehicles", "detail", id] as const,
   },
   youngPeople: {
     list: (params: { page: number; pageSize: number; search?: string; homeId?: string; isActive?: boolean }) =>

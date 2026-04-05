@@ -30,14 +30,25 @@ export interface EmployeeListResult {
 }
 
 export interface CreateEmployeeInput {
+  userId?: string
+  homeId?: string
+  roleId?: string
+  jobTitle?: string
+  startDate?: string
+  contractType?: string
+}
+
+export interface CreateEmployeeWithUserInput {
   firstName: string
   lastName: string
   email: string
-  role?: string
-  homeId?: string
-  phone?: string
+  password: string
+  homeId: string
+  roleId: string
   jobTitle?: string
   startDate?: string
+  contractType?: string
+  userType?: "internal" | "external"
 }
 
 export interface UpdateEmployeeInput {
@@ -45,10 +56,13 @@ export interface UpdateEmployeeInput {
   lastName?: string
   email?: string
   role?: string
+  roleId?: string
   homeId?: string
   phone?: string
   jobTitle?: string
   startDate?: string
+  contractType?: string
+  status?: string
 }
 
 export interface EmployeeListParams {
@@ -56,6 +70,8 @@ export interface EmployeeListParams {
   pageSize?: number
   search?: string
   homeId?: string
+  status?: string
+  roleId?: string
   isActive?: boolean
 }
 
@@ -76,6 +92,8 @@ export const employeesService = {
         pageSize: params?.pageSize ?? 20,
         search: params?.search,
         homeId: params?.homeId,
+        status: params?.status,
+        roleId: params?.roleId,
         isActive: params?.isActive ?? true,
       },
     })
@@ -97,6 +115,16 @@ export const employeesService = {
   async create(input: CreateEmployeeInput): Promise<EmployeeRecord> {
     const response = await apiRequest<EmployeeRecord>({
       path: "/employees",
+      method: "POST",
+      auth: true,
+      body: input,
+    })
+    return response.data
+  },
+
+  async createWithUser(input: CreateEmployeeWithUserInput): Promise<EmployeeRecord> {
+    const response = await apiRequest<EmployeeRecord>({
+      path: "/employees/create-with-user",
       method: "POST",
       auth: true,
       body: input,

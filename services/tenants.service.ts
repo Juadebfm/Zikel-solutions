@@ -322,9 +322,9 @@ function mapMembership(record: JsonRecord): TenantMembershipRecord {
     userId:
       pickNullableString(record, ["userId"]) ||
       (user ? pickNullableString(user, ["id", "userId", "_id"]) : null),
-    firstName: pickString(record, ["firstName", "firstname"], user ? pickString(user, ["firstName", "firstname"], "") : ""),
-    lastName: pickString(record, ["lastName", "lastname", "surname"], user ? pickString(user, ["lastName", "lastname", "surname"], "") : ""),
-    email: pickString(record, ["email"], user ? pickString(user, ["email"], "") : ""),
+    firstName: pickString(record, ["firstName", "firstname", "first_name"], user ? pickString(user, ["firstName", "firstname", "first_name", "name"], "") : ""),
+    lastName: pickString(record, ["lastName", "lastname", "last_name", "surname"], user ? pickString(user, ["lastName", "lastname", "last_name", "surname"], "") : ""),
+    email: pickString(record, ["email", "userEmail"], user ? pickString(user, ["email"], "") : ""),
     role: normalizeTenantRole(record.role ?? record.tenantRole),
     status,
     isActive,

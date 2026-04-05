@@ -23,15 +23,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { DateTimePicker, parseLocalDateTimeValue } from "@/components/ui/date-time-picker"
 
 import {
   useHomesDropdown,
   useYoungPeopleDropdown,
-  useEmployeesDropdown,
-  useFormTemplatesDropdown,
 } from "@/hooks/api/use-dropdown-data"
+import { useEmployeeList } from "@/hooks/api/use-employees"
+import { useVehicleList } from "@/hooks/api/use-vehicles"
 import { useCreateTask } from "@/hooks/api/use-tasks"
 import { useErrorModalStore } from "@/components/shared/error-modal"
+import { useTaskExplorerStore } from "@/stores/task-explorer-store"
 import type { CreateTaskPayload } from "@/services/tasks.service"
 
 // ─── Constants ───────────────────────────────────────────────────
@@ -77,6 +79,7 @@ export function CreateTaskDialog({
   onOpenChange,
 }: CreateTaskDialogProps) {
   const createMutation = useCreateTask()
+  const setTaskSorting = useTaskExplorerStore((s) => s.setSorting)
 
   // Form state
   const [title, setTitle] = useState("")
@@ -87,6 +90,8 @@ export function CreateTaskDialog({
   const [type, setType] = useState("")
   const [homeId, setHomeId] = useState("")
   const [youngPersonId, setYoungPersonId] = useState("")
+  const [vehicleId, setVehicleId] = useState("")
+  const [relatedEmployeeId, setRelatedEmployeeId] = useState("")
   const [assigneeId, setAssigneeId] = useState("")
   const [error, setError] = useState<string | null>(null)
   const showError = useErrorModalStore((s) => s.show)
@@ -98,12 +103,56 @@ export function CreateTaskDialog({
   // Cached dropdown data
   const homesQuery = useHomesDropdown()
   const youngPeopleQuery = useYoungPeopleDropdown(homeId || undefined)
-  const employeesQuery = useEmployeesDropdown(homeId || undefined)
-  const formTemplatesQuery = useFormTemplatesDropdown()
-
+  const vehiclesQuery = useVehicleList({
+    page: 1,
+    pageSize: 100,
+    isActive: true,
+  })
   const homes = homesQuery.data ?? []
   const youngPeople = youngPeopleQuery.data ?? []
-  const employees = employeesQuery.data ?? []
+  const vehicles = useMemo(() => vehiclesQuery.data?.items ?? [], [vehiclesQuery.data?.items])
+  const allEmployeesQuery = useEmployeeList({
+    page: 1,
+    pageSize: 100,
+    isActive: true,
+  })
+  const allEmployees = useMemo(() => allEmployeesQuery.data?.items ?? [], [allEmployeesQuery.data?.items])
+  const selectedVehicleHomeId = useMemo(() => {
+    if (!vehicleId) return ""
+    const selectedVehicle = vehicles.find((vehicle) => vehicle.id === vehicleId)
+    return selectedVehicle?.homeId?.trim() ?? ""
+  }, [vehicleId, vehicles])
+  const assigneeHomeId = homeId || selectedVehicleHomeId
+  const employeesForSelectedHome = useMemo(() => {
+    const normalizedHomeId = homeId.trim()
+    if (!normalizedHomeId) return allEmployees
+    return allEmployees.filter((employee) => (employee.homeId ?? "").trim() === normalizedHomeId)
+  }, [allEmployees, homeId])
+
+  const assigneeOptions = useMemo(() => {
+    const normalizedHomeId = assigneeHomeId.trim()
+    if (!normalizedHomeId) return allEmployees
+
+    const filtered = allEmployees.filter(
+      (employee) => (employee.homeId ?? "").trim() === normalizedHomeId
+    )
+
+    // Some employee records may not include a reliable home mapping.
+    // Fallback to all active staff so "Assigned To" never blocks task creation.
+    return filtered.length > 0 ? filtered : allEmployees
+  }, [allEmployees, assigneeHomeId])
+
+  const selectedAssigneeId = useMemo(() => {
+    if (!assigneeId) return ""
+    return assigneeOptions.some((employee) => employee.id === assigneeId) ? assigneeId : ""
+  }, [assigneeId, assigneeOptions])
+
+  function getEmployeeDisplayName(employee: (typeof allEmployees)[number]): string {
+    const firstName = employee.user?.firstName ?? employee.firstName ?? ""
+    const lastName = employee.user?.lastName ?? employee.lastName ?? ""
+    const fullName = `${firstName} ${lastName}`.trim()
+    return fullName || employee.user?.name || employee.email || "Unknown employee"
+  }
 
   function resetForm() {
     setTitle("")
@@ -114,6 +163,8 @@ export function CreateTaskDialog({
     setType("")
     setHomeId("")
     setYoungPersonId("")
+    setVehicleId("")
+    setRelatedEmployeeId("")
     setAssigneeId("")
     setError(null)
   }
@@ -123,13 +174,18 @@ export function CreateTaskDialog({
     // Reset entity fields when type changes
     setHomeId("")
     setYoungPersonId("")
-    setAssigneeId("")
+    setVehicleId("")
+    setRelatedEmployeeId("")
   }
 
   function handleHomeChange(value: string) {
     setHomeId(value)
     setYoungPersonId("")
-    setAssigneeId("")
+    setRelatedEmployeeId("")
+  }
+
+  function handleVehicleChange(value: string) {
+    setVehicleId(value)
   }
 
   function handleClose() {
@@ -154,14 +210,33 @@ export function CreateTaskDialog({
     if (description.trim()) payload.description = description.trim()
     if (category) payload.category = category
     if (priority) payload.priority = priority as CreateTaskPayload["priority"]
-    if (dueAt) payload.dueAt = new Date(dueAt).toISOString()
+    if (dueAt) {
+      const parsedDueAt = parseLocalDateTimeValue(dueAt)
+      if (!parsedDueAt) {
+        setError("Please choose a valid due date and time.")
+        return
+      }
+
+      const nowMinuteFloor = new Date()
+      nowMinuteFloor.setSeconds(0, 0)
+
+      if (parsedDueAt.getTime() < nowMinuteFloor.getTime()) {
+        setError("Due date cannot be in the past. Please choose a future date and time.")
+        return
+      }
+
+      payload.dueAt = parsedDueAt.toISOString()
+    }
     if (type) payload.type = type as CreateTaskPayload["type"]
     if (homeId) payload.homeId = homeId
     if (youngPersonId) payload.youngPersonId = youngPersonId
-    if (assigneeId) payload.assigneeId = assigneeId
+    if (type === "vehicle" && vehicleId) payload.relatedEntityId = vehicleId
+    if (type === "employee" && relatedEmployeeId) payload.relatedEntityId = relatedEmployeeId
+    if (selectedAssigneeId) payload.assigneeId = selectedAssigneeId
 
     try {
       await createMutation.mutateAsync(payload)
+      setTaskSorting("createdAt", "desc")
       resetForm()
       onOpenChange(false)
     } catch (err) {
@@ -244,12 +319,16 @@ export function CreateTaskDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-800">Due Date</Label>
-              <Input
-                type="datetime-local"
+              <DateTimePicker
                 value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
+                onChange={setDueAt}
+                disabledPast
+                placeholder="Select due date and time"
                 className={fieldClass}
               />
+              <p className="text-xs text-muted-foreground">
+                Pick today or a future date. Past dates are not allowed.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -301,22 +380,85 @@ export function CreateTaskDialog({
             </div>
           )}
 
-          {/* Assignee — shown when a home is selected */}
-          {homeId && employees.length > 0 && (
+          {type === "vehicle" && (
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-gray-800">Assignee</Label>
-              <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <Label className="text-sm font-semibold text-gray-800">Vehicle</Label>
+              <Select value={vehicleId} onValueChange={handleVehicleChange}>
                 <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="Assign to..." />
+                  <SelectValue placeholder="Select vehicle..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((e) => (
-                    <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                  {vehicles.map((vehicle) => {
+                    const value = vehicle.id
+                    const label = vehicle.name
+                      || `${vehicle.make || ""} ${vehicle.model || ""}`.trim()
+                      || `Vehicle ${vehicle.id}`
+                    const subtitle = [vehicle.registration, vehicle.homeName].filter(Boolean).join(" — ")
+                    return (
+                      <SelectItem key={value} value={value}>
+                        {subtitle ? `${label} (${subtitle})` : label}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {type === "employee" && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-800">Related Employee</Label>
+              <Select value={relatedEmployeeId} onValueChange={setRelatedEmployeeId}>
+                <SelectTrigger className={triggerClass}>
+                  <SelectValue placeholder="Select employee..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeesForSelectedHome.length === 0 ? (
+                    <SelectItem value="__no_related_employees" disabled>
+                      No employees available for the selected home
+                    </SelectItem>
+                  ) : null}
+                  {employeesForSelectedHome.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {getEmployeeDisplayName(employee)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
+
+          {/* Assignee — always available; scoped to related home when known */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-800">Assignee</Label>
+            <Select value={selectedAssigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger className={triggerClass}>
+                <SelectValue placeholder="Assign to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allEmployeesQuery.isLoading ? (
+                  <SelectItem value="__assignee_loading" disabled>
+                    Loading employees...
+                  </SelectItem>
+                ) : null}
+                {!allEmployeesQuery.isLoading && assigneeOptions.length === 0 ? (
+                  <SelectItem value="__assignee_empty" disabled>
+                    No active employees available
+                  </SelectItem>
+                ) : null}
+                {assigneeOptions.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {getEmployeeDisplayName(employee)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {assigneeHomeId
+                ? "Showing staff for the selected home context."
+                : "Showing all active staff. Pick a related home to narrow the list."}
+            </p>
+          </div>
 
         </div>
 

@@ -23,7 +23,6 @@ import {
   Eye,
   Trash2,
   ArrowUpDown,
-  Loader2,
 } from "lucide-react"
 
 // ─── Props ────────────────────────────────────────────────────────
@@ -130,8 +129,8 @@ export function TaskTable({
   onRowClick,
   onDelete,
 }: TaskTableProps) {
-  // Show skeletons on initial load OR when fetching with no items (e.g. first visit to a tab)
-  const showSkeleton = loading || (fetching && items.length === 0)
+  // Show skeletons on initial load, background refetch, or when fetching with no items
+  const showSkeleton = loading || fetching
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const allSelected = items.length > 0 && items.every((i) => selected.has(i.id))
@@ -170,13 +169,7 @@ export function TaskTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border relative">
-        {/* Subtle overlay when refetching in background (data already visible) */}
-        {fetching && !showSkeleton && (
-          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        )}
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
