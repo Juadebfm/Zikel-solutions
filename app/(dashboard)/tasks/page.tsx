@@ -41,6 +41,7 @@ export default function TasksPage() {
   const taskActionMutation = useTaskAction()
   const deleteTaskMutation = useDeleteTask()
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+  const [isRefreshingAfterApprove, setIsRefreshingAfterApprove] = useState(false)
   const [isAiOpen, setIsAiOpen] = useState(false)
 
   const meta = tasksQuery.data?.meta
@@ -110,12 +111,27 @@ export default function TasksPage() {
         payload.comment = options.comment
       }
 
-      taskActionMutation.mutate({
-        taskId,
-        payload,
-      })
+      const isApproveAction = action === "approve"
+      if (isApproveAction) {
+        store.closeTaskDrawer()
+        setIsRefreshingAfterApprove(true)
+      }
+
+      taskActionMutation.mutate(
+        {
+          taskId,
+          payload,
+        },
+        {
+          onSettled: () => {
+            if (isApproveAction) {
+              setIsRefreshingAfterApprove(false)
+            }
+          },
+        }
+      )
     },
-    [taskActionMutation]
+    [store, taskActionMutation]
   )
 
   const handleDeleteRequest = useCallback((taskId: string) => {
@@ -186,7 +202,7 @@ export default function TasksPage() {
           <TaskTable
             items={items}
             loading={tasksQuery.isLoading}
-            fetching={tasksQuery.isFetching}
+            fetching={tasksQuery.isFetching || isRefreshingAfterApprove}
             page={store.page}
             pageSize={store.pageSize}
             totalPages={totalPages}
