@@ -52,6 +52,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTaskList, useTaskAction } from "@/hooks/api/use-tasks"
 import { useBatchReassign } from "@/hooks/api/use-summary"
+import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
 import type { TaskListItem } from "@/services/tasks.service"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
@@ -120,20 +121,8 @@ export default function PendingApprovalPage() {
   // Mutations
   const taskActionMutation = useTaskAction()
   const batchReassignMutation = useBatchReassign()
-
-  // Build employee dropdown from task assignees already loaded on the page
-  const employees = useMemo(() => {
-    const seen = new Map<string, { value: string; label: string }>()
-    for (const task of allTasks) {
-      if (task.assignee && !seen.has(task.assignee.id)) {
-        seen.set(task.assignee.id, {
-          value: task.assignee.id,
-          label: task.assignee.name,
-        })
-      }
-    }
-    return Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label))
-  }, [allTasks])
+  const employeesQuery = useEmployeesDropdown()
+  const employees = employeesQuery.data ?? []
 
   // Summary stats derived from current page data
   const summary = useMemo(() => {

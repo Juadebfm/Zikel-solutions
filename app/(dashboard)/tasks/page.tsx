@@ -20,8 +20,20 @@ import { TaskTable } from "@/components/task-explorer/task-table"
 import { TaskDetailDrawer } from "@/components/task-explorer/task-detail-drawer"
 import { CreateTaskDialog } from "@/components/task-explorer/create-task-dialog"
 import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useTaskExplorerStore } from "@/stores/task-explorer-store"
 import { useTaskList, useTaskCategories, useTaskAction, useDeleteTask } from "@/hooks/api/use-tasks"
+import { useBatchReassign } from "@/hooks/api/use-summary"
+import { useEmployeesDropdown } from "@/hooks/api/use-dropdown-data"
+import { useToastStore } from "@/components/shared/toast"
+import { useErrorModalStore } from "@/components/shared/error-modal"
+import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
 import type { AskAiPageContext } from "@/services/ai.service"
 import type { TaskScope } from "@/services/tasks.service"
 
@@ -41,8 +53,15 @@ export default function TasksPage() {
   const taskActionMutation = useTaskAction()
   const deleteTaskMutation = useDeleteTask()
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+  const [reassignTaskId, setReassignTaskId] = useState<string | null>(null)
+  const [reassigneeId, setReassigneeId] = useState("")
   const [isRefreshingAfterApprove, setIsRefreshingAfterApprove] = useState(false)
   const [isAiOpen, setIsAiOpen] = useState(false)
+  const batchReassignMutation = useBatchReassign()
+  const employeesQuery = useEmployeesDropdown()
+  const employees = employeesQuery.data ?? []
+  const showToast = useToastStore((s) => s.show)
+  const showError = useErrorModalStore((s) => s.show)
 
   const meta = tasksQuery.data?.meta
   const items = tasksQuery.data?.items ?? []
@@ -100,11 +119,17 @@ export default function TasksPage() {
 
   const handleAction = useCallback(
     (taskId: string, action: string, options?: { comment?: string }) => {
+      if (action === "reassign") {
+        store.closeTaskDrawer()
+        setReassignTaskId(taskId)
+        return
+      }
+
       const payload: {
-        action: "approve" | "reject" | "submit" | "reassign" | "comment" | "request_deletion"
+        action: "approve" | "reject" | "submit" | "comment" | "request_deletion"
         comment?: string
       } = {
-        action: action as "approve" | "reject" | "submit" | "reassign" | "comment" | "request_deletion",
+        action: action as "approve" | "reject" | "submit" | "comment" | "request_deletion",
       }
 
       if (action === "comment" && options?.comment) {
@@ -133,6 +158,27 @@ export default function TasksPage() {
     },
     [store, taskActionMutation]
   )
+
+  const handleReassignConfirm = useCallback(() => {
+    if (!reassignTaskId || !reassigneeId) {
+      showError("Please select an employee.")
+      return
+    }
+    batchReassignMutation.mutate(
+      { taskIds: [reassignTaskId], assigneeId: reassigneeId },
+      {
+        onSuccess: (r) => {
+          if (r.failed.length > 0) showError(`Reassign failed.`)
+          else showToast("Task reassigned.")
+          setReassignTaskId(null)
+          setReassigneeId("")
+        },
+        onError: (err) => {
+          showError(isApiClientError(err) ? getApiErrorMessage(err) : "Failed to reassign task.")
+        },
+      }
+    )
+  }, [reassignTaskId, reassigneeId, batchReassignMutation, showToast, showError])
 
   const handleDeleteRequest = useCallback((taskId: string) => {
     setDeleteTaskId(taskId)
@@ -264,6 +310,32 @@ export default function TasksPage() {
               disabled={deleteTaskMutation.isPending}
             >
               {deleteTaskMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reassign dialog */}
+      <Dialog open={!!reassignTaskId} onOpenChange={(open) => { if (!open) { setReassignTaskId(null); setReassigneeId("") } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reassign Task</DialogTitle>
+            <DialogDescription>Select an employee to reassign to.</DialogDescription>
+          </DialogHeader>
+          <Select value={reassigneeId} onValueChange={setReassigneeId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select employee..." />
+            </SelectTrigger>
+            <SelectContent>
+              {employees.map((e) => (
+                <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReassignTaskId(null); setReassigneeId("") }}>Cancel</Button>
+            <Button disabled={batchReassignMutation.isPending || !reassigneeId} onClick={handleReassignConfirm}>
+              {batchReassignMutation.isPending ? "Reassigning..." : "Reassign"}
             </Button>
           </DialogFooter>
         </DialogContent>
