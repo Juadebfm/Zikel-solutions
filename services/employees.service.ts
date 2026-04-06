@@ -3,24 +3,35 @@ import type { ApiMeta } from "@/lib/api/types"
 
 export interface EmployeeRecord {
   id: string
-  firstName: string
-  lastName: string
-  email: string
-  role: string
+  userId?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  role?: string
   homeId?: string
   homeName?: string
   phone?: string
   jobTitle?: string
   status: string
-  startDate?: string
+  startDate?: string | null
+  endDate?: string | null
+  contractType?: string
+  roleId?: string
+  roleName?: string
+  dbsNumber?: string
+  dbsDate?: string | null
+  qualifications?: string | null
   avatar?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
   user?: {
+    id?: string
     firstName?: string
     lastName?: string
     name?: string
+    email?: string
+    role?: string
   }
 }
 

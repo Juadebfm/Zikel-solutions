@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Search, Sparkles } from "lucide-react"
+import { Plus, Search, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
 import { HomeDetailDrawer } from "@/components/homes/home-detail-drawer"
+import { CreateHomeDrawer } from "@/components/homes/create-home-drawer"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useHomeList } from "@/hooks/api/use-homes"
@@ -30,6 +31,7 @@ export default function HomesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const homesQuery = useHomeList({
     page,
@@ -102,6 +104,10 @@ export default function HomesPage() {
           <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
             <Sparkles className="h-4 w-4" />
             Ask AI
+          </Button>
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add Home
           </Button>
         </div>
       </div>
@@ -228,6 +234,8 @@ export default function HomesPage() {
         context={aiContext}
         description="Ask about home capacity, occupancy, staffing contacts, and status."
       />
+
+      <CreateHomeDrawer open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
       <HomeDetailDrawer
         homeId={selectedHomeId}

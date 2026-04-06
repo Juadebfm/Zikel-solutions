@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2, Search, Sparkles } from "lucide-react"
+import { Plus, Search, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
+import { CreateYoungPersonDrawer } from "@/components/young-people/create-young-person-drawer"
+import { YoungPersonDetailDrawer } from "@/components/young-people/young-person-detail-drawer"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useYoungPersonList } from "@/hooks/api/use-young-people"
@@ -38,6 +40,8 @@ export default function YoungPeoplePage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isAiOpen, setIsAiOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null)
 
   const youngPeopleQuery = useYoungPersonList({
     page,
@@ -82,7 +86,7 @@ export default function YoungPeoplePage() {
         extra: {
           gender: person.gender ?? "-",
           category: person.category ?? "-",
-          keyWorker: person.keyWorker ?? "-",
+          keyWorker: typeof person.keyWorker === "object" && person.keyWorker !== null ? person.keyWorker.name : person.keyWorker ?? "-",
           dateOfBirth: person.dateOfBirth ?? "-",
         },
       })),
@@ -122,6 +126,10 @@ export default function YoungPeoplePage() {
             <Sparkles className="h-4 w-4" />
             Ask AI
           </Button>
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add Young Person
+          </Button>
         </div>
       </div>
 
@@ -140,8 +148,8 @@ export default function YoungPeoplePage() {
           <div className="space-y-4">
             <div className="rounded-md border relative overflow-x-auto">
               {youngPeopleQuery.isFetching && !youngPeopleQuery.isLoading && items.length > 0 ? (
-                <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20 overflow-hidden rounded-t-md">
+                  <div className="h-full w-1/2 bg-primary/50 animate-pulse rounded-full" />
                 </div>
               ) : null}
 
@@ -149,11 +157,11 @@ export default function YoungPeoplePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Home</TableHead>
+                    <TableHead className="hidden sm:table-cell">Home</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Key Worker</TableHead>
+                    <TableHead className="hidden md:table-cell">Date of Birth</TableHead>
+                    <TableHead className="hidden sm:table-cell">Key Worker</TableHead>
+                    <TableHead className="w-16 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -161,12 +169,12 @@ export default function YoungPeoplePage() {
                   {youngPeopleQuery.isLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`}>
-                        <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-10 ml-auto" /></TableCell>
                       </TableRow>
                     ))
                   ) : items.length === 0 ? (
@@ -176,16 +184,23 @@ export default function YoungPeoplePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    items.map((person) => (
-                      <TableRow key={person.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">{`${person.firstName} ${person.lastName}`.trim()}</TableCell>
-                        <TableCell>{person.homeName || "-"}</TableCell>
-                        <TableCell className="capitalize">{person.status || "-"}</TableCell>
-                        <TableCell className="capitalize">{person.youngPersonType || "-"}</TableCell>
-                        <TableCell>{formatDate(person.dateOfBirth)}</TableCell>
-                        <TableCell>{person.keyWorker || "-"}</TableCell>
-                      </TableRow>
-                    ))
+                    items.map((person) => {
+                      const keyWorkerName = typeof person.keyWorker === "object" && person.keyWorker !== null ? person.keyWorker.name : person.keyWorker || "-"
+                      return (
+                        <TableRow key={person.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedPersonId(person.id)}>
+                          <TableCell className="font-medium text-primary">{`${person.firstName} ${person.lastName}`.trim()}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{person.homeName || "-"}</TableCell>
+                          <TableCell className="capitalize">{person.status || "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{formatDate(person.dateOfBirth)}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{keyWorkerName}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedPersonId(person.id) }}>
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -254,6 +269,14 @@ export default function YoungPeoplePage() {
         page="young_people"
         context={aiContext}
         description="Ask about young people status, assignment coverage, and key-worker insights."
+      />
+
+      <CreateYoungPersonDrawer open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+      <YoungPersonDetailDrawer
+        youngPersonId={selectedPersonId}
+        open={selectedPersonId !== null}
+        onClose={() => setSelectedPersonId(null)}
       />
     </div>
   )

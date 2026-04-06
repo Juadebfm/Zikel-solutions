@@ -14,7 +14,7 @@ export interface YoungPersonRecord {
   category?: string
   avatar?: string
   admissionDate?: string
-  keyWorker?: string
+  keyWorker?: string | { id: string; name: string } | null
   isActive: boolean
   createdAt: string
   updatedAt: string

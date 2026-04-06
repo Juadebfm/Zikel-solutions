@@ -278,6 +278,7 @@ export const safeguardingService = {
       path: `/safeguarding/risk-alerts/${id}/acknowledge`,
       auth: true,
       method: "POST",
+      body: {},
     })
 
     return response.data
@@ -288,6 +289,7 @@ export const safeguardingService = {
       path: `/safeguarding/risk-alerts/${id}/in-progress`,
       auth: true,
       method: "POST",
+      body: {},
     })
 
     return response.data
@@ -298,6 +300,7 @@ export const safeguardingService = {
       path: `/safeguarding/risk-alerts/${id}/resolve`,
       auth: true,
       method: "POST",
+      body: {},
     })
 
     return response.data
@@ -308,7 +311,7 @@ export const safeguardingService = {
       path: `/safeguarding/risk-alerts/${id}/notes`,
       auth: true,
       method: "POST",
-      body: { content },
+      body: { note: content },
     })
 
     return response.data

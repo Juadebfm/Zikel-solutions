@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2, Plus, Search, Sparkles } from "lucide-react"
+import { Plus, Search, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +28,7 @@ import { getApiErrorMessage } from "@/lib/api/error"
 import { useVehicleList } from "@/hooks/api/use-vehicles"
 import { useHomesDropdown } from "@/hooks/api/use-dropdown-data"
 import { CreateVehicleModernDialog } from "@/components/vehicles/create-vehicle-modern-dialog"
+import { VehicleDetailDrawer } from "@/components/vehicles/vehicle-detail-drawer"
 import type { AskAiPageContext } from "@/services/ai.service"
 
 function formatDate(value?: string | null): string {
@@ -51,6 +52,7 @@ export default function VehiclesPage() {
   const [fuelType, setFuelType] = useState("")
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
 
   const homesQuery = useHomesDropdown()
   const vehiclesQuery = useVehicleList({
@@ -205,8 +207,8 @@ export default function VehiclesPage() {
           <div className="space-y-4">
             <div className="rounded-md border relative overflow-x-auto">
               {vehiclesQuery.isFetching && !vehiclesQuery.isLoading && items.length > 0 ? (
-                <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20 overflow-hidden rounded-t-md">
+                  <div className="h-full w-1/2 bg-primary/50 animate-pulse rounded-full" />
                 </div>
               ) : null}
 
@@ -215,11 +217,11 @@ export default function VehiclesPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Registration</TableHead>
-                    <TableHead>Make / Model</TableHead>
-                    <TableHead>Home</TableHead>
+                    <TableHead className="hidden sm:table-cell">Home</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Mileage</TableHead>
-                    <TableHead>Next Service</TableHead>
+                    <TableHead className="hidden md:table-cell">Mileage</TableHead>
+                    <TableHead className="hidden md:table-cell">Next Service</TableHead>
+                    <TableHead className="w-16 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -227,13 +229,13 @@ export default function VehiclesPage() {
                   {vehiclesQuery.isLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`}>
-                        <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-10 ml-auto" /></TableCell>
                       </TableRow>
                     ))
                   ) : items.length === 0 ? (
@@ -243,19 +245,22 @@ export default function VehiclesPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    items.map((vehicle) => (
-                      <TableRow key={vehicle.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">
-                          {vehicle.name || `${vehicle.make || ""} ${vehicle.model || ""}`.trim() || vehicle.registration || `Vehicle ${vehicle.id}`}
-                        </TableCell>
-                        <TableCell>{vehicle.registration || "-"}</TableCell>
-                        <TableCell>{`${vehicle.make || "-"} / ${vehicle.model || "-"}`}</TableCell>
-                        <TableCell>{vehicle.homeName || "-"}</TableCell>
-                        <TableCell className="capitalize">{vehicle.status || "-"}</TableCell>
-                        <TableCell>{vehicle.mileage ?? "-"}</TableCell>
-                        <TableCell>{formatDate(vehicle.nextServiceDue)}</TableCell>
-                      </TableRow>
-                    ))
+                    items.map((vehicle) => {
+                      const label = vehicle.name || `${vehicle.make || ""} ${vehicle.model || ""}`.trim() || vehicle.registration || `Vehicle ${vehicle.id}`
+                      return (
+                        <TableRow key={vehicle.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedVehicleId(vehicle.id)}>
+                          <TableCell className="font-medium text-primary">{label}</TableCell>
+                          <TableCell>{vehicle.registration || "-"}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{vehicle.homeName || "-"}</TableCell>
+                          <TableCell className="capitalize">{vehicle.status || "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{vehicle.mileage ?? "-"}</TableCell>
+                          <TableCell className="hidden md:table-cell">{formatDate(vehicle.nextServiceDue)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedVehicleId(vehicle.id) }}>View</Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -327,6 +332,12 @@ export default function VehiclesPage() {
       />
 
       <CreateVehicleModernDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+      <VehicleDetailDrawer
+        vehicleId={selectedVehicleId}
+        open={selectedVehicleId !== null}
+        onClose={() => setSelectedVehicleId(null)}
+      />
     </div>
   )
 }

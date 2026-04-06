@@ -11,14 +11,27 @@ export interface VehicleRecord {
   name?: string | null
   year?: number | null
   colour?: string | null
+  description?: string | null
+  vin?: string | null
   status?: string | null
   fuelType?: string | null
   ownership?: string | null
+  mileage?: number | null
+  adminUserId?: string | null
+  adminUser?: { id: string; name: string } | null
+  contactPhone?: string | null
+  registrationDate?: string | null
+  taxDate?: string | null
+  insuranceDate?: string | null
   motDue?: string | null
   nextServiceDue?: string | null
-  insuranceDate?: string | null
-  registrationDate?: string | null
-  mileage?: number | null
+  startDate?: string | null
+  endDate?: string | null
+  leaseStartDate?: string | null
+  leaseEndDate?: string | null
+  purchasePrice?: number | null
+  purchaseDate?: string | null
+  avatarUrl?: string | null
   details?: Record<string, unknown> | null
   isActive: boolean
   createdAt: string
@@ -42,19 +55,32 @@ export interface VehicleListParams {
 
 export interface CreateVehicleInput {
   registration: string
-  homeId?: string
+  homeId?: string | null
   make?: string
   model?: string
   year?: number
   colour?: string
+  description?: string
+  vin?: string
   status?: string
   fuelType?: string
   ownership?: string
+  mileage?: number
+  adminUserId?: string | null
+  contactPhone?: string
+  registrationDate?: string
+  taxDate?: string
+  insuranceDate?: string
   motDue?: string
   nextServiceDue?: string
-  insuranceDate?: string
-  registrationDate?: string
+  startDate?: string
+  endDate?: string | null
+  leaseStartDate?: string | null
+  leaseEndDate?: string | null
+  purchasePrice?: number | null
+  purchaseDate?: string | null
   details?: Record<string, unknown>
+  isActive?: boolean
 }
 
 export type UpdateVehicleInput = Partial<CreateVehicleInput>
