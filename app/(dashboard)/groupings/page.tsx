@@ -21,7 +21,7 @@ export default function GroupingsPage() {
 
       <AccessBanner show={!allowed} />
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button className="gap-2" onClick={() => guard(() => { /* Not yet implemented */ })}>
           <Plus className="h-4 w-4" />
           Add Grouping

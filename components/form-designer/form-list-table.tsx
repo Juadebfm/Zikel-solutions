@@ -83,7 +83,7 @@ export function FormListTable({
 }: FormListTableProps) {
   if (loading) {
     return (
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -131,7 +131,7 @@ export function FormListTable({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -158,7 +158,7 @@ export function FormListTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

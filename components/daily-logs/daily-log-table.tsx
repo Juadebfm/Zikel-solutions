@@ -76,7 +76,7 @@ export function DailyLogTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border relative">
+      <div className="rounded-md border relative overflow-x-auto">
         {fetching && !showSkeleton && (
           <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />

@@ -201,7 +201,7 @@ export default function CareGroupDetailPage() {
       </nav>
 
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-gray-900">{careGroup.name}</h1>
         <div className="flex items-center gap-2">
           <Button onClick={handleSave} className="gap-2">

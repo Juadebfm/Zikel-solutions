@@ -193,7 +193,7 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <PageHeader title="Task Explorer" subtitle="Browse, create, and manage tasks." showNewTask={false} showAskAI={false} />
         <div className="flex items-center gap-2">
           <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>

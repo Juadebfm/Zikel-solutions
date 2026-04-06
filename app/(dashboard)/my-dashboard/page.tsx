@@ -119,7 +119,7 @@ export default function MyDashboardPage() {
       <StatsOverview stats={stats} />
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-semibold text-gray-900">Widgets</h2>
           <Link href="/my-dashboard/widgets">
             <Button variant="outline" size="sm" className="gap-2">

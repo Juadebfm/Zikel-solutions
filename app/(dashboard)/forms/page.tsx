@@ -85,7 +85,7 @@ export default function FormsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Form Designer</h1>
           <p className="text-sm text-gray-500 mt-1">

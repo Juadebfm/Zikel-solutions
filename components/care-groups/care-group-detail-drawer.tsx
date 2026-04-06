@@ -222,11 +222,11 @@ export function CareGroupDetailDrawer({
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Address</p>
                   <FormField label="Address Line 1" value={form.addressLine1} onChange={(v) => handleChange("addressLine1", v)} />
                   <FormField label="Address Line 2" value={form.addressLine2} onChange={(v) => handleChange("addressLine2", v)} />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField label="City" value={form.city} onChange={(v) => handleChange("city", v)} />
                     <FormField label="County" value={form.county} onChange={(v) => handleChange("county", v)} />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField label="Country" value={form.country} onChange={(v) => handleChange("country", v)} />
                     <FormField label="Postcode" value={form.postcode} onChange={(v) => handleChange("postcode", v)} />
                   </div>

@@ -521,7 +521,7 @@ function RiskAlertDrawer({
 
                 <Separator />
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Created</p>
                     <p className="font-medium">{formatDate(alert.createdAt)}</p>

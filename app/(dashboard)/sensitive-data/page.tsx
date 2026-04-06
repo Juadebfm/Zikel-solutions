@@ -819,7 +819,7 @@ function RecordDetailDrawer({
               <Separator />
 
               {/* Metadata */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 {record.youngPersonName && (
                   <div>
                     <p className="text-xs text-muted-foreground">Young Person</p>

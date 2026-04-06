@@ -436,7 +436,7 @@ function RiDashboardTab() {
             ) : drilldownItems.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No detail data available.</p>
             ) : (
-              <>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -470,7 +470,7 @@ function RiDashboardTab() {
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -667,7 +667,7 @@ function BulkExportsTab() {
               <p className="text-sm text-gray-500">No export jobs yet. Create one above to get started.</p>
             </div>
           ) : (
-            <>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -728,7 +728,7 @@ function BulkExportsTab() {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>

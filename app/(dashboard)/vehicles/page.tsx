@@ -132,7 +132,7 @@ export default function VehiclesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vehicles</h1>
           <p className="text-gray-500 mt-1">Track and manage the vehicle fleet across all homes.</p>
@@ -203,7 +203,7 @@ export default function VehiclesPage() {
       <Card>
         <CardContent className="p-4">
           <div className="space-y-4">
-            <div className="rounded-md border relative">
+            <div className="rounded-md border relative overflow-x-auto">
               {vehiclesQuery.isFetching && !vehiclesQuery.isLoading && items.length > 0 ? (
                 <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
