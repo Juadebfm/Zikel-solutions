@@ -13,6 +13,7 @@ export function useHomeList(params?: HomeListParams) {
     page: params?.page ?? 1,
     pageSize: params?.pageSize ?? 20,
     search: params?.search,
+    status: params?.status,
     careGroupId: params?.careGroupId,
     isActive: params?.isActive ?? true,
   }

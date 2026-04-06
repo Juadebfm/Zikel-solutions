@@ -1,11 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2, Search, Sparkles } from "lucide-react"
+import { Search, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -16,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { AiChatDialog } from "@/components/shared/ai-chat-dialog"
+import { HomeDetailDrawer } from "@/components/homes/home-detail-drawer"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { getApiErrorMessage } from "@/lib/api/error"
 import { useHomeList } from "@/hooks/api/use-homes"
@@ -27,6 +29,7 @@ export default function HomesPage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isAiOpen, setIsAiOpen] = useState(false)
+  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null)
 
   const homesQuery = useHomeList({
     page,
@@ -66,24 +69,15 @@ export default function HomesPage() {
         id: home.id,
         title: home.name,
         status: home.status,
-        assignee: home.manager,
+        assignee: home.admin?.name ?? home.manager,
         extra: {
-          phone: home.phone ?? "-",
+          phone: home.phoneNumber ?? home.phone ?? "-",
           capacity: String(home.capacity ?? 0),
-          occupancy: String(home.currentOccupancy ?? 0),
+          occupancy: String(home.counts?.youngPeople ?? home.currentOccupancy ?? 0),
         },
       })),
-      filters: {
-        search: debouncedSearch || "all",
-      },
-      meta: meta
-        ? {
-            total: meta.total,
-            page: meta.page,
-            pageSize: meta.pageSize,
-            totalPages: meta.totalPages,
-          }
-        : undefined,
+      filters: { search: debouncedSearch || "all" },
+      meta: meta ? { total: meta.total, page: meta.page, pageSize: meta.pageSize, totalPages: meta.totalPages } : undefined,
     }
   }, [debouncedSearch, homesQuery.data, items, meta])
 
@@ -127,8 +121,8 @@ export default function HomesPage() {
           <div className="space-y-4">
             <div className="rounded-md border relative overflow-x-auto">
               {homesQuery.isFetching && !homesQuery.isLoading && items.length > 0 ? (
-                <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-md">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-primary/20 overflow-hidden rounded-t-md">
+                  <div className="h-full w-1/2 bg-primary/50 animate-pulse rounded-full" />
                 </div>
               ) : null}
 
@@ -137,10 +131,10 @@ export default function HomesPage() {
                   <TableRow>
                     <TableHead>Home Name</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Manager</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Occupancy</TableHead>
+                    <TableHead className="hidden sm:table-cell">Care Group</TableHead>
+                    <TableHead className="text-center">Capacity</TableHead>
+                    <TableHead className="hidden sm:table-cell">Address</TableHead>
+                    <TableHead className="w-16 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -148,12 +142,12 @@ export default function HomesPage() {
                   {homesQuery.isLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
                       <TableRow key={`skeleton-${index}`}>
-                        <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-14" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-14" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-10 ml-auto" /></TableCell>
                       </TableRow>
                     ))
                   ) : items.length === 0 ? (
@@ -164,13 +158,25 @@ export default function HomesPage() {
                     </TableRow>
                   ) : (
                     items.map((home) => (
-                      <TableRow key={home.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">{home.name}</TableCell>
-                        <TableCell className="capitalize">{home.status || "-"}</TableCell>
-                        <TableCell>{home.manager || "-"}</TableCell>
-                        <TableCell>{home.phone || "-"}</TableCell>
-                        <TableCell>{home.capacity ?? "-"}</TableCell>
-                        <TableCell>{home.currentOccupancy ?? "-"}</TableCell>
+                      <TableRow key={home.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedHomeId(home.id)}>
+                        <TableCell>
+                          <button type="button" className="font-medium text-primary hover:underline text-left" onClick={(e) => { e.stopPropagation(); setSelectedHomeId(home.id) }}>
+                            {home.name}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${home.isActive ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+                            {home.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{home.careGroupName ?? "-"}</TableCell>
+                        <TableCell className="text-center">{home.capacity ?? "-"}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground truncate max-w-[250px]">{home.address ?? "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedHomeId(home.id) }}>
+                            View
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -178,7 +184,7 @@ export default function HomesPage() {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">
                 Showing {rangeStart}-{rangeEnd} of {totalItems}
               </p>
@@ -199,34 +205,14 @@ export default function HomesPage() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={page <= 1 || homesQuery.isLoading}
-                    onClick={() => setPage((current) => current - 1)}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1 || homesQuery.isLoading} onClick={() => setPage((c) => c - 1)}>
                     <span className="sr-only">Previous page</span>
-                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
+                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
                   </Button>
-
-                  <span className="px-2 text-sm text-muted-foreground">
-                    {page} / {totalPages}
-                  </span>
-
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={page >= totalPages || homesQuery.isLoading}
-                    onClick={() => setPage((current) => current + 1)}
-                  >
+                  <span className="px-2 text-sm text-muted-foreground">{page} / {totalPages}</span>
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages || homesQuery.isLoading} onClick={() => setPage((c) => c + 1)}>
                     <span className="sr-only">Next page</span>
-                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
+                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                   </Button>
                 </div>
               </div>
@@ -241,6 +227,12 @@ export default function HomesPage() {
         page="homes"
         context={aiContext}
         description="Ask about home capacity, occupancy, staffing contacts, and status."
+      />
+
+      <HomeDetailDrawer
+        homeId={selectedHomeId}
+        open={selectedHomeId !== null}
+        onClose={() => setSelectedHomeId(null)}
       />
     </div>
   )

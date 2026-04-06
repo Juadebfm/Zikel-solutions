@@ -4,16 +4,43 @@ import type { ApiMeta } from "@/lib/api/types"
 export interface HomeRecord {
   id: string
   name: string
-  address?: string
-  capacity?: number
-  currentOccupancy?: number
-  manager?: string
-  phone?: string
-  status: string
   careGroupId?: string
+  careGroupName?: string
+  description?: string
+  address?: string
+  postCode?: string
+  capacity?: number
+  category?: string
+  region?: string
+  status: string
+  phoneNumber?: string
+  email?: string
+  avatarUrl?: string | null
+  admin?: { id: string; name: string } | null
+  personInCharge?: { id: string; name: string } | null
+  responsibleIndividual?: { id: string; name: string } | null
+  startDate?: string | null
+  endDate?: string | null
+  isSecure?: boolean
+  shortTermStays?: boolean
+  minAgeGroup?: number | null
+  maxAgeGroup?: number | null
+  ofstedUrn?: string
+  compliance?: unknown
+  details?: unknown
+  counts?: {
+    employees?: number
+    youngPeople?: number
+    vehicles?: number
+    tasks?: number
+  }
   isActive: boolean
   createdAt: string
   updatedAt: string
+  // Legacy fields for backward compatibility
+  manager?: string
+  phone?: string
+  currentOccupancy?: number
 }
 
 export interface HomeListResult {
@@ -22,27 +49,57 @@ export interface HomeListResult {
 }
 
 export interface CreateHomeInput {
+  careGroupId: string
   name: string
+  description?: string
   address?: string
+  postCode?: string
   capacity?: number
-  manager?: string
-  phone?: string
-  careGroupId?: string
+  category?: string
+  region?: string
+  status?: string
+  phoneNumber?: string
+  email?: string
+  isSecure?: boolean
+  shortTermStays?: boolean
+  minAgeGroup?: number | null
+  maxAgeGroup?: number | null
+  ofstedUrn?: string
+  startDate?: string | null
+  adminUserId?: string | null
+  personInChargeId?: string | null
+  responsibleIndividualId?: string | null
 }
 
 export interface UpdateHomeInput {
   name?: string
-  address?: string
-  capacity?: number
-  manager?: string
-  phone?: string
   careGroupId?: string
+  description?: string
+  address?: string
+  postCode?: string
+  capacity?: number
+  category?: string
+  region?: string
+  status?: string
+  phoneNumber?: string
+  email?: string
+  isSecure?: boolean
+  shortTermStays?: boolean
+  minAgeGroup?: number | null
+  maxAgeGroup?: number | null
+  ofstedUrn?: string
+  startDate?: string | null
+  endDate?: string | null
+  adminUserId?: string | null
+  personInChargeId?: string | null
+  responsibleIndividualId?: string | null
 }
 
 export interface HomeListParams {
   page?: number
   pageSize?: number
   search?: string
+  status?: string
   careGroupId?: string
   isActive?: boolean
 }
@@ -63,6 +120,7 @@ export const homesService = {
         page: params?.page ?? 1,
         pageSize: params?.pageSize ?? 20,
         search: params?.search,
+        status: params?.status,
         careGroupId: params?.careGroupId,
         isActive: params?.isActive ?? true,
       },
