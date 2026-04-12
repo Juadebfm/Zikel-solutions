@@ -68,6 +68,21 @@ const DEFAULT_META: ApiMeta = {
   totalPages: 0,
 }
 
+/** Used when `GET /sensitive-data/categories` returns an empty list. */
+export const DEFAULT_SENSITIVE_RECORD_CATEGORIES: readonly string[] = [
+  "Behavioural",
+  "Education",
+  "Family & Contact",
+  "Financial",
+  "General",
+  "Health & Medical",
+  "Incident",
+  "Legal",
+  "Mental Health",
+  "Placement & Care Planning",
+  "Safeguarding",
+]
+
 // ─── Service ────────────────────────────────────────────────────
 
 export const sensitiveDataService = {
@@ -137,7 +152,8 @@ export const sensitiveDataService = {
       path: "/sensitive-data/categories",
       auth: true,
     })
-    return response.data
+    const list = response.data ?? []
+    return list.length > 0 ? list : [...DEFAULT_SENSITIVE_RECORD_CATEGORIES]
   },
 
   async getAccessLog(id: string): Promise<AccessLogEntry[]> {

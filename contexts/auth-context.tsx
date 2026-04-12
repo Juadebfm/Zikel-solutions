@@ -477,6 +477,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isMfaRoute = pathname.startsWith("/mfa-verify")
     const isPendingApprovalRoute = pathname.startsWith("/pending-approval")
     const isAcknowledgementsRoute = pathname.startsWith("/acknowledgements")
+    const isJoinInviteRoute = pathname.startsWith("/join")
     const pendingApproval = shouldRouteToPendingApproval(session)
 
     if (!user && isMfaRoute) {
@@ -534,7 +535,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (user && isPublicRoute && !isMfaRoute) {
+    if (user && isPublicRoute && !isMfaRoute && !isJoinInviteRoute) {
       if (pendingApproval) {
         router.replace("/pending-approval")
       } else if (hasPendingAcknowledgements) {

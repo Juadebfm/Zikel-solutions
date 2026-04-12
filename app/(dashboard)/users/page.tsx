@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/table"
 
 type StaffProvisionRole = Exclude<TenantRole, "tenant_admin">
-const JOIN_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://app.zikel.com").replace(/\/$/, "")
 
 const INVITE_ROLE_LABELS: Record<TenantRole, string> = {
   tenant_admin: "Tenant Admin",
@@ -94,7 +93,11 @@ function getInviteLinkStatusVariant(status: "active" | "expired" | "revoked"): "
 }
 
 function buildJoinInviteLink(code: string): string {
-  return `${JOIN_BASE_URL}/join/${code}`
+  const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  const runtimeOrigin = typeof window !== "undefined" ? window.location.origin : null
+  const baseUrl = (configuredAppUrl || runtimeOrigin || "https://app.zikel.com").replace(/\/$/, "")
+
+  return `${baseUrl}/join/${code}`
 }
 
 function getMembershipStatusVariant(status: string): "default" | "secondary" | "outline" {

@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api/client"
+import { isApiClientError } from "@/lib/api/error"
 import type { ApiMeta } from "@/lib/api/types"
 import type { TenantRole } from "@/types"
 
@@ -242,6 +243,13 @@ export interface CreateTenantStaffResult {
   userId: string | null
   userEmail: string | null
   membership: TenantMembershipRecord | null
+}
+function mapCreateInviteLinkResult(data: unknown): CreateTenantInviteLinkResult {
+  const dataRecord = asRecord(data)
+  return {
+    message: dataRecord ? pickString(dataRecord, ["message"], "Invite link generated.") : "Invite link generated.",
+    link: extractInviteLink(data),
+  }
 }
 
 
@@ -528,17 +536,28 @@ export const tenantsService = {
     tenantId: string,
     input: CreateTenantInviteLinkInput
   ): Promise<CreateTenantInviteLinkResult> {
-    const response = await apiRequest<unknown>({
-      path: `/tenants/${tenantId}/invite-link`,
-      method: "POST",
-      auth: true,
-      body: input,
-    })
+    try {
+      const response = await apiRequest<unknown>({
+        path: `/tenants/${tenantId}/invite-links`,
+        method: "POST",
+        auth: true,
+        body: input,
+      })
 
-    const dataRecord = asRecord(response.data)
-    return {
-      message: dataRecord ? pickString(dataRecord, ["message"], "Invite link generated.") : "Invite link generated.",
-      link: extractInviteLink(response.data),
+      return mapCreateInviteLinkResult(response.data)
+    } catch (error) {
+      if (!isApiClientError(error) || (error.status !== 404 && error.status !== 405)) {
+        throw error
+      }
+
+      const legacyResponse = await apiRequest<unknown>({
+        path: `/tenants/${tenantId}/invite-link`,
+        method: "POST",
+        auth: true,
+        body: input,
+      })
+
+      return mapCreateInviteLinkResult(legacyResponse.data)
     }
   },
 
