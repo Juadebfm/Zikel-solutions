@@ -14,14 +14,13 @@ export function useTenantMemberships(
   params?: {
     status?: string
     page?: number
-    pageSize?: number
+    limit?: number
   }
 ) {
   const resolvedParams = {
     status: params?.status,
     page: params?.page ?? 1,
-    pageSize: params?.pageSize ?? 20,
-? 20,
+    limit: params?.limit ?? 20,
   }
 
   return useQuery({
@@ -76,7 +75,7 @@ export function useTenantInvites(
   params?: {
     status?: string
     page?: number
-    pageSize?: number
+    limit?: number
   }
 ) {
   const resolvedParams = {
@@ -96,12 +95,12 @@ export function useTenantInviteLinks(
   tenantId: string | null | undefined,
   params?: {
     page?: number
-    pageSize?: number
+    limit?: number
   }
 ) {
   const resolvedParams = {
     page: params?.page ?? 1,
-    pageSize: params?.pageSize ?? 20,
+    limit: params?.limit ?? 20,
   }
 
   return useQuery({
