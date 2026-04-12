@@ -83,6 +83,29 @@ function formatShortDate(value: string | null | undefined): string {
   return format(d, "dd MMM yyyy")
 }
 
+/** Calendar API validates `startAt` / `endAt` as JSON Schema date-time (RFC 3339 with offset or Z). */
+function normalizeTimeForLocalParse(timeHHmm: string): string {
+  const t = timeHHmm.trim()
+  if (!t) return "00:00:00"
+  return t.length === 5 ? `${t}:00` : t
+}
+
+function localDateTimeToIso(dateStr: string, timeHHmm: string): string {
+  const time = normalizeTimeForLocalParse(timeHHmm)
+  const d = new Date(`${dateStr}T${time}`)
+  return Number.isNaN(d.getTime()) ? `${dateStr}T${time}Z` : d.toISOString()
+}
+
+function localStartOfDayToIso(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`)
+  return Number.isNaN(d.getTime()) ? `${dateStr}T00:00:00.000Z` : d.toISOString()
+}
+
+function localEndOfDayToIso(dateStr: string): string {
+  const d = new Date(`${dateStr}T23:59:59.999`)
+  return Number.isNaN(d.getTime()) ? `${dateStr}T23:59:59.999Z` : d.toISOString()
+}
+
 const eventTypeConfig: Record<CalendarEventType, { label: string; bg: string; text: string }> = {
   shift: { label: "Shift", bg: "bg-blue-100", text: "text-blue-700" },
   appointment: { label: "Appointment", bg: "bg-purple-100", text: "text-purple-700" },
@@ -516,8 +539,12 @@ function EventFormDialog({
       return
     }
 
-    const startAt = allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime || "00:00"}:00`
-    const endAt = allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime || "23:59"}:00`
+    const startAt = allDay
+      ? localStartOfDayToIso(startDate)
+      : localDateTimeToIso(startDate, startTime || "00:00")
+    const endAt = allDay
+      ? localEndOfDayToIso(endDate)
+      : localDateTimeToIso(endDate, endTime || "23:59")
 
     if (mode === "create") {
       const payload: CreateCalendarEventPayload = {
