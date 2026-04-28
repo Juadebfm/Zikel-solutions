@@ -67,7 +67,7 @@ export async function apiRequest<T, M = unknown>(
   }
 
   const response = await executeRequest<T, M>(options)
-  const flyRequestId = response.headers.get("fly-request-id") ?? undefined
+  const requestId = extractRequestId(response.headers)
 
   if (!response.ok) {
     const errorPayload = await parseJsonSafely(response)
@@ -97,7 +97,7 @@ export async function apiRequest<T, M = unknown>(
       // User dismissed modal without verifying — throw the original error
     }
 
-    throw toApiClientError(errorPayload, response.status, response.statusText, flyRequestId)
+    throw toApiClientError(errorPayload, response.status, response.statusText, requestId)
   }
 
   const payload = await parseJsonSafely(response)
@@ -548,6 +548,15 @@ function storePendingMfaRequest(options: ApiRequestOptions, errorPayload: unknow
 function shouldBypassMfaGateForPath(path: string): boolean {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
   return MFA_GATE_BYPASS_PATHS.has(normalizedPath)
+}
+
+function extractRequestId(headers: Headers): string | undefined {
+  return (
+    headers.get("x-request-id") ??
+    headers.get("x-correlation-id") ??
+    headers.get("fly-request-id") ??
+    undefined
+  )
 }
 
 interface SessionMembershipPayload {

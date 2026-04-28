@@ -1,7 +1,7 @@
 import { isApiClientError } from "@/lib/api/error"
 
 /**
- * Logs API errors with error.code and fly-request-id for support/debug tracing.
+ * Logs API errors with error.code and request-id for support/debug tracing.
  * Call this in catch blocks where you want visibility into failed API calls.
  */
 export function logApiError(error: unknown, context?: string): void {
@@ -17,8 +17,8 @@ export function logApiError(error: unknown, context?: string): void {
     `status=${error.status}`,
   ]
 
-  if (error.flyRequestId) {
-    parts.push(`fly-request-id=${error.flyRequestId}`)
+  if (error.requestId) {
+    parts.push(`request-id=${error.requestId}`)
   }
 
   if (error.message) {

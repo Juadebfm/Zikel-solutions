@@ -39,21 +39,21 @@ export class ApiClientError extends Error {
   readonly status: number
   readonly code: string
   readonly details?: unknown
-  readonly flyRequestId?: string
+  readonly requestId?: string
 
-  constructor({ status, code, message, details, flyRequestId }: {
+  constructor({ status, code, message, details, requestId }: {
     status: number
     code: string
     message: string
     details?: unknown
-    flyRequestId?: string
+    requestId?: string
   }) {
     super(message)
     this.name = "ApiClientError"
     this.status = status
     this.code = code
     this.details = details
-    this.flyRequestId = flyRequestId
+    this.requestId = requestId
   }
 }
 
@@ -136,14 +136,14 @@ export function getApiErrorMessage(error: unknown, fallback = "Something went wr
   return fallback
 }
 
-export function toApiClientError(payload: unknown, status: number, statusText: string, flyRequestId?: string): ApiClientError {
+export function toApiClientError(payload: unknown, status: number, statusText: string, requestId?: string): ApiClientError {
   if (isApiFailurePayload(payload)) {
     return new ApiClientError({
       status,
       code: payload.error.code,
       message: payload.error.message,
       details: payload.error.details,
-      flyRequestId,
+      requestId,
     })
   }
 
@@ -151,7 +151,7 @@ export function toApiClientError(payload: unknown, status: number, statusText: s
     status,
     code: status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
     message: statusText || "Request failed",
-    flyRequestId,
+    requestId,
   })
 }
 

@@ -91,12 +91,23 @@ Create a `.env` file in the project root (see `.env.example` for reference):
 
 | Variable                    | Required | Default                                          | Description                                       |
 | --------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------- |
-| `NEXT_PUBLIC_API_BASE_URL`  | Yes      | `https://zikel-solutions-be-kpotja.fly.dev`      | Backend API origin                                |
+| `NEXT_PUBLIC_API_BASE_URL`  | Yes      | `https://zikel-solutions-be.onrender.com`         | Backend API origin                                |
 | `NEXT_PUBLIC_APP_URL`       | No       | `https://app.zikel.com`                           | Frontend URL used for generating invite links     |
 | `NEXT_PUBLIC_TERMS_URL`     | No       | Falls back to `/terms`                            | External terms of service page URL                |
 | `NEXT_PUBLIC_PRIVACY_URL`   | No       | Falls back to `/privacy`                          | External privacy policy page URL                  |
 
 All variables use the `NEXT_PUBLIC_` prefix and are exposed in the client bundle.
+
+### Render Cutover Checklist
+
+1. Set `NEXT_PUBLIC_API_BASE_URL` in the frontend deployment environment to your Render backend origin (without `/api/v1`).
+2. Confirm backend CORS allows frontend origins (`https://zikel-solutions.vercel.app`, production custom domain, and local dev origin).
+3. Confirm refresh/session cookies are sent with `Secure` + `SameSite=None` for cross-origin auth (`credentials: "include"` is enabled in this app).
+4. Deploy backend on Render, then smoke-test:
+   - `POST /api/v1/auth/login`
+   - `POST /api/v1/auth/refresh`
+   - `GET /api/v1/auth/me`
+5. Keep Fly and Render running in parallel briefly, then switch DNS/client env once Render passes auth + session expiry flows.
 
 ---
 
@@ -228,7 +239,7 @@ This application is a **frontend-only Next.js client**. There are no API routes 
 └───────────────┼──────────────────────────────────────────┘
                 │ HTTPS (REST)
 ┌───────────────▼──────────────────────────────────────────┐
-│              Backend API (Fly.dev)                         │
+│              Backend API (Render)                          │
 │         /api/v1 — Auth, CRUD, AI, Uploads                 │
 └──────────────────────────────────────────────────────────┘
 ```

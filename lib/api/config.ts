@@ -1,5 +1,5 @@
 const API_PREFIX = "/api/v1"
-const DEFAULT_BACKEND_ORIGIN = "https://zikel-solutions-be-kpotja.fly.dev"
+const DEFAULT_BACKEND_ORIGIN = "https://zikel-solutions-be.onrender.com"
 
 function normalizeBaseUrl(rawBaseUrl: string | undefined): string {
   const trimmed = rawBaseUrl?.trim()
