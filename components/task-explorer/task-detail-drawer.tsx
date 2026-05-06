@@ -397,7 +397,7 @@ export function TaskDetailDrawer({
             {/* ── Key Metadata (compact) ───────────────── */}
             <div className="mx-6 rounded-lg bg-muted/50 border p-4 space-y-3">
               {/* Primary fields — always visible */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <MetaField icon={<User2 className="size-3.5" />} label="Assignee">
                   {task.assignee ? (
                     <div className="flex items-center gap-1.5">
@@ -427,7 +427,7 @@ export function TaskDetailDrawer({
 
               {/* Secondary fields — collapsed by default */}
               {showMoreMeta && (
-                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/50">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-border/50">
                   <MetaField icon={<User2 className="size-3.5" />} label="Created By">
                     {task.createdBy ? (
                       <div className="flex items-center gap-1.5">

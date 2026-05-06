@@ -74,49 +74,49 @@ export default function AuthLayout({
 
             {/* Footer */}
             <div className="relative px-6 sm:px-12 lg:px-16 xl:px-20 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-sm lg:bg-white lg:backdrop-blur-none">
-              <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-500">
+              <div className="flex items-center justify-center md:justify-start gap-x-4 gap-y-2 flex-wrap text-sm text-gray-500">
                   <span className="text-xs text-gray-400">
                     &copy; {new Date().getFullYear()} Zikel Solutions
                   </span>
-                  <span className="text-gray-300 hidden md:inline">|</span>
+                  <span className="text-gray-300">|</span>
                   <a
                     href="/help"
-                    className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
+                    className="text-gray-500 hover:text-gray-700 text-xs"
                   >
                     Help Center
                   </a>
-                  <span className="text-gray-300 hidden md:inline">|</span>
+                  <span className="text-gray-300">|</span>
                   {isExternalUrl(termsUrl) ? (
                     <a
                       href={termsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
+                      className="text-gray-500 hover:text-gray-700 text-xs"
                     >
                       Terms of Service
                     </a>
                   ) : (
                     <a
                       href={termsUrl}
-                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
+                      className="text-gray-500 hover:text-gray-700 text-xs"
                     >
                       Terms of Service
                     </a>
                   )}
-                  <span className="text-gray-300 hidden md:inline">|</span>
+                  <span className="text-gray-300">|</span>
                   {isExternalUrl(privacyUrl) ? (
                     <a
                       href={privacyUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
+                      className="text-gray-500 hover:text-gray-700 text-xs"
                     >
                       Privacy Policy
                     </a>
                   ) : (
                     <a
                       href={privacyUrl}
-                      className="text-gray-500 hover:text-gray-700 text-xs hidden md:inline"
+                      className="text-gray-500 hover:text-gray-700 text-xs"
                     >
                       Privacy Policy
                     </a>

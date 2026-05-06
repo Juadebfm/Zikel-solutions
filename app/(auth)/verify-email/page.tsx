@@ -46,7 +46,7 @@ export default function VerifyEmailPage() {
           <BrandMark size={48} priority animated />
         </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+        <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Verification link is incomplete</h1>
           <p className="text-gray-500 mt-3">
             We need your email address to verify your account.

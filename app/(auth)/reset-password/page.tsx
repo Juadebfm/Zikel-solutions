@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
   if (isSubmitted) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
         }}
       />
 
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         <div className="mb-8">
           <p className="text-primary font-medium mb-1">Password Recovery</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">

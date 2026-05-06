@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useHomesDropdown } from "@/hooks/api/use-dropdown-data"
+import { useHomesDropdown, useRolesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useCreateEmployeeWithUser } from "@/hooks/api/use-employees"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { useToastStore } from "@/components/shared/toast"
@@ -46,6 +46,7 @@ export function CreateEmployeeWithUserDialog({
 }: CreateEmployeeWithUserDialogProps) {
   const createMutation = useCreateEmployeeWithUser()
   const homesQuery = useHomesDropdown()
+  const rolesQuery = useRolesDropdown()
   const showError = useErrorModalStore((s) => s.show)
   const showToast = useToastStore((s) => s.show)
 
@@ -63,6 +64,17 @@ export function CreateEmployeeWithUserDialog({
   useEffect(() => {
     if (error) showError(error)
   }, [error, showError])
+
+  // Clear selection if the chosen role is no longer in the available options
+  // (e.g. role deleted server-side, or active tenant changed). Adjusting state
+  // during render is the React-recommended pattern over an effect here.
+  if (
+    roleId &&
+    rolesQuery.data &&
+    !rolesQuery.data.some((option) => option.value === roleId)
+  ) {
+    setRoleId("")
+  }
 
   const resetForm = () => {
     setFirstName("")
@@ -91,7 +103,6 @@ export function CreateEmployeeWithUserDialog({
     const normalizedLastName = trimOrEmpty(lastName)
     const normalizedEmail = trimOrEmpty(email)
     const normalizedPassword = password.trim()
-    const normalizedRoleId = trimOrEmpty(roleId)
 
     if (!normalizedFirstName) {
       setError("First name is required.")
@@ -118,8 +129,8 @@ export function CreateEmployeeWithUserDialog({
       return
     }
 
-    if (!normalizedRoleId) {
-      setError("Role ID is required.")
+    if (!roleId) {
+      setError("Please select a job role.")
       return
     }
 
@@ -130,7 +141,7 @@ export function CreateEmployeeWithUserDialog({
         email: normalizedEmail,
         password: normalizedPassword,
         homeId,
-        roleId: normalizedRoleId,
+        roleId,
         jobTitle: trimOrEmpty(jobTitle) || undefined,
         startDate: startDate ? new Date(startDate).toISOString() : undefined,
         contractType: trimOrEmpty(contractType) || undefined,
@@ -232,14 +243,28 @@ export function CreateEmployeeWithUserDialog({
 
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-800">
-                Role ID <span className="text-red-500">*</span>
+                Job Role <span className="text-red-500">*</span>
               </Label>
-              <Input
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                placeholder="e.g. clx_role_id"
-                className={fieldClass}
-              />
+              <Select value={roleId} onValueChange={setRoleId} disabled={rolesQuery.isLoading}>
+                <SelectTrigger className={triggerClass}>
+                  <SelectValue
+                    placeholder={
+                      rolesQuery.isLoading
+                        ? "Loading roles..."
+                        : (rolesQuery.data?.length ?? 0) === 0
+                        ? "No roles available"
+                        : "Select a job role..."
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {(rolesQuery.data ?? []).map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

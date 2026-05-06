@@ -1,7 +1,7 @@
 export default function AuthLoading() {
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         <div className="space-y-5 animate-pulse">
           <div className="space-y-2">
             <div className="h-4 w-20 rounded bg-gray-200" />

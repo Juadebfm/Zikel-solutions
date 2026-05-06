@@ -54,7 +54,7 @@ export function StepCountry({ value, onNext }: StepCountryProps) {
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Form Card */}
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">

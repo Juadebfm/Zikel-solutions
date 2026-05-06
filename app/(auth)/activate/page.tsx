@@ -111,7 +111,7 @@ export default function ActivateStaffPage() {
         }}
       />
 
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         <div className="mb-8">
           <p className="text-primary font-medium mb-1">Staff Activation</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">

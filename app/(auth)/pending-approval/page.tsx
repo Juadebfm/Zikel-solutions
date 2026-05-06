@@ -20,7 +20,7 @@ export default function PendingApprovalPage() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
             <Clock3 className="h-6 w-6 text-amber-600" />

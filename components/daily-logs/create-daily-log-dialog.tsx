@@ -439,7 +439,7 @@ export function CreateDailyLogDialog({
           {homeId && (
             <div className="space-y-1.5">
             <Label className="text-sm">Relates To</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Type</Label>
                 <Select value={entityType} onValueChange={handleEntityTypeChange}>
@@ -487,7 +487,7 @@ export function CreateDailyLogDialog({
 
           {/* 3. Date & Category (side by side) */}
           {homeId && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="noteDate" className="text-sm">
                   Date & Time <span className="text-red-500">*</span>

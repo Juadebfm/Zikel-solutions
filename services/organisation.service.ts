@@ -80,6 +80,18 @@ const DEFAULT_META: ApiMeta = {
   totalPages: 0,
 }
 
+const normalizeRegion = (region: Region): Region => ({
+  ...region,
+  homeIds: Array.isArray(region.homeIds) ? region.homeIds : [],
+  homeNames: Array.isArray(region.homeNames) ? region.homeNames : undefined,
+})
+
+const normalizeGrouping = (grouping: Grouping): Grouping => ({
+  ...grouping,
+  entityIds: Array.isArray(grouping.entityIds) ? grouping.entityIds : [],
+  entityNames: Array.isArray(grouping.entityNames) ? grouping.entityNames : undefined,
+})
+
 // ─── Service ────────────────────────────────────────────────────
 
 export const organisationService = {
@@ -98,7 +110,7 @@ export const organisationService = {
     })
 
     return {
-      items: response.data,
+      items: response.data.map(normalizeRegion),
       meta: response.meta ?? DEFAULT_META,
     }
   },
@@ -108,7 +120,7 @@ export const organisationService = {
       path: `/regions/${id}`,
       auth: true,
     })
-    return response.data
+    return normalizeRegion(response.data)
   },
 
   async createRegion(payload: CreateRegionPayload): Promise<Region> {
@@ -118,7 +130,7 @@ export const organisationService = {
       method: "POST",
       body: payload,
     })
-    return response.data
+    return normalizeRegion(response.data)
   },
 
   async updateRegion(id: string, payload: Partial<CreateRegionPayload>): Promise<Region> {
@@ -128,7 +140,7 @@ export const organisationService = {
       method: "PATCH",
       body: payload,
     })
-    return response.data
+    return normalizeRegion(response.data)
   },
 
   async deleteRegion(id: string): Promise<void> {
@@ -155,7 +167,7 @@ export const organisationService = {
     })
 
     return {
-      items: response.data,
+      items: response.data.map(normalizeGrouping),
       meta: response.meta ?? DEFAULT_META,
     }
   },
@@ -165,7 +177,7 @@ export const organisationService = {
       path: `/groupings/${id}`,
       auth: true,
     })
-    return response.data
+    return normalizeGrouping(response.data)
   },
 
   async createGrouping(payload: CreateGroupingPayload): Promise<Grouping> {
@@ -175,7 +187,7 @@ export const organisationService = {
       method: "POST",
       body: payload,
     })
-    return response.data
+    return normalizeGrouping(response.data)
   },
 
   async updateGrouping(id: string, payload: Partial<CreateGroupingPayload>): Promise<Grouping> {
@@ -185,7 +197,7 @@ export const organisationService = {
       method: "PATCH",
       body: payload,
     })
-    return response.data
+    return normalizeGrouping(response.data)
   },
 
   async deleteGrouping(id: string): Promise<void> {

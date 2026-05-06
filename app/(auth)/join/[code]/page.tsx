@@ -160,7 +160,7 @@ export default function JoinByInvitePage() {
   if (isInviteLoading) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
           <div className="flex flex-col items-center justify-center py-14">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="mt-4 text-sm text-gray-500">Validating invite link...</p>
@@ -173,7 +173,7 @@ export default function JoinByInvitePage() {
   if (inviteError || !inviteDetails) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+        <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Invite link unavailable</h1>
           <p className="text-gray-600 mt-3">
             {inviteError ?? "This invitation link is no longer available."}
@@ -201,7 +201,7 @@ export default function JoinByInvitePage() {
         }}
       />
 
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-gray-100">
         <div className="mb-8">
           <p className="text-primary font-medium mb-1">Join Organization</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">

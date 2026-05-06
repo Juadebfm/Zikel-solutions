@@ -56,9 +56,9 @@ export function AuditDiffPanel({ before, after }: AuditDiffPanelProps) {
       </div>
 
       {/* Before / After panels */}
-      <div className="grid grid-cols-2 border rounded-lg overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 border rounded-lg overflow-hidden">
         {/* Headers */}
-        <div className="bg-gray-100 px-4 py-2.5 border-b border-r font-semibold text-sm text-gray-700">
+        <div className="bg-gray-100 px-4 py-2.5 border-b font-semibold text-sm text-gray-700 md:border-r">
           Before
         </div>
         <div className="bg-gray-100 px-4 py-2.5 border-b font-semibold text-sm text-gray-700">
@@ -95,7 +95,7 @@ function DiffRowPair({ row }: { row: DiffRow }) {
   return (
     <>
       {/* Before cell */}
-      <div className={`px-4 py-2 text-sm border-b border-r ${getBeforeClasses()}`}>
+      <div className={`px-4 py-2 text-sm border-b md:border-r ${getBeforeClasses()}`}>
         {row.beforeValue !== null ? (
           <span>
             <span className={row.type === "removed" || row.type === "changed" ? "text-red-500 font-medium" : "text-gray-400"}>

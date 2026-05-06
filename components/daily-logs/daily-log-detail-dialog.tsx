@@ -152,7 +152,7 @@ export function DailyLogDetailDialog({
               <div className="px-6 py-5 space-y-5">
                 {/* Metadata grid */}
                 <div className="rounded-lg bg-muted/50 border p-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <MetaItem
                       icon={<Home className="size-3.5" />}
                       label="Home"

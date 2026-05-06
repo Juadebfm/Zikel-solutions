@@ -101,7 +101,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* User Profile */}
           <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
-            <div className="hidden sm:block text-right min-w-0 max-w-[160px]">
+            <div className="hidden sm:block text-right min-w-0 max-w-[140px] lg:max-w-[200px]">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user ? `${user.firstName} ${user.lastName}` : "User"}
               </p>

@@ -8,6 +8,8 @@ import { homesService } from "@/services/homes.service"
 import { youngPeopleService } from "@/services/young-people.service"
 import { employeesService } from "@/services/employees.service"
 import { formsService } from "@/services/forms.service"
+import { rolesService } from "@/services/roles.service"
+import { useAuthSessionStore } from "@/stores/auth-session-store"
 
 const DROPDOWN_STALE_TIME = 5 * 60 * 1000 // 5 minutes
 
@@ -68,6 +70,18 @@ export function useEmployeesDropdown(homeId?: string) {
           label: full || e.user?.name || e.email || "Unknown",
         }
       }),
+  })
+}
+
+export function useRolesDropdown() {
+  const activeTenantId = useAuthSessionStore((s) => s.session?.activeTenantId ?? null)
+  return useQuery({
+    queryKey: ["dropdown", "roles", activeTenantId],
+    queryFn: () => rolesService.list({ page: 1, pageSize: 100, isActive: true }),
+    staleTime: DROPDOWN_STALE_TIME,
+    enabled: !!activeTenantId,
+    select: (data) =>
+      data.items.map((role) => ({ value: role.id, label: role.name })),
   })
 }
 
