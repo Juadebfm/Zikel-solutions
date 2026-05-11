@@ -1,551 +1,375 @@
-# Frontend Integration Plan
+# Frontend Integration Plan — Checklist
 
 Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-11).
 Schema source of truth: Swagger UI at `/docs`.
-This document: workflow / change-set for the tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
+Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Generated 2026-05-11.
-
----
-
-## 0. Read this first
-
-- [ ] Read the BE spec end-to-end (~25 min).
-- [ ] Bookmark `https://zikel-solutions-be.onrender.com/docs` (Swagger UI).
-- [ ] Verify base URLs match [config/env.ts](config/env.ts):
-  - Prod (custom domain, DNS migrating): `https://api.zikelsolutions.com`
-  - Prod (Render direct, always works): `https://zikel-solutions-be.onrender.com`
-  - Local dev: `http://localhost:8080`
-- [ ] Run the §12 curl smoke tests against staging.
+Last updated: 2026-05-11 (commit `5197b18`).
 
 ---
 
-## 1. Current state of the FE codebase
+## Status legend
 
-What's already shipped (mostly from the March 2026 push):
+- `[x]` Done — code shipped and verified
+- `[ ]` Not started
+- `[~]` Partial — see note for what's missing
+- `[⏸]` Deferred — see note for the blocker / reason
+- `[→]` Verify-only — already wired before this push; left untouched
 
-| Area | Status | Files |
+---
+
+## Top-line scorecard
+
+| Slice | Status | Commit |
 |---|---|---|
-| Care-home-first registration | ✅ Wired | [app/(auth)/register](app/(auth)/register) |
-| OTP verify | ✅ Wired | [app/(auth)/verify-email](app/(auth)/verify-email) |
-| Login + MFA challenge | ✅ Wired | [app/(auth)/login](app/(auth)/login), [app/(auth)/mfa-verify](app/(auth)/mfa-verify) |
-| MFA enrollment | ✅ Wired | [stores/mfa-store.ts](stores/mfa-store.ts), [components/mfa](components/mfa) |
-| Activation + invite-link | ✅ Wired | [app/(auth)/activate](app/(auth)/activate), [app/(auth)/join](app/(auth)/join) |
-| Refresh-token rotation | ✅ Wired | [lib/api/client](lib/api) |
-| Tenant switcher | ✅ Wired | (see [stores/auth-session-store.ts](stores/auth-session-store.ts)) |
-| Page-aware AI `/ai/ask` | ✅ Wired | [services/ai.service.ts](services/ai.service.ts), [components/shared/ai-chat-dialog.tsx](components/shared/ai-chat-dialog.tsx) |
-| All CRUD modules (employees, homes, young-people, vehicles, tasks, daily-logs, care-groups, forms, documents, uploads, audit, calendar, dashboard, exports, etc.) | ✅ Services + pages exist | [services/](services), [app/(dashboard)](app/(dashboard)) |
-| Settings (personal/notifications/organisation) | ✅ Wired | [app/(dashboard)/settings/page.tsx](app/(dashboard)/settings/page.tsx) |
-
-What is **net-new** from this spec:
-
-| Area | Status | Section |
-|---|---|---|
-| Billing surface (M7) — subscription, plans, quota, checkout, portal, top-ups, cancel, invoices, AI restrictions | ❌ Zero references in repo | §6 |
-| Conversational AI (M9) — 6 endpoints, full chat UI | ❌ Service only has `ask()` | §7 |
-| Subscription state machine + read-only mode | ❌ No infrastructure | §5 |
-| Session-expiry warnings (`/auth/session-expiry`) | ⚠️ Spec exists, verify UI countdown | §4 |
-| MFA backup-code login fallback | ⚠️ Verify it's wired on `/mfa-verify` | §4 |
-| Impersonation banner (JWT `impersonatorId`) | ❌ Not built | §10 |
-| Invoice history page | ❌ New | §6 |
-| Quota visualisation `<QuotaPill />` | ❌ New | §6, §7 |
-| Reports module (Reg44/Reg45 packs, RI dashboard) | ⚠️ Endpoint exists, audit FE coverage | §9 |
-| Safeguarding (chronologies, patterns, risk alerts) | ⚠️ Audit FE coverage | §9 |
-| Security-alerts feed (`/audit/security-alerts`) | ⚠️ Audit FE coverage | §9 |
+| Slice 1 — Billing infra + banner | ✅ Done | `5197b18` |
+| Slice 2 — Settings → Billing page | ✅ Done | `5197b18` |
+| Slice 3 — Read-only gate + 402 interceptor | ~ Partial — 15/~40 mutation surfaces gated | `5197b18` |
+| Slice 4 — Conversational AI (`/ai`) | ✅ Done | `5197b18` |
+| Slice 5 — AI dialog polish + MutationButton sweep | ~ Partial — 429 cooldown + AI button hide missing | `5197b18` |
+| Slice 6 — Auth polish (MFA Security, impersonation, backup codes) | ~ Partial — login enrollment branch deferred | `5197b18` |
+| Cross-cutting — central error map | ~ Partial — billing codes only, no central switch | `5197b18` |
+| Cross-cutting — rate-limit headers / cooldown store | ❌ Not started | — |
+| Cross-cutting — permission gating with spec names | ~ Partial — using `tenantRole` checks | `5197b18` |
+| Uploads — `purpose` enum compliance | ⏸ Deferred — needs caller audit | — |
+| Endpoint-drift audits | ❌ Not started | — |
+| `mfaEnrollmentRequired` login branch | ⏸ Deferred — needs BE alignment | — |
 
 ---
 
-## 2. Cross-cutting infrastructure (do this first)
+## 0. Orientation
 
-### 2a. Expand the error-code map
-
-[lib/api/error.ts](lib/api/error.ts) needs the full catalog from spec §5. Group handlers by family — every code in the same family takes the same UX action.
-
-| Family | Codes | Default UX |
-|---|---|---|
-| Auth/token | `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `FORBIDDEN`, `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY` | Refresh-then-logout / inline message |
-| Sessions | `NO_REFRESH_TOKEN`, `REFRESH_TOKEN_INVALID`, `INVALID_REFRESH_TOKEN`, `REFRESH_TOKEN_REUSED`, `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED`, `SESSION_ABSOLUTE_EXPIRED` | Hard logout |
-| Tenant | `TENANT_CONTEXT_REQUIRED`, `TENANT_ACCESS_DENIED`, `TENANT_INACTIVE`, `TENANT_NOT_FOUND`, `USER_NOT_FOUND` | Tenant-pick / contact-support |
-| MFA | `MFA_REQUIRED`, `MFA_NOT_FOUND`, `MFA_ALREADY_CONFIRMED`, `MFA_CODE_INVALID`, `MFA_BACKUP_INVALID`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE` | MFA flow routing |
-| Capability | `PERMISSION_DENIED` | Hide / disable |
-| Validation | `VALIDATION_ERROR`, `OTP_INVALID` | Map `details` to form fields |
-| Billing | `SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_INCOMPLETE`, `SUBSCRIPTION_REQUIRED`, `BILLING_NOT_CONFIGURED` | Banner + redirect to billing |
-| Impersonation | `IMPERSONATION_ACTIVE`, `IMPERSONATION_REVOKED`, `INVALID_DURATION` | End-session affordance |
-| Rate limit | `TOO_MANY_REQUESTS` | Cooldown countdown from headers |
-| AI conversation | `CONVERSATION_ARCHIVED` | Inline + offer "create new chat" |
-
-Add one switch in the API client interceptor that maps these to side-effects (toast / banner / redirect / refetch). Don't scatter handling across consumers.
-
-### 2b. Rate-limit header surfacing
-
-Server returns:
-
-```
-x-ratelimit-limit: 30
-x-ratelimit-remaining: 0
-x-ratelimit-reset: 27   ← seconds
-```
-
-Add a helper `parseRateLimit(response)` and pipe into a global "cool-down" store keyed by route family. Forms read the cool-down for the route they will hit and disable their submit button + show "Try again in 27s" countdown. Verify on `/auth/login`, `/auth/resend-otp`, `/ai/ask`, `/ai/conversations/*`, billing checkout/portal/topup.
-
-### 2c. Permission gating — use the spec's names
-
-The spec defines real permission names: `billing:read`, `billing:write`, `ai:use`, `ai:admin`, `members:read`, `members:write`, `employees:write`, etc. (full list spec §6).
-
-- [ ] Audit [contexts/auth-context.tsx](contexts/auth-context.tsx). `useAuth().hasPermission('canManageSettings')` is fine as a derived flag, but new gates should reference spec-canonical names where possible.
-- [ ] `/me/permissions` returns a derived capability summary: `{ canViewAllHomes, canViewAllYoungPeople, canViewAllEmployees, canApproveIOILogs, canManageUsers, canManageSettings, canViewReports, canExportData }`. **Keep using these** — they are the FE-facing flags. Map new billing/AI features onto new derived flags (`canManageBilling`, `canUseAi`, `canAdminAi`) and ask BE to add them, or compute client-side from `tenantRole`.
-
-### 2d. JWT decoding helper
-
-Spec §4 defines the JWT payload. Add [lib/auth/jwt.ts](lib/auth/jwt.ts) that decodes (does not verify) and exposes:
-
-```ts
-decodeAccessToken(token): {
-  userId, email, role, tenantId, tenantRole,
-  mfaVerified, sessionId, impersonatorId?, impersonationGrantId?,
-  exp
-}
-```
-
-Used by:
-- Impersonation banner (§10)
-- Session warning countdown (`exp` vs server time)
-- Initial UI gating before `/me` returns
-
-Never trust client-decoded JWT for security gates — server re-checks on every request.
+- [ ] **User task**: Read the BE spec end-to-end (~25 min)
+- [ ] **User task**: Bookmark `https://zikel-solutions-be.onrender.com/docs`
+- [x] Verify base URLs in [lib/api/config.ts](lib/api/config.ts) — `DEFAULT_BACKEND_ORIGIN = "https://zikel-solutions-be.onrender.com"` ✓
+- [ ] **User task**: Run the spec §12 curl smoke tests against staging
 
 ---
 
-## 3. Auth flow audit (verify, don't rebuild)
+## 2. Cross-cutting infrastructure
 
-The March work is mostly correct. Reconcile against the new spec body shapes:
+### 2a. Error code map
 
-### 3a. `POST /auth/register` body — **correction**
+- [~] Friendly messages added — [lib/api/error.ts](lib/api/error.ts) has the billing codes (`SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_INCOMPLETE`, `SUBSCRIPTION_REQUIRED`, `BILLING_NOT_CONFIGURED`, `AI_DISABLED_FOR_TENANT`, `CONVERSATION_ARCHIVED`).
+- [ ] **Missing**: friendly messages for `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY`, `ACCOUNT_LOCKED`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE`, `IMPERSONATION_*`, `REFRESH_TOKEN_REUSED` (some already exist), `TENANT_NOT_FOUND`, `USER_NOT_FOUND`.
+- [~] Central side-effect switch — only the 402 family fires a side-effect (subscription refetch via [`registerBillingGateListener`](lib/api/client.ts)). Other families still throw plain `ApiClientError` and rely on consumers.
+- [ ] **Missing**: extract one switch so families map to default toast/banner/redirect/refetch actions — currently scattered across consumers.
 
-Spec body:
+### 2b. Rate-limit headers & cooldown store
 
-```ts
-{
-  country: 'UK' | 'Nigeria';
-  firstName, lastName;
-  email, password, confirmPassword;
-  acceptTerms: true;
-  organizationName: string;
-  middleName?, gender?, phoneNumber?;
-  organizationSlug?: string;   // optional — slug is back, was tentatively removed
-}
-```
+- [ ] Build `parseRateLimit(response)` helper
+- [ ] Build global cool-down store keyed by route family
+- [ ] Wire on `/auth/login`, `/auth/resend-otp`, `/ai/ask`, `/ai/conversations/*`, billing checkout/portal/topup
+- [→] `extractRetryAfterSeconds` exists for friendly error messages — partial coverage only
 
-- [ ] Confirm `confirmPassword` is sent (not just client-validated).
-- [ ] Confirm `country` is a required dropdown (`UK | Nigeria` only).
-- [ ] Keep `organizationSlug` as an optional advanced field.
-- [ ] `acceptTerms: true` is a literal — not a boolean — schema rejects `false`.
+### 2c. Permission gating
+
+- [~] Code gates on `activeTenantRole === 'tenant_admin'` for billing AI restrictions + on existing `canManageSettings`. No spec-canonical `billing:read` / `ai:use` / `ai:admin` flags wired.
+- [ ] **Open question for BE**: add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions`, or compute client-side from `tenantRole`?
+
+### 2d. JWT decoder helper
+
+- [x] [lib/auth/jwt.ts](lib/auth/jwt.ts) — `decodeAccessToken()` returns `TenantJwtPayload` with `impersonatorId`, `impersonationGrantId`, etc. + `isImpersonating()` helper. Pure, no signature verification.
+
+---
+
+## 3. Auth flow audit
+
+### 3a. `POST /auth/register` body
+
+- [x] `country: UK | Nigeria` — required dropdown ✓
+- [x] `firstName`, `lastName` — required ✓
+- [x] `email`, `password`, `confirmPassword` — wired (see [services/auth.service.ts:277-285](services/auth.service.ts))
+- [x] `acceptTerms: true` literal — sent ✓
+- [x] `organizationName` — sent ✓
+- [x] `organizationSlug` — optional, sent when provided ✓
 
 ### 3b. `POST /auth/verify-otp` — dual body shape
 
-Accepts both modern `{ email, code }` and legacy `{ userId, code, purpose }`. Use the modern form going forward.
+- [x] Modern `{ email, code }` primary; legacy `{ userId, otp }` fallback via `shouldRetryWithLegacyBody` ✓
 
 ### 3c. `POST /auth/login` — 3-outcome union
 
-Confirm the response handler covers all three. Each path stores its own token:
-
-```ts
-type LoginResponse =
-  | { user, session, tokens, serverTime }                                              // A: direct
-  | { mfaRequired: true; challengeToken; challengeExpiresInSeconds: number }            // B: challenge
-  | { mfaEnrollmentRequired: true; enrollmentToken; enrollmentExpiresInSeconds: number };  // C: enroll
-```
-
-Store `challengeToken` / `enrollmentToken` in `sessionStorage` (short-lived). Show a countdown timer using `*ExpiresInSeconds`.
+- [→] Outcome A (direct success): wired (`session.mfaRequired === false`)
+- [→] Outcome B (MFA challenge): wired via existing modal flow (uses older `/auth/mfa/challenge` endpoint, not the new `challengeToken` model)
+- [⏸] Outcome C (`mfaEnrollmentRequired`): **NOT wired**. Login response handling assumes the older envelope shape. New discriminated-union model needs a full refactor of `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` page.
+  - **Blocker**: BE confirmation needed — does production currently return the new union or the old envelope?
+- [ ] Store `challengeToken` / `enrollmentToken` in `sessionStorage` with `*ExpiresInSeconds` countdown
 
 ### 3d. Refresh rotation
 
-Single-use rotation. If `REFRESH_TOKEN_REUSED` comes back → kill the entire session immediately (server already does this; FE must just route to login and clear store).
+- [→] Single-use rotation enforced — [lib/api/client.ts:248-254](lib/api/client.ts) clears session on `REFRESH_TOKEN_REUSED` / `REFRESH_TOKEN_INVALID` / `SESSION_*_EXPIRED`
 
-### 3e. Session-expiry endpoint (NEW UI surface)
+### 3e. Session-expiry endpoint
 
-`GET /auth/session-expiry` returns server time + `idleExpiresAt`, `absoluteExpiresAt`, `warningWindowSeconds`, `tokens.refreshTokenExpiresAt`.
+- [→] `<SessionExpiryBanner />` already mounted in [app/(dashboard)/layout.tsx](app/(dashboard)/layout.tsx); fires modal at `idleExpiresAt - warningWindowSeconds` driven by server time offset; "Stay signed in" calls `/auth/refresh`
 
-Add a global session-warning component:
-- Poll on focus, or compute from cached values.
-- When `now > idleExpiresAt - warningWindowSeconds` → show "Session ending soon. Stay signed in?" modal with a 60s countdown that fires `/auth/refresh` on click.
-- Drives against server time (not local clock).
+### 3f. Three staff onboarding paths
 
-### 3f. Three staff onboarding paths (verify)
-
-| Path | Endpoint | UI |
-|---|---|---|
-| Email invite | `POST /api/v1/invitations` | "Send invite by email" |
-| Reusable invite link | `POST /api/v1/tenants/:id/invite-links` | "Generate shareable link" |
-| Direct provision | `POST /api/v1/tenants/:id/staff` | "Create staff account" |
-
-All three should be in Settings → Members. Audit that all three are currently selectable.
+- [→] Email invite via `POST /api/v1/invitations` — wired
+- [→] Reusable invite link via `POST /api/v1/tenants/:id/invite-links` — wired
+- [→] Direct provision via `POST /api/v1/tenants/:id/staff` — wired
 
 ---
 
 ## 4. MFA gap audit
 
-| Endpoint | Status | Notes |
-|---|---|---|
-| `POST /auth/mfa/totp/verify` | ✅ Wired | Challenge flow |
-| `POST /auth/mfa/backup/verify` | ⚠️ Verify | Add "Use a backup code" link on `/mfa-verify`. Rate limit is 5 / 5min (slow). |
-| `POST /auth/mfa/totp/enroll/setup` | ✅ Wired | QR + backup codes |
-| `POST /auth/mfa/totp/enroll/confirm` | ✅ Wired | |
-| `GET /auth/mfa/status` | ⚠️ New surface | Drive Settings → Security tab |
-| `POST /auth/mfa/totp/setup` | ⚠️ New surface | Authenticated re-enrollment |
-| `POST /auth/mfa/totp/verify-setup` | ⚠️ New surface | Confirms re-enrollment |
-| `DELETE /auth/mfa/totp` | ⚠️ New surface | Requires `currentPassword` |
-
-Add a Settings → Security tab that surfaces `enabled` + `backupCodesRemaining`. When remaining ≤ 3, show a low-codes warning + CTA to regenerate (run setup → verify-setup flow).
+- [→] `POST /auth/mfa/totp/verify` — wired (older challenge flow)
+- [x] `POST /auth/mfa/backup/verify` — added "Use a backup code" toggle on [/mfa-verify](app/(auth)/mfa-verify/page.tsx); calls `authService.verifyMfaBackup` (new method)
+- [→] `POST /auth/mfa/totp/enroll/setup` — wired
+- [→] `POST /auth/mfa/totp/enroll/confirm` — wired
+- [x] `GET /auth/mfa/status` — new service method + `useMfaStatus` hook + status card UI
+- [x] `POST /auth/mfa/totp/setup` — wired in `<MfaSecurityCard />`
+- [x] `POST /auth/mfa/totp/verify-setup` — wired
+- [x] `DELETE /auth/mfa/totp` — wired (password-confirmation dialog)
+- [x] Settings → Security surface — built as `<MfaSecurityCard />` on the Personal tab of [Settings](app/(dashboard)/settings/page.tsx) (not a separate tab — visible to every user)
+- [x] Low-codes warning (≤ 3 remaining) — wired
 
 ---
 
-## 5. Subscription state machine (NEW — core infra)
-
-The new mental model. Build this once; everything else depends on it.
+## 5. Subscription state machine
 
 ### 5a. `useSubscription()` hook
 
-New [services/billing.service.ts](services/billing.service.ts) + [hooks/api/use-billing.ts](hooks/api/use-billing.ts).
-
-```ts
-useSubscription()    // GET /billing/subscription, 60s staleTime, refetch on focus
-```
-
-Response (spec §M7):
-
-```ts
-{
-  status, plan, trialEndsAt, currentPeriodStart, currentPeriodEnd,
-  cancelAtPeriodEnd, pastDueSince, manuallyOverriddenUntil,
-  ui: {
-    isInTrial, daysLeftInTrial,
-    isReadOnly, isSuspended, isCancelled,
-    pastDueSinceDays
-  }
-}
-```
-
-**Rule:** drive all UI from `ui.*`. Do **not** match on `status` strings. BE already folds `manuallyOverriddenUntil` and impersonation into `isReadOnly`.
+- [x] [services/billing.service.ts](services/billing.service.ts) — `getSubscription()` returns full `Subscription` with `ui.*` flags
+- [x] [hooks/api/use-billing.ts](hooks/api/use-billing.ts) — `useSubscription()` with 60s staleTime + `refetchOnWindowFocus: true`
 
 ### 5b. Subscription store
 
-New [stores/subscription-store.ts](stores/subscription-store.ts) (zustand) — exposes:
-
-```ts
-selectIsReadOnly()    // boolean
-selectBannerVariant() // null | 'trial' | 'past_due_grace' | 'past_due_readonly' | 'incomplete' | 'suspended' | 'cancelled'
-selectTrialDaysLeft() // number | null
-```
-
-Subscribed to by [contexts/auth-context.tsx](contexts/auth-context.tsx) so layouts have read access without a second provider.
+- [x] Functional equivalent shipped. Did **NOT** create `stores/subscription-store.ts` — TanStack Query cache IS the store. Selectors live as hooks: `useIsReadOnly`, `useSubscriptionBannerVariant`, `useTrialDaysLeft`.
 
 ### 5c. Top-of-app banner
 
-`<SubscriptionBanner />` in [components/layout/](components/layout) rendered above the page slot in [app/(dashboard)/layout.tsx](app/(dashboard)/layout.tsx).
-
-| Variant | Colour | Copy (sample) | CTA | Dismissable |
-|---|---|---|---|---|
-| `trial` | Amber | "Trial · X days left" | "Choose a plan" → `/settings/billing` | Yes (24h) |
-| `past_due_grace` | Amber | "Payment failed. Update card to keep working." | "Update card" → portal session | No |
-| `past_due_readonly` | Red | "Past due — read-only mode" | "Update card" → portal session | No |
-| `incomplete` | Red | "Finish setting up your subscription" | "Complete payment" → checkout | No |
-| `suspended`/`cancelled` | n/a — login is blocked anyway | — | — | — |
+- [x] `<SubscriptionBanner />` mounted in [app/(dashboard)/layout.tsx](app/(dashboard)/layout.tsx)
+- [x] Trial variant — amber, dismissable (localStorage flag, persistent until trial ends or user clears storage)
+- [x] `past_due_grace` — amber, sticky, CTA → Stripe portal
+- [x] `past_due_readonly` — red, sticky, CTA → Stripe portal
+- [x] `incomplete` — red, sticky, CTA → `/settings/billing`
+- [x] `suspended` / `cancelled` — red, no CTA (login is blocked at BE anyway)
 
 ### 5d. Read-only enforcement
 
-When `selectIsReadOnly() === true`:
-
-1. **Client-side preemption** — disable every mutation button + AI input + export button. Use a single `<MutationButton>` wrapper that reads the flag + adds a tooltip ("Subscription past due — update billing to re-enable").
-2. **Server fallback** — API client interceptor catches 402 `SUBSCRIPTION_PAST_DUE` or `SUBSCRIPTION_INCOMPLETE`, refetches `/billing/subscription` (state may have just flipped), and asserts the banner is visible.
-
-Audit checklist — every form/list page should disable saves under read-only:
-- Employees, Young People, Homes, Vehicles, Care Groups, Tasks, Daily Logs, Documents, Forms, Roles, Members, Rotas, Calendar, Sensitive Data, Safeguarding, Announcements, Webhooks, Exports.
-- AI ask + conversation composer.
+- [x] `<MutationButton>` wrapper at [components/ui/mutation-button.tsx](components/ui/mutation-button.tsx) — lock icon + tooltip + billing link
+- [x] 402 server-fallback interceptor at [lib/api/client.ts](lib/api/client.ts) — refetches subscription + quota when server rejects
+- [~] **Audit pass — 15 / ~40 surfaces gated.** Done:
+  - [x] Employees: create dialog ([components/employees/create-employee-dialog.tsx](components/employees/create-employee-dialog.tsx)), create-with-user dialog, detail drawer
+  - [x] Young People: create drawer, detail drawer
+  - [x] Homes: create drawer, detail drawer
+  - [x] Vehicles: create dialog, detail drawer
+  - [x] Care Groups: create dialog, detail drawer
+  - [x] Tasks: create dialog
+  - [x] Daily Logs: create dialog
+  - [x] Documents: delete confirmation
+  - [x] Safeguarding: Add Note, Acknowledge, In Progress, Resolve (4 buttons)
+  - [x] AI Chat dialog: "Ask AI" button
+  - [x] AI Conversation composer: send button
+- [ ] **Missing surfaces to gate:**
+  - [ ] Forms — publish/archive/clone are `<DropdownMenuItem>`, not `<Button>`, so `<MutationButton>` doesn't drop in. Needs inline `useIsReadOnly()` check at each item.
+  - [ ] Settings page — Save profile / Save notifications / Save organisation buttons (intentionally not gated — these are user prefs)
+  - [ ] Task Explorer — batch-archive, batch-postpone, batch-reassign buttons
+  - [ ] Rotas — create / publish buttons
+  - [ ] Calendar / Events — create / update buttons on home detail
+  - [ ] Sensitive Data — create / update / delete buttons
+  - [ ] Announcements — create / update / pin / archive
+  - [ ] Webhooks — create / test / delete
+  - [ ] Exports — start async export
+  - [ ] Members (Users page) — Invite / Promote / Suspend / Revoke buttons
+  - [ ] Roles — create / update / permission assignment
+  - [ ] MFA modal — handled separately (auth flows must remain usable)
 
 ---
 
-## 6. Billing UI (NEW — largest piece of FE work)
+## 6. Billing UI
 
-Zero references in the repo today. Build out the full surface.
+### 6a. Service layer ([services/billing.service.ts](services/billing.service.ts))
 
-### 6a. Service layer
+- [x] `getSubscription()`
+- [x] `getPlans()`
+- [x] `getQuota()`
+- [x] `listInvoices({ page, pageSize })`
+- [x] `getAiRestrictions()`
+- [x] `updateAiRestrictions(payload)`
+- [x] `createCheckoutSession(planCode)`
+- [x] `createTopupCheckoutSession(packCode)`
+- [x] `createPortalSession()`
+- [x] `cancelSubscription()`
+- [x] Helpers: `pickBannerVariant()`, `formatMinorAmount()`
 
-```ts
-// services/billing.service.ts
-getSubscription()              // GET  /billing/subscription
-getPlans()                     // GET  /billing/plans
-getQuota()                     // GET  /billing/quota
-getInvoices(page, pageSize)    // GET  /billing/invoices       (NEW — paginated)
-getAiRestrictions()            // GET  /billing/ai-restrictions
-updateAiRestrictions(body)     // PUT  /billing/ai-restrictions
-createCheckoutSession(planCode)// POST /billing/checkout-session
-createPortalSession()          // POST /billing/portal-session
-createTopupSession(packCode)   // POST /billing/topup-checkout-session
-cancel()                       // POST /billing/cancel
-```
+### 6b. Settings → Billing page ([app/(dashboard)/settings/billing/page.tsx](app/(dashboard)/settings/billing/page.tsx))
 
-Permission gates: reads → `billing:read`; writes → `billing:write`.
+- [x] Current plan card — status badge, plan, price, period end, manage card CTA, cancel-scheduled / manual-override notices
+- [x] Plan switcher — monthly + annual tiles with savings hint and current-plan lock
+- [x] Top-up packs — small / medium / large, gated on having an active subscription
+- [x] Quota viz (canonical card with per-user usage table)
+- [x] AI restrictions form — per-role; Owner-only
+- [x] Invoice history — paginated, status badges, hosted-URL + PDF links
+- [x] Cancel subscription dialog — quotes `currentPeriodEnd` from response
+- [x] "Billing" link card added to main [Settings](app/(dashboard)/settings/page.tsx) page
+- [⏸] AI restrictions form — **per-user** overrides table. Note added pointing users to the Users page for now.
 
-### 6b. Settings → Billing page
+### 6c. Quota viz
 
-New route: [app/(dashboard)/settings/billing/page.tsx](app/(dashboard)/settings/billing/page.tsx).
-
-Tabs or sections:
-
-1. **Current plan** — read from `/billing/subscription`. Show plan name, price (format `unitAmountMinor / 100`), interval, current period end, cancel-at-period-end notice, `manuallyOverriddenUntil` notice if active.
-2. **Plan switcher** — two tiles from `/billing/plans`:
-   - `standard_monthly` £30/mo, 1,000 bundled calls
-   - `standard_annual` £300/yr, 1,000 bundled calls
-   - CTA → `createCheckoutSession({ planCode })` → `window.location.assign(url)`
-3. **Top-up packs** — three tiles (small £5/250, medium £15/1000, large £40/5000). CTA → `createTopupSession({ packCode })`. **Hide if no active subscription** (or surface `SUBSCRIPTION_REQUIRED` 409 inline).
-4. **Quota viz** — see §6c.
-5. **AI restrictions** — see §6d. Gated on `billing:write` (Owner-only).
-6. **Invoice history** — paginated list from `/billing/invoices`. Columns: date, period, amount, status, [View hosted URL], [PDF]. Stripe `hostedInvoiceUrl` and `pdfUrl` open in new tab.
-7. **Manage / cancel** — buttons:
-   - "Manage card / invoices in Stripe" → `createPortalSession()`
-   - "Cancel subscription" → modal confirming `cancel()` returns `currentPeriodEnd` and access continues until then.
-
-Add a "Billing" item to the Settings page tabs list.
-
-### 6c. Quota viz (canonical version + pill)
-
-`/billing/quota` returns (spec §M7):
-
-```ts
-{
-  allocationId,
-  bundledCalls, topUpCalls, usedCalls, remainingCalls,
-  periodStart, periodEnd, resetAt,
-  perUserUsage: [{ userId, name, email, role, callsThisPeriod }],
-  restrictions: { perRoleCaps, perUserCaps }
-}
-```
-
-**Canonical card** on the billing page:
-- Big number: `remainingCalls`
-- Progress bar: `usedCalls / (bundledCalls + topUpCalls)`
-- Subtext: "Resets {resetAt}"
-- Per-user table (sortable by `callsThisPeriod`).
-
-**Reusable pill** `<QuotaPill />`:
-- Reads `useQuota()`.
-- Shows `remainingCalls` with colour coding (green > 100, amber 11–100, red ≤ 10).
-- On hover → popover with the breakdown.
-- Rendered in: conversational AI composer, one-shot AI dialog header, and as a sidebar widget for owners/admins.
+- [x] Canonical `<QuotaCard />` on billing page
+- [x] Reusable `<QuotaPill />` — green / amber / red with hover popover breakdown
+- [x] Rendered in: AI chat dialog footer, conversational AI composer, billing page
 
 ### 6d. AI restrictions form
 
-Spec §M7 `PUT /billing/ai-restrictions`:
-
-```ts
-{
-  perRoleCaps?: { [role: string]: number | null },   // null = uncapped, 0 = disabled, positive = monthly cap
-  perUserCaps?: { [userId: string]: number | null }
-}
-```
-
-UI:
-- **Per-role rows** for each known role (`tenant_admin`, `sub_admin`, `staff`). Each has: ⬜ Uncapped / ⬜ Disabled / 🔢 Monthly limit.
-- **Per-user table** with search. Override a role default for a specific user.
-- Save button bound to `useUpdateAiRestrictions`.
-
-Owner-only — gate on `tenantRole === 'tenant_admin'` (or a new `canManageBilling` flag).
+- [x] Per-role rows — Uncapped / Capped / Disabled radio + numeric cap input
+- [x] Save bound to `useUpdateAiRestrictions` (invalidates restrictions + quota queries)
+- [x] Dirty-state tracking
+- [⏸] Per-user overrides table
 
 ### 6e. Return pages
 
-Stripe redirects to env-configured URLs:
-- `BILLING_CHECKOUT_SUCCESS_URL` → new [app/(dashboard)/settings/billing/success/page.tsx](app/(dashboard)/settings/billing/success/page.tsx). On mount: invalidate `useSubscription` + `useQuota` + `useInvoices`. Show "Welcome!" + "Continue to dashboard".
-- `BILLING_CHECKOUT_CANCEL_URL` → can point back to `/settings/billing` with a toast "Checkout cancelled".
-- `BILLING_PORTAL_RETURN_URL` → `/settings/billing` and refetch.
-
-Confirm with Julius that these env vars point to FE-controlled routes.
+- [x] `/settings/billing/success` — invalidates `billing.subscription`, `billing.quota`, `billing.invoicesBase` on mount, shows "thanks" + "go to dashboard"
+- [x] Portal / checkout cancel return → `/settings/billing` (no separate page)
+- [ ] **Open question for BE**: confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
 
 ### 6f. `BILLING_NOT_CONFIGURED` handling
 
-503 with this code means Stripe keys aren't configured in this environment (typical for local dev). Hide all billing UI behind a feature flag derived from a one-time check on the plans endpoint at app boot. Don't render the billing tab if `BILLING_NOT_CONFIGURED` is seen.
+- [ ] Hide billing UI in environments where Stripe is unconfigured. Currently the billing page renders skeletons and would error on `/billing/plans` 503. Needs an app-boot probe + feature flag.
 
 ---
 
 ## 7. AI surfaces
 
-### 7a. Page-aware `/ai/ask` — corrections
+### 7a. One-shot `/ai/ask` polish
 
-Existing service is mostly right. Three deltas from spec:
+- [x] `402 SUBSCRIPTION_PAST_DUE` / `SUBSCRIPTION_INCOMPLETE` → inline CTA chip with "Open billing settings →" link; loud error modal suppressed for billing-gated errors
+- [x] `403 AI_DISABLED_FOR_TENANT` → "AI is disabled for this organization. Contact your Owner."
+- [x] `403 PERMISSION_DENIED` → "You do not have permission to use AI."
+- [x] `403 MFA_REQUIRED` → "Additional verification is required before using AI."
+- [x] "Ask AI" button → `<MutationButton>` (auto-disables on read-only)
+- [x] `<QuotaPill />` in dialog footer
+- [ ] **Missing**: hide the AI dialog entry button (on dashboard pages) when user lacks `ai:use` — currently the dialog still opens and shows the inline 403 instead
+- [ ] **Missing**: 429 cooldown countdown — friendly message shown but no UI countdown disabling input for N seconds
 
-- [ ] **402 handling**: `SUBSCRIPTION_PAST_DUE` → inline "Out of AI calls or subscription past due. [Top up / Update billing]" CTA chip instead of generic error.
-- [ ] **403 `PERMISSION_DENIED`** if user lacks `ai:use` → hide the AI button entirely on that page.
-- [ ] **429** → read `x-ratelimit-reset`, disable input with countdown.
-- [ ] **Note**: `/ai/ask` debits 1 quota call **even on fallback** (`source: 'fallback'`). Quota pill updates accordingly.
+### 7b. Conversational AI
 
-Existing files: [services/ai.service.ts](services/ai.service.ts), [hooks/api/use-ai.ts](hooks/api/use-ai.ts), [components/shared/ai-chat-dialog.tsx](components/shared/ai-chat-dialog.tsx).
-
-### 7b. Conversational AI — NEW page
-
-Extend [services/ai.service.ts](services/ai.service.ts):
-
-```ts
-createConversation()                              // POST   /ai/conversations
-listConversations({ page, pageSize, includeArchived })  // GET
-getConversation(id)                               // GET    /ai/conversations/:id
-sendMessage(id, content)                          // POST   /ai/conversations/:id/messages
-patchConversation(id, { title?, archived? })      // PATCH  /ai/conversations/:id
-deleteConversation(id)                            // DELETE /ai/conversations/:id  (hard)
-```
-
-**Important shape clarifications from spec §M9:**
-
-- `POST .../messages` returns **only** `{ assistantMessage }` — not `{ userMessage, assistantMessage }`. FE owns the optimistic user-message append; on success, just append the assistant reply.
-- Assistant messages may carry `fallbackUsed?: boolean` — show a small "Offline fallback" badge when `true`.
-- `title` is auto-generated server-side after ~3 exchanges (fire-and-forget). FE does **not** generate. Show "New chat" until `title` populates.
-- History window is 20 messages server-side. FE doesn't truncate.
-
-New route: [app/(dashboard)/ai/page.tsx](app/(dashboard)/ai/page.tsx).
-
-Layout:
-
-```
-┌──────────────┬─────────────────────────────────┐
-│ + New chat   │  Conversation title (or "New chat")
-│              │  ─────────────────────────────  │
-│ Convo 1   ●  │  Assistant: hello…              │
-│ Convo 2      │  You: …                          │
-│ Convo 3      │  Assistant: …  [Offline fallback]│
-│ ───────      │                                  │
-│ Archived ▾   │  ─────────────────────────────  │
-│              │  [Composer]    QuotaPill: 247    │
-└──────────────┴─────────────────────────────────┘
-```
-
-Send flow:
-1. Append user message optimistically with status `sending`.
-2. `await sendMessage(id, content)`.
-3. On success → append `assistantMessage`; mark user message `sent`; invalidate `useQuota()`.
-4. On `409 CONVERSATION_ARCHIVED` → toast + offer "Start a new chat".
-5. On `402 SUBSCRIPTION_PAST_DUE` → block composer + show banner.
-6. On rate-limit → cooldown.
-
-Composer disabled when:
-- `selectIsReadOnly()` true
-- `remainingCalls === 0`
-- user lacks `ai:use`
-
-Archive vs delete:
-- Archive (`PATCH { archived: true }`) is the default tidy-up affordance.
-- Hard delete requires explicit confirmation modal with destructive copy ("This cannot be undone").
-
-Add entry points: top-bar icon and floating action button on dashboard/my-summary pages, both linking to `/ai`.
+- [x] 6 service methods: `createConversation`, `listConversations`, `getConversation`, `sendMessage`, `patchConversation`, `deleteConversation`
+- [x] New route `/ai` ([app/(dashboard)/ai/page.tsx](app/(dashboard)/ai/page.tsx))
+- [x] `<ConversationSidebar />` — list, "+ New chat", archived toggle, per-row archive / restore / delete
+- [x] `<ConversationThread />` — user/assistant bubbles, optimistic pending bubble, animated typing dots
+- [x] `<FallbackBadge />` — "Offline fallback" pill on assistant messages with `fallbackUsed: true`
+- [x] `<MessageComposer />` — Enter to send / Shift+Enter for newline, char counter, embedded QuotaPill
+- [x] Composer disabled when `isReadOnly`, archived, or `remainingCalls <= 0`
+- [x] `useSendMessage` invalidates `billing.quota` (pill ticks down)
+- [x] `409 CONVERSATION_ARCHIVED` → toast + composer locked via `disabledReason`
+- [x] Two-click confirm on hard delete
+- [x] Sidebar nav item ("AI Chat") between My Summary and Task Explorer
+- [ ] **Missing**: top-bar / floating-action-button entry points on dashboard / my-summary pages
+- [ ] **Missing**: composer hide when user lacks `ai:use` permission (currently only `isReadOnly` and quota are checked)
 
 ---
 
-## 8. Uploads — refine to spec
+## 8. Uploads — `purpose` enum compliance
 
-Existing [services/uploads.service.ts](services/uploads.service.ts) probably has the old shape. Spec §M19 mandates:
-
-1. `POST /uploads/sessions` body must include `purpose: 'signature' | 'task_attachment' | 'task_document' | 'announcement_image' | 'general'`. Add a `purpose` parameter to every caller.
-2. Response shape:
-   ```ts
-   {
-     file: { id, fileName, contentType, sizeBytes, uploadStatus: 'pending', checksumSha256, createdAt },
-     upload: { method: 'PUT', url, expiresAt, headers: { 'Content-Type': string } }
-   }
-   ```
-3. PUT to `upload.url` with the headers from `upload.headers` (not invented ones).
-4. `POST /uploads/:id/complete` confirms; response carries a 7-day signed `download.url`.
-5. Optional `checksumSha256` — compute client-side for integrity if available.
-
-Audit every caller (avatars, signatures, task attachments, announcement images) for the `purpose` field.
+- [~] [services/uploads.service.ts](services/uploads.service.ts) hardcodes `purpose: "signature"` only
+- [ ] Expand the `purpose` enum type to `'signature' | 'task_attachment' | 'task_document' | 'announcement_image' | 'general'`
+- [ ] Audit callers and pass the correct `purpose` (avatars, signatures, task attachments, announcement images)
+- [ ] Use returned `upload.headers` instead of invented headers (current code may be OK; needs verification)
 
 ---
 
-## 9. Endpoint surfaces to verify (already-built modules)
+## 9. Endpoint surfaces — drift audit
 
-These services exist in the repo; reconcile each against the new spec, focusing on body/query shapes that may have drifted.
-
-| Module | Spec ref | Quick checks |
-|---|---|---|
-| Employees | M11 | `status: current|past|planned`, `roleId`, `dbsNumber`, `dbsDate` fields. |
-| Homes | M10 | Sub-resources mounted: `/summary`, `/events`, `/shifts`, all `/reports/*`. |
-| Young People | M12 | Sensitive fields gated on `young_people:sensitive_read`. |
-| Vehicles | M13 | `sortBy` enum: `registration|make|model|nextServiceDue|motDue|createdAt|updatedAt`. |
-| Tasks | M14 | New: `taskRef`, `formGroup`, `lifecycleStatusLabel`, `approvalStatus`, `labels`. Batch endpoints (archive/postpone/reassign). |
-| Daily logs | M15 | `relatesTo: { type, id }` shape. **DELETE is hard.** |
-| Forms | M18 | `builder`, `access`, `triggerTask`, `notifications` nested. Submissions endpoint `/forms/:id/submissions`. |
-| Documents | M17 | `visibility: private|tenant|home`. DELETE is hard. |
-| Audit | M21 | NEW: `/audit/security-alerts?lookbackHours=` — surface in a security widget. |
-| Reports | M29 | Confirm Reg44/Reg45 packs + RI dashboard pages exist (gated on `reports:read`). |
-| Safeguarding | M32 | Chronologies + patterns + risk alerts — confirm pages render and rule list comes from `/risk-alerts/rules`. |
-| Sensitive data | M33 | Access is auto-logged. DELETE is hard. |
-| Help center | M26 | FAQs + tickets (with comments). |
-| Notifications | M27 | `unread-count` for badge; `read-all` for bulk. |
-| Exports | M24 | Async job pattern: poll until status ready, then `/exports/:id/download`. |
-| Settings | M34 | Org + notifications. |
-| Summary | M35 | Approval batch endpoint `/tasks-to-approve/process-batch` with `action: approve|reject`. |
-| Webhooks | M36 | Customer-owned outbound webhooks UI: create + test + deliveries log. |
-
-For each: open `/docs`, find the endpoint, compare to current TS types in `services/`, file follow-ups for any drift.
+- [ ] Employees — verify `status: current | past | planned`, `roleId`, `dbsNumber`, `dbsDate` fields
+- [ ] Homes — confirm sub-resources mounted (`/summary`, `/events`, `/shifts`, all `/reports/*`)
+- [ ] Young People — confirm sensitive fields gate on `young_people:sensitive_read`
+- [ ] Vehicles — confirm `sortBy` enum matches spec
+- [ ] Tasks — verify `taskRef`, `formGroup`, `lifecycleStatusLabel`, `approvalStatus`, `labels` are in the type. Confirm batch endpoints wired.
+- [ ] Daily logs — verify `relatesTo: { type, id }` shape. **DELETE is hard.**
+- [ ] Forms — verify `builder`, `access`, `triggerTask`, `notifications` nested shapes
+- [ ] Documents — `visibility` enum (`private | tenant | home`). DELETE is hard.
+- [ ] Audit — wire `/audit/security-alerts?lookbackHours=` into a widget
+- [ ] Reports — verify Reg44/Reg45 packs + RI dashboard pages exist (gated on `reports:read`)
+- [ ] Safeguarding — verify chronologies + patterns + risk alerts pages render
+- [ ] Sensitive data — verify access is auto-logged; DELETE is hard
+- [ ] Help center — FAQs + tickets with comments
+- [ ] Notifications — verify `unread-count` for badge; `read-all` for bulk
+- [ ] Exports — verify async job pattern works end-to-end
+- [ ] Settings — org + notifications
+- [ ] Summary — verify approval batch endpoint
+- [ ] Webhooks — verify create + test + deliveries log UI
 
 ---
 
-## 10. Impersonation banner (NEW)
+## 10. Impersonation banner
 
-Platform staff can impersonate tenant users for support. The tenant FE doesn't initiate this, but it must respect it.
-
-JWT carries `impersonatorId` and `impersonationGrantId` when active (spec §4).
-
-UI:
-- Decode JWT on session load (§2d).
-- If `impersonatorId` present → render persistent yellow banner at top: `"Support session active. Acting as <user.name> on <tenant.name>. [End session]"`.
-- "End session" → `DELETE /admin/impersonation/active` (impersonation token will work for this) → on success, logout + redirect to a "Support session ended" landing page.
-- Handle `401 IMPERSONATION_REVOKED` — same flow: clear session, return to login.
-- Block UI: while impersonating, hide self-mutating account flows (change password, MFA disable). Server already blocks with `IMPERSONATION_ACTIVE` 409.
+- [x] `<ImpersonationBanner />` at [components/auth/impersonation-banner.tsx](components/auth/impersonation-banner.tsx)
+- [x] Decodes JWT via `decodeAccessToken()` from [lib/auth/jwt.ts](lib/auth/jwt.ts)
+- [x] Shows "Support session active · acting as <name>" + "End session" button (calls `logout()`)
+- [x] Mounted above `<SubscriptionBanner />` in both dashboard layouts
+- [ ] **Missing**: handle `401 IMPERSONATION_REVOKED` specifically (currently falls through to the generic logout path, which is fine but no custom messaging)
+- [ ] **Missing**: hide self-mutating account flows (change password, MFA disable) while impersonating — server returns `IMPERSONATION_ACTIVE` 409 but FE could preempt
 
 ---
 
-## 11. Suggested build order
+## 11. Suggested build order (historical — for reference)
 
-1. **Infrastructure** (§2) — error map, rate-limit helper, JWT decoder. Foundation; no UI yet.
-2. **Subscription store + banner** (§5) — biggest leverage; unblocks read-only enforcement everywhere.
-3. **Billing service + Settings → Billing page** (§6) — biggest user-visible surface.
-4. **Quota pill + AI 402 polish** (§6c, §7a).
-5. **Conversational AI page** (§7b).
-6. **Session-expiry warnings** (§3e) — independent, can be parallelised.
-7. **MFA Security tab + backup-code link** (§4) — independent.
-8. **Uploads `purpose` field audit** (§8).
-9. **Endpoint-drift audits** (§9) — rolling; one module per PR.
-10. **Impersonation banner** (§10) — cheap; do alongside JWT decoder.
+1. ~~Infrastructure (§2) — error map, rate-limit helper, JWT decoder~~ Partial
+2. ~~Subscription store + banner (§5)~~ ✅
+3. ~~Billing service + Settings → Billing page (§6)~~ ✅
+4. ~~Quota pill + AI 402 polish (§6c, §7a)~~ ✅
+5. ~~Conversational AI page (§7b)~~ ✅
+6. ~~Session-expiry warnings (§3e)~~ Pre-existing
+7. ~~MFA Security card + backup-code link (§4)~~ ✅
+8. Uploads `purpose` field audit (§8) — **next**
+9. Endpoint-drift audits (§9) — **next**
+10. ~~Impersonation banner (§10)~~ ✅
 
 ---
 
-## 12. Acceptance criteria
+## 12. Acceptance criteria — what to test
 
-End-to-end smoke tests that prove the redesign:
+End-to-end smoke tests. None of these require code changes anymore; they are user-test scenarios against the deployed FE + sandbox tenants.
 
-- **Onboarding**: new owner registers (`country`, `firstName`, `lastName`, `email`, `password`, `confirmPassword`, `acceptTerms`, `organizationName`) → OTP verify → MFA enrollment QR + backup codes → land in dashboard with trial banner showing `daysLeftInTrial`.
-- **Plan purchase**: trial banner CTA → `/settings/billing` → click "Standard monthly" → Stripe checkout test card → land on success page → banner clears within 60s.
-- **Top-up**: from billing page → "Top-up Small" → Stripe checkout → quota pill increases by 250 within 30s of webhook.
-- **Read-only mode**: a tenant in `past_due_readonly` logs in → red banner visible → 5 sample mutation buttons disabled → "Update card" CTA opens portal → on return, banner clears.
-- **Conversational AI**: create chat → send 3 messages → quota ticks down by 3 → archive chat → unarchive → hard-delete with confirm.
-- **Session warning**: 14 minutes of inactivity → warning modal appears → "Stay signed in" hits `/auth/refresh` → modal dismisses, counter resets.
-- **MFA backup**: lose phone simulation → on `/mfa-verify` click "Use a backup code" → enter 8-char code → land in dashboard.
-- **Impersonation**: support session JWT pasted in → banner shows "Acting as…" → End session works → back to login.
+- [ ] **Onboarding**: new owner registers → OTP verify → MFA enrollment QR + backup codes → land in dashboard with trial banner
+- [ ] **Plan purchase**: trial banner CTA → `/settings/billing` → "Standard monthly" → Stripe test card → land on success page → banner clears within 60s
+- [ ] **Top-up**: from billing page → "Top-up Small" → Stripe checkout → quota pill increases by 250 within 30s
+- [ ] **Read-only mode**: tenant in `past_due_readonly` logs in → red banner visible → 5 sample mutation buttons disabled → "Update card" CTA opens portal
+- [ ] **Conversational AI**: create chat → send 3 messages → quota ticks down by 3 → archive → unarchive → hard-delete with confirm
+- [ ] **Session warning**: 14 min idle → modal appears → "Stay signed in" → counter resets
+- [ ] **MFA backup**: on `/mfa-verify` click "Use a backup code" → enter 8+ char code → land in dashboard
+- [ ] **Impersonation**: support session JWT → yellow banner appears → "End session" works → returns to login
 
 ---
 
 ## 13. Out of scope
 
-- `/admin/*` platform admin routes (separate FE app).
-- `/integrations/billing/webhook` and `/integrations/security-alerts/webhook` — server-to-server.
-- Streaming responses for conversational AI — spec explicitly says no streaming.
-- `/public/*` marketing forms — owned by the marketing site, not the app.
+- `/admin/*` platform admin routes (separate FE app)
+- `/integrations/billing/webhook` and `/integrations/security-alerts/webhook` (server-to-server)
+- Streaming responses for conversational AI — spec explicitly says no streaming
+- `/public/*` marketing forms — owned by marketing site
 
 ---
 
 ## 14. Open questions for BE (Julius)
 
-- Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE routes we own.
-- Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags? Or should FE compute from `tenantRole` + permissions list?
-- Per-user quota breakdown (`perUserUsage[]`) — capped or full list? Affects FE pagination.
-- For `/auth/session-expiry` — recommended polling cadence? (Defaulting to fetch-on-focus + computed-from-cache for the warning logic.)
-- `/audit/security-alerts` — should this drive a dashboard widget, or only an alerts page?
-- Reg44/Reg45 reports — confirm they return file streams for the `format=pdf|excel|zip` cases; FE handles via `.blob()`.
+- [ ] Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
+- [ ] Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags, or should FE compute from `tenantRole` + permissions list?
+- [ ] Per-user quota breakdown (`perUserUsage[]`) — capped or full list? Affects FE pagination.
+- [ ] `/auth/session-expiry` — recommended polling cadence? (We default to fetch-on-focus + computed-from-cache.)
+- [ ] `/audit/security-alerts` — should this drive a dashboard widget, or only an alerts page?
+- [ ] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
+- [ ] **Critical**: does production `/auth/login` currently return the new discriminated union (with `challengeToken` / `enrollmentToken`) or the legacy envelope? Required before unblocking the `mfaEnrollmentRequired` login refactor.
+
+---
+
+## What's left — prioritised summary
+
+If you want a single ordered list of "what's still left to do":
+
+1. **Forms publish/archive/clone read-only gate** (small) — inline `useIsReadOnly()` check on the DropdownMenuItem actions in [components/form-designer/form-list-table.tsx](components/form-designer/form-list-table.tsx)
+2. **Remaining mutation buttons** (~25 surfaces) — task batch actions, rotas, calendar events, sensitive data, announcements, webhooks, exports, members invites, roles
+3. **AI button gating on `ai:use` permission** (small) — hide AI dialog opener button on pages when user lacks the permission
+4. **429 cooldown UI** (small) — countdown timer that disables submit buttons after a `TOO_MANY_REQUESTS` until `x-ratelimit-reset` expires; wire into a global cool-down store
+5. **`BILLING_NOT_CONFIGURED` feature flag** (small) — app-boot probe to hide billing UI on dev envs where Stripe isn't set up
+6. **Uploads `purpose` enum compliance** (medium) — expand the type, audit ~5 callers, pass correct `purpose`
+7. **Central error map switch** (medium) — extract one place that maps error families to default UX side-effects
+8. **Per-user AI restrictions table** (medium) — needs a user picker; bind to `perUserCaps` on `PUT /billing/ai-restrictions`
+9. **AI chat entry points** (small) — top-bar icon + floating action button on dashboard / my-summary linking to `/ai`
+10. **Endpoint-drift audit** (large, rolling) — verify each of the ~18 module shapes against the spec; one PR per module
+11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
+12. **Self-mutating account flow gates during impersonation** (small) — preempt 409 `IMPERSONATION_ACTIVE` on change-password and MFA-disable
