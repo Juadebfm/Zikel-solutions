@@ -561,6 +561,7 @@ export function AiChatDialog({
               type="button"
               onClick={handleSubmit}
               disabled={askAiMutation.isPending}
+              cooldownFamily="ai"
             >
               {askAiMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

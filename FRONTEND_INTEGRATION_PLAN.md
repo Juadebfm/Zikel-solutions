@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's left"; commit pending).
+Last updated: 2026-05-11 (latest: cross-cutting infra — items 4, 5, 7 from §"What's left"; commit pending).
 
 ---
 
@@ -28,8 +28,8 @@ Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's 
 | Slice 4 — Conversational AI (`/ai`) | ✅ Done | `5197b18` |
 | Slice 5 — AI dialog polish + MutationButton sweep | ~ Partial — 429 cooldown missing; AI button hide ✅ done | `5197b18` + sweep |
 | Slice 6 — Auth polish (MFA Security, impersonation, backup codes) | ~ Partial — login enrollment branch deferred | `5197b18` |
-| Cross-cutting — central error map | ~ Partial — billing codes only, no central switch | `5197b18` |
-| Cross-cutting — rate-limit headers / cooldown store | ❌ Not started | — |
+| Cross-cutting — central error map | ✅ Done — single `dispatchErrorSideEffects` switch in client.ts (MFA sync, billing-gate, rate-limit) | infra slice |
+| Cross-cutting — rate-limit headers / cooldown store | ✅ Done — `stores/rate-limit-store.ts` + `useCooldown` + `<MutationButton cooldownFamily>` | infra slice |
 | Cross-cutting — permission gating with spec names | ~ Partial — using `tenantRole` checks | `5197b18` |
 | Uploads — `purpose` enum compliance | ⏸ Deferred — needs caller audit | — |
 | Endpoint-drift audits | ❌ Not started | — |
@@ -51,16 +51,17 @@ Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's 
 ### 2a. Error code map
 
 - [~] Friendly messages added — [lib/api/error.ts](lib/api/error.ts) has the billing codes (`SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_INCOMPLETE`, `SUBSCRIPTION_REQUIRED`, `BILLING_NOT_CONFIGURED`, `AI_DISABLED_FOR_TENANT`, `CONVERSATION_ARCHIVED`).
-- [ ] **Missing**: friendly messages for `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY`, `ACCOUNT_LOCKED`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE`, `IMPERSONATION_*`, `REFRESH_TOKEN_REUSED` (some already exist), `TENANT_NOT_FOUND`, `USER_NOT_FOUND`.
-- [~] Central side-effect switch — only the 402 family fires a side-effect (subscription refetch via [`registerBillingGateListener`](lib/api/client.ts)). Other families still throw plain `ApiClientError` and rely on consumers.
-- [ ] **Missing**: extract one switch so families map to default toast/banner/redirect/refetch actions — currently scattered across consumers.
+- [ ] **Missing friendly messages** for: `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY`, `ACCOUNT_LOCKED`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE`, `IMPERSONATION_*`, `TENANT_NOT_FOUND`, `USER_NOT_FOUND`. (Low priority — these still surface via `error.message` from server.)
+- [x] **Central side-effect switch** — `dispatchErrorSideEffects()` in [lib/api/client.ts](lib/api/client.ts) is the single place where MFA-sync / billing-gate / rate-limit cooldown side-effects fire. Each family has one handler, no scattering across consumers.
 
 ### 2b. Rate-limit headers & cooldown store
 
-- [ ] Build `parseRateLimit(response)` helper
-- [ ] Build global cool-down store keyed by route family
-- [ ] Wire on `/auth/login`, `/auth/resend-otp`, `/ai/ask`, `/ai/conversations/*`, billing checkout/portal/topup
-- [→] `extractRetryAfterSeconds` exists for friendly error messages — partial coverage only
+- [x] `parseRateLimitResetHeader()` helper in [lib/api/client.ts](lib/api/client.ts) reads `x-ratelimit-reset` (falls back to `retry-after`)
+- [x] Global cool-down store at [stores/rate-limit-store.ts](stores/rate-limit-store.ts) keyed by route family (`auth`, `billing`, `ai`, …)
+- [x] `useCooldown(family)` hook ticks every second via `useSyncExternalStore`; auto-clears stale entries
+- [x] `<MutationButton cooldownFamily="ai">` reads cooldown, disables + shows "Try in Ns" countdown + tooltip
+- [x] Applied to AI surfaces: `<MessageComposer>` send button + AI chat dialog Ask AI button
+- [ ] **Still to opt in**: login, OTP resend, billing checkout/portal/topup — uncomment cooldownFamily when needed
 
 ### 2c. Permission gating
 
@@ -231,7 +232,10 @@ Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's 
 
 ### 6f. `BILLING_NOT_CONFIGURED` handling
 
-- [ ] Hide billing UI in environments where Stripe is unconfigured. Currently the billing page renders skeletons and would error on `/billing/plans` 503. Needs an app-boot probe + feature flag.
+- [x] `useIsBillingEnabled()` probe in [hooks/api/use-billing.ts](hooks/api/use-billing.ts) — derives from the subscription query error.
+- [x] `<SubscriptionBanner />` returns null when billing isn't configured.
+- [x] Settings page billing link card hidden when billing isn't configured.
+- [x] Direct navigation to `/settings/billing` shows a "Billing not configured" card with back-to-dashboard CTA.
 
 ---
 
@@ -246,7 +250,7 @@ Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's 
 - [x] "Ask AI" button → `<MutationButton>` (auto-disables on read-only)
 - [x] `<QuotaPill />` in dialog footer
 - [x] **AI entry buttons hidden** when `user.aiAccessEnabled === false`. Added `aiAccessEnabled` to `User` type + AuthApiUser mapping. New `useCanUseAi()` hook + reusable `<AskAiButton>` component swapped across 7 consumers (employees, young-people, care-groups, tasks, daily-logs, homes, vehicles).
-- [ ] **Missing**: 429 cooldown countdown — friendly message shown but no UI countdown disabling input for N seconds
+- [x] **429 cooldown** — `cooldownFamily="ai"` on Ask AI button + composer send. Button auto-disables with "Try in Ns" countdown when bucket is exhausted; auto-recovers when `x-ratelimit-reset` elapses.
 
 ### 7b. Conversational AI
 
@@ -362,17 +366,19 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 
 ## What's left — prioritised summary
 
-Items 1–3 from the previous version are now ✅ done (gating sweep complete). Remaining work:
+Items 1–5 and 7 are now ✅ done. Remaining work:
 
-1. ~~**Forms publish/archive/clone read-only gate**~~ ✅ Done — inline `useIsReadOnly()` check on each DropdownMenuItem
-2. ~~**Remaining mutation buttons**~~ ✅ Done — ~25 mutation surfaces retrofitted across users, scheduling, sensitive-data, task drawer, my-summary
-3. ~~**AI button gating on `ai:use` permission**~~ ✅ Done — `<AskAiButton>` reads `user.aiAccessEnabled` and hides when false
-4. **429 cooldown UI** (small) — countdown timer that disables submit buttons after a `TOO_MANY_REQUESTS` until `x-ratelimit-reset` expires; wire into a global cool-down store
-5. **`BILLING_NOT_CONFIGURED` feature flag** (small) — app-boot probe to hide billing UI on dev envs where Stripe isn't set up
+1. ~~**Forms publish/archive/clone read-only gate**~~ ✅
+2. ~~**Remaining mutation buttons**~~ ✅
+3. ~~**AI button gating on `ai:use` permission**~~ ✅
+4. ~~**429 cooldown UI**~~ ✅ — `useCooldown` hook + `<MutationButton cooldownFamily>` prop
+5. ~~**`BILLING_NOT_CONFIGURED` feature flag**~~ ✅ — `useIsBillingEnabled` probe, banner + settings link + billing page all gated
 6. **Uploads `purpose` enum compliance** (medium) — expand the type, audit ~5 callers, pass correct `purpose`
-7. **Central error map switch** (medium) — extract one place that maps error families to default UX side-effects
+7. ~~**Central error map switch**~~ ✅ — `dispatchErrorSideEffects()` in client.ts is the single dispatch for MFA-sync / billing-gate / rate-limit reactions
 8. **Per-user AI restrictions table** (medium) — needs a user picker; bind to `perUserCaps` on `PUT /billing/ai-restrictions`
 9. **AI chat entry points** (small) — top-bar icon + floating action button on dashboard / my-summary linking to `/ai`
 10. **Endpoint-drift audit** (large, rolling) — verify each of the ~18 module shapes against the spec; one PR per module
 11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
 12. **Self-mutating account flow gates during impersonation** (small) — preempt 409 `IMPERSONATION_ACTIVE` on change-password and MFA-disable
+13. **Opt-in rate-limit cooldown on more surfaces** (small, rolling) — currently AI only; add `cooldownFamily="auth"` to login + OTP-resend, `cooldownFamily="billing"` to checkout/portal/topup buttons.
+14. **Friendly messages for tail error codes** (small) — `TENANT_TOKEN_REJECTED`, `IMPERSONATION_*`, etc. — server `error.message` is shown today; replacements only needed where server copy is poor.

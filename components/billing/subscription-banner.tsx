@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowRight, CreditCard, Loader2, Sparkles, X } from "luc
 
 import { Button } from "@/components/ui/button"
 import {
+  useIsBillingEnabled,
   useStartPortalSession,
   useSubscription,
   useSubscriptionBannerVariant,
@@ -63,6 +64,7 @@ function getVariantClasses(variant: BannerVariant): { container: string; icon: s
 export function SubscriptionBanner() {
   const variant = useSubscriptionBannerVariant()
   const { data: subscription, isLoading } = useSubscription()
+  const { isEnabled: isBillingEnabled } = useIsBillingEnabled()
   const startPortalSession = useStartPortalSession()
   const dismissalRaw = useSyncExternalStore(
     subscribeToStorage,
@@ -77,7 +79,7 @@ export function SubscriptionBanner() {
     }
   }, [])
 
-  if (isLoading || !variant) {
+  if (isLoading || !variant || !isBillingEnabled) {
     return null
   }
 

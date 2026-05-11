@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/lib/query-keys"
+import { isApiClientError } from "@/lib/api/error"
 import {
   billingService,
   pickBannerVariant,
@@ -141,4 +142,27 @@ export function getSubscriptionFromQueryCache(
   queryClient: ReturnType<typeof useQueryClient>
 ): Subscription | undefined {
   return queryClient.getQueryData<Subscription>(queryKeys.billing.subscription)
+}
+
+// ─── Billing-not-configured probe ───────────────────────────────
+
+/**
+ * Detects whether the BE returned `503 BILLING_NOT_CONFIGURED`. Used by the
+ * `useIsBillingEnabled` probe and consumers that want to fully hide billing
+ * surfaces on environments where Stripe keys aren't set up (e.g. local dev).
+ */
+export function isBillingNotConfiguredError(error: unknown): boolean {
+  return isApiClientError(error) && error.code === "BILLING_NOT_CONFIGURED"
+}
+
+/**
+ * One-shot probe that resolves whether Stripe-backed billing is configured
+ * in this environment. Returns `false` when `/billing/subscription` or any
+ * other billing endpoint has surfaced `BILLING_NOT_CONFIGURED`. Defaults to
+ * `true` while loading so banners don't briefly flash.
+ */
+export function useIsBillingEnabled(): { isEnabled: boolean; isLoading: boolean } {
+  const { isLoading, error } = useSubscription()
+  if (isLoading) return { isEnabled: true, isLoading: true }
+  return { isEnabled: !isBillingNotConfiguredError(error), isLoading: false }
 }

@@ -3,6 +3,7 @@ import { ApiClientError, toApiClientError } from "@/lib/api/error"
 import type { ApiResponse, ApiSuccess } from "@/lib/api/types"
 import { getAuthSessionState } from "@/stores/auth-session-store"
 import { useMfaStore } from "@/stores/mfa-store"
+import { recordRateLimitHit, routeFamilyFromPath } from "@/stores/rate-limit-store"
 
 interface QueryParams {
   [key: string]: string | number | boolean | null | undefined
@@ -58,6 +59,48 @@ export function registerBillingGateListener(listener: () => void): () => void {
   }
 }
 
+/**
+ * Single dispatch for error-driven side effects. Called on every failed
+ * response before we throw an ApiClientError. Keeps cross-cutting reactions
+ * (MFA sync, billing-gate refetch, rate-limit cooldown) in one place rather
+ * than scattered across consumers.
+ */
+function dispatchErrorSideEffects(
+  response: Response,
+  errorPayload: unknown,
+  options: ApiRequestOptions,
+): void {
+  if (options.auth) {
+    syncMfaRequirementFromError(errorPayload)
+  }
+
+  // Rate-limit cooldown — record so MutationButtons can disable + show countdown
+  if (response.status === 429) {
+    const resetSeconds = parseRateLimitResetHeader(response.headers)
+    if (resetSeconds !== null) {
+      recordRateLimitHit(routeFamilyFromPath(options.path), resetSeconds)
+    }
+  }
+
+  // Billing gate — invoke listener so React Query invalidates subscription
+  if (
+    response.status === 402 &&
+    isApiFailurePayload(errorPayload) &&
+    BILLING_GATE_ERROR_CODES.has(errorPayload.error.code) &&
+    billingGateListener
+  ) {
+    billingGateListener()
+  }
+}
+
+function parseRateLimitResetHeader(headers: Headers): number | null {
+  const raw = headers.get("x-ratelimit-reset") ?? headers.get("retry-after")
+  if (!raw) return null
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  return parsed
+}
+
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 const MFA_GATE_BYPASS_PATHS = new Set([
   "/auth/login",
@@ -93,18 +136,7 @@ export async function apiRequest<T, M = unknown>(
 
   if (!response.ok) {
     const errorPayload = await parseJsonSafely(response)
-    if (options.auth) {
-      syncMfaRequirementFromError(errorPayload)
-    }
-
-    if (
-      response.status === 402 &&
-      isApiFailurePayload(errorPayload) &&
-      BILLING_GATE_ERROR_CODES.has(errorPayload.error.code) &&
-      billingGateListener
-    ) {
-      billingGateListener()
-    }
+    dispatchErrorSideEffects(response, errorPayload, options)
 
     // Intercept 403 MFA_REQUIRED on write methods: open MFA modal,
     // wait for verification, then auto-retry the blocked request.

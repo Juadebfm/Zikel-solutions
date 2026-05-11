@@ -80,6 +80,7 @@ export function MessageComposer({
               size="icon-sm"
               onClick={handleSend}
               disabled={!canSend}
+              cooldownFamily="ai"
               aria-label="Send message"
             >
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
