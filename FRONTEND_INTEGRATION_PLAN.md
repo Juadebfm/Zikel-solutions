@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-11 (latest: cross-cutting infra — items 4, 5, 7 from §"What's left"; commit pending).
+Last updated: 2026-05-11 (latest: uploads purpose enum expansion — item 6 from §"What's left"; commit pending).
 
 ---
 
@@ -31,7 +31,7 @@ Last updated: 2026-05-11 (latest: cross-cutting infra — items 4, 5, 7 from §"
 | Cross-cutting — central error map | ✅ Done — single `dispatchErrorSideEffects` switch in client.ts (MFA sync, billing-gate, rate-limit) | infra slice |
 | Cross-cutting — rate-limit headers / cooldown store | ✅ Done — `stores/rate-limit-store.ts` + `useCooldown` + `<MutationButton cooldownFamily>` | infra slice |
 | Cross-cutting — permission gating with spec names | ~ Partial — using `tenantRole` checks | `5197b18` |
-| Uploads — `purpose` enum compliance | ⏸ Deferred — needs caller audit | — |
+| Uploads — `purpose` enum compliance | ✅ Done — full 5-value enum exposed; only existing caller (acknowledgements) already correct with `signature` | uploads slice |
 | Endpoint-drift audits | ❌ Not started | — |
 | `mfaEnrollmentRequired` login branch | ⏸ Deferred — needs BE alignment | — |
 
@@ -272,10 +272,11 @@ Last updated: 2026-05-11 (latest: cross-cutting infra — items 4, 5, 7 from §"
 
 ## 8. Uploads — `purpose` enum compliance
 
-- [~] [services/uploads.service.ts](services/uploads.service.ts) hardcodes `purpose: "signature"` only
-- [ ] Expand the `purpose` enum type to `'signature' | 'task_attachment' | 'task_document' | 'announcement_image' | 'general'`
-- [ ] Audit callers and pass the correct `purpose` (avatars, signatures, task attachments, announcement images)
-- [ ] Use returned `upload.headers` instead of invented headers (current code may be OK; needs verification)
+- [x] [services/uploads.service.ts](services/uploads.service.ts) — `UploadPurpose` union type exported with the full spec set: `'signature' | 'task_attachment' | 'task_document' | 'announcement_image' | 'general'`
+- [x] Optional `checksumSha256` added to `CreateUploadSessionInput` per spec §M19
+- [x] Only existing caller is [acknowledgements/page.tsx](app/(dashboard)/acknowledgements/page.tsx) which already passes `purpose: "signature"` (still type-correct under new union)
+- [x] Uses `upload.headers` from server response (not invented). Confirmed at line 562 of acknowledgements page.
+- [ ] **When future uploads land** (avatar widget on employee step-summary, task attachments, announcement images, document uploads), use the appropriate `UploadPurpose`. The avatar widget on `components/employees/create/step-summary.tsx` currently stores the File locally without going through uploadsService — not in scope.
 
 ---
 
@@ -373,7 +374,7 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 3. ~~**AI button gating on `ai:use` permission**~~ ✅
 4. ~~**429 cooldown UI**~~ ✅ — `useCooldown` hook + `<MutationButton cooldownFamily>` prop
 5. ~~**`BILLING_NOT_CONFIGURED` feature flag**~~ ✅ — `useIsBillingEnabled` probe, banner + settings link + billing page all gated
-6. **Uploads `purpose` enum compliance** (medium) — expand the type, audit ~5 callers, pass correct `purpose`
+6. ~~**Uploads `purpose` enum compliance**~~ ✅ — full union exposed; existing caller correct; future callers documented
 7. ~~**Central error map switch**~~ ✅ — `dispatchErrorSideEffects()` in client.ts is the single dispatch for MFA-sync / billing-gate / rate-limit reactions
 8. **Per-user AI restrictions table** (medium) — needs a user picker; bind to `perUserCaps` on `PUT /billing/ai-restrictions`
 9. **AI chat entry points** (small) — top-bar icon + floating action button on dashboard / my-summary linking to `/ai`

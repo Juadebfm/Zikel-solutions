@@ -1,10 +1,28 @@
 import { apiRequest } from "@/lib/api/client"
 
+/**
+ * Purpose values accepted by `POST /uploads/sessions` per BE spec §M19.
+ *
+ * - `signature` — captured signatures (acknowledgements, form submissions)
+ * - `task_attachment` — files attached to tasks / daily logs
+ * - `task_document` — documents linked to tasks
+ * - `announcement_image` — hero / inline images on announcements
+ * - `general` — anything else (avatar, miscellaneous)
+ */
+export type UploadPurpose =
+  | "signature"
+  | "task_attachment"
+  | "task_document"
+  | "announcement_image"
+  | "general"
+
 export interface CreateUploadSessionInput {
   fileName: string
   contentType: string
   sizeBytes: number
-  purpose: "signature"
+  purpose: UploadPurpose
+  /** Optional 64-char hex SHA-256 of the file body for integrity. */
+  checksumSha256?: string
 }
 
 export interface UploadSession {
@@ -102,7 +120,7 @@ export const uploadsService = {
     })
 
     if (!response.ok) {
-      throw new Error("Failed to upload signature file.")
+      throw new Error("Failed to upload file.")
     }
   },
 
