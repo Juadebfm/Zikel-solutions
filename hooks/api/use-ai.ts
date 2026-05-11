@@ -6,11 +6,25 @@ import {
   type AiConversation,
   type AskAiPayload,
 } from "@/services/ai.service"
+import { useAuthSessionStore } from "@/stores/auth-session-store"
 
 export function useAskAi() {
   return useMutation({
     mutationFn: (payload: AskAiPayload) => aiService.ask(payload),
   })
+}
+
+/**
+ * Whether AI is available for the current user. Reads `user.aiAccessEnabled`
+ * from the session store. Defaults to `true` when the flag is undefined
+ * (older BE shapes that don't return the field) so we don't accidentally hide
+ * AI entry points for legitimate users. Returns `false` only when the BE
+ * explicitly says AI is off for this user.
+ */
+export function useCanUseAi(): boolean {
+  const user = useAuthSessionStore((s) => s.user)
+  if (!user) return false
+  return user.aiAccessEnabled !== false
 }
 
 // ─── Conversations ─────────────────────────────────────────────

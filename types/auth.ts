@@ -99,6 +99,12 @@ export interface User {
   createdAt: string
   lastLoginAt?: string
   updatedAt?: string
+  /**
+   * Whether AI features are enabled for this user (per spec §M5 GET /me).
+   * When false, the FE hides AI entry points; the server also returns 403
+   * AI_DISABLED_FOR_TENANT / AI_ACCESS_DISABLED on direct calls.
+   */
+  aiAccessEnabled?: boolean
 }
 
 // Login Form Data

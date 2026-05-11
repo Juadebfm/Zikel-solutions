@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -730,17 +731,17 @@ export function TaskDetailDrawer({
               {onAction && hasActions && (
                 <div className="px-6 pt-3 pb-2 flex items-center gap-2">
                   {canApprove && (
-                    <Button
+                    <MutationButton
                       size="sm"
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
                       onClick={() => onAction(task.id, "approve")}
                     >
                       <CheckCircle2 className="size-4" />
                       Approve
-                    </Button>
+                    </MutationButton>
                   )}
                   {canReject && (
-                    <Button
+                    <MutationButton
                       size="sm"
                       variant="destructive"
                       className="flex-1 gap-1.5"
@@ -748,10 +749,10 @@ export function TaskDetailDrawer({
                     >
                       <XCircle className="size-4" />
                       Reject
-                    </Button>
+                    </MutationButton>
                   )}
                   {canReassign && (
-                    <Button
+                    <MutationButton
                       size="sm"
                       variant="outline"
                       className="gap-1.5"
@@ -759,7 +760,7 @@ export function TaskDetailDrawer({
                     >
                       <UserPlus className="size-4" />
                       Reassign
-                    </Button>
+                    </MutationButton>
                   )}
                 </div>
               )}
@@ -779,14 +780,14 @@ export function TaskDetailDrawer({
                         }
                       }}
                     />
-                    <Button
+                    <MutationButton
                       size="icon"
                       className="size-10 shrink-0"
                       disabled={!commentText.trim()}
                       onClick={handleComment}
                     >
                       <Send className="size-4" />
-                    </Button>
+                    </MutationButton>
                   </div>
                 </div>
               )}

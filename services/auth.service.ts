@@ -34,6 +34,7 @@ export interface AuthApiUser {
   emailVerified: boolean
   acceptedTerms: boolean
   isActive: boolean
+  aiAccessEnabled?: boolean
   lastLoginAt: string | null
   createdAt: string
   updatedAt: string
@@ -177,6 +178,7 @@ function mapAuthApiUserToAppUser(user: AuthApiUser): User {
     lastLoginAt: user.lastLoginAt ?? undefined,
     language: user.language,
     timezone: user.timezone,
+    aiAccessEnabled: user.aiAccessEnabled,
   }
 }
 

@@ -21,6 +21,7 @@ import { canManageTenantAdministration, getAllowedInviteRoles } from "@/lib/auth
 import type { TenantRole } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -551,7 +552,7 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-end">
-                <Button
+                <MutationButton
                   onClick={() => void handleCreateStaff()}
                   className="w-full gap-2"
                   disabled={createStaffMutation.isPending}
@@ -562,7 +563,7 @@ export default function UsersPage() {
                     <UserPlus className="h-4 w-4" />
                   )}
                   Provision Staff
-                </Button>
+                </MutationButton>
               </div>
             </div>
           </CardContent>
@@ -625,7 +626,7 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-end">
-                <Button
+                <MutationButton
                   onClick={() => void handleCreateInviteLink()}
                   className="w-full gap-2"
                   disabled={createInviteLinkMutation.isPending}
@@ -636,7 +637,7 @@ export default function UsersPage() {
                     <Copy className="h-4 w-4" />
                   )}
                   Generate Link
-                </Button>
+                </MutationButton>
               </div>
             </div>
 
@@ -704,7 +705,7 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           {link.status === "active" ? (
-                            <Button
+                            <MutationButton
                               variant="outline"
                               size="sm"
                               className="gap-1 text-red-600 hover:text-red-700"
@@ -717,7 +718,7 @@ export default function UsersPage() {
                                 <MailPlus className="h-3.5 w-3.5" />
                               )}
                               Revoke
-                            </Button>
+                            </MutationButton>
                           ) : (
                             <span className="text-xs text-gray-500">-</span>
                           )}
@@ -770,7 +771,7 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-end">
-                <Button
+                <MutationButton
                   onClick={() => void handleCreateInvite()}
                   className="w-full gap-2"
                   disabled={createInviteMutation.isPending}
@@ -781,7 +782,7 @@ export default function UsersPage() {
                     <UserPlus className="h-4 w-4" />
                   )}
                   Send Invite
-                </Button>
+                </MutationButton>
               </div>
             </div>
 
@@ -906,7 +907,7 @@ export default function UsersPage() {
                         <TableCell>{membership.createdAt ? formatDateTime(membership.createdAt) : "-"}</TableCell>
                         <TableCell className="text-right">
                           {canManageTenantAdministrationAccess && canApproveMembership(membership.status) ? (
-                            <Button
+                            <MutationButton
                               variant="outline"
                               size="sm"
                               className="gap-1"
@@ -919,7 +920,7 @@ export default function UsersPage() {
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                               )}
                               Approve
-                            </Button>
+                            </MutationButton>
                           ) : (
                             <span className="text-xs text-gray-500">-</span>
                           )}
@@ -1021,7 +1022,7 @@ export default function UsersPage() {
                         <TableCell>{invite.invitedBy ?? "-"}</TableCell>
                         <TableCell className="text-right">
                           {canManageTenantAdministrationAccess && canRevokeInvite(invite.status) ? (
-                            <Button
+                            <MutationButton
                               variant="outline"
                               size="sm"
                               className="gap-1 text-red-600 hover:text-red-700"
@@ -1034,7 +1035,7 @@ export default function UsersPage() {
                                 <MailPlus className="h-3.5 w-3.5" />
                               )}
                               Revoke
-                            </Button>
+                            </MutationButton>
                           ) : (
                             <span className="text-xs text-gray-500">-</span>
                           )}

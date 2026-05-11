@@ -15,6 +15,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -257,13 +258,13 @@ export default function SensitiveDataPage() {
           </Select>
         </div>
 
-        <Button
+        <MutationButton
           className="gap-2"
           onClick={() => guard(() => setCreateOpen(true))}
         >
           <Plus className="h-4 w-4" />
           Create Record
-        </Button>
+        </MutationButton>
       </div>
 
       {/* Table */}
@@ -476,7 +477,7 @@ export default function SensitiveDataPage() {
             <Button variant="outline" className="rounded-lg" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button
+            <MutationButton
               className="bg-red-600 hover:bg-red-700 text-white rounded-lg"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
@@ -485,7 +486,7 @@ export default function SensitiveDataPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Delete
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -710,7 +711,7 @@ function CreateRecordDialog({
           >
             Cancel
           </Button>
-          <Button
+          <MutationButton
             className="rounded-lg"
             disabled={createMutation.isPending}
             onClick={handleCreate}
@@ -719,7 +720,7 @@ function CreateRecordDialog({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             Create Record
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

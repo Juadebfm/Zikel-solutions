@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -510,9 +511,9 @@ export default function OverdueTasksPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleDelete(confirmDialog.taskIds)}>
+            <MutationButton className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleDelete(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Archive
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -532,9 +533,9 @@ export default function OverdueTasksPage() {
           </Select>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => { setConfirmDialog(null); setReassigneeId("") }}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending || !reassigneeId} onClick={() => confirmDialog && handleReassign(confirmDialog.taskIds)}>
+            <MutationButton className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending || !reassigneeId} onClick={() => confirmDialog && handleReassign(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reassign
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -550,9 +551,9 @@ export default function OverdueTasksPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handlePostpone(confirmDialog.taskIds)}>
+            <MutationButton className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handlePostpone(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Postpone
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

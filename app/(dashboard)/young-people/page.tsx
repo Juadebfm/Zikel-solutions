@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, Search, Sparkles } from "lucide-react"
+import { Plus, Search } from "lucide-react"
+
+import { AskAiButton } from "@/components/ai/ask-ai-button"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -122,10 +124,7 @@ export default function YoungPeoplePage() {
           <p className="text-gray-500 mt-1">View and manage young people profiles and care records.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            Ask AI
-          </Button>
+          <AskAiButton onClick={() => setIsAiOpen(true)} />
           <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Young Person

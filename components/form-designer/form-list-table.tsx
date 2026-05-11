@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useIsReadOnly } from "@/hooks/api/use-billing"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -81,6 +82,8 @@ export function FormListTable({
   onArchive,
   onPublish,
 }: FormListTableProps) {
+  const isReadOnly = useIsReadOnly()
+
   if (loading) {
     return (
       <div className="rounded-md border overflow-x-auto">
@@ -203,25 +206,37 @@ export function FormListTable({
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onClone(item.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onClone(item.id)}
+                        disabled={isReadOnly}
+                      >
                         <Copy className="mr-2 h-4 w-4" />
                         Clone
+                        {isReadOnly ? <span className="ml-auto text-xs text-muted-foreground">Read-only</span> : null}
                       </DropdownMenuItem>
                       {item.status === "draft" && (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => onPublish(item.id)}>
+                          <DropdownMenuItem
+                            onClick={() => onPublish(item.id)}
+                            disabled={isReadOnly}
+                          >
                             <Globe className="mr-2 h-4 w-4" />
                             Publish
+                            {isReadOnly ? <span className="ml-auto text-xs text-muted-foreground">Read-only</span> : null}
                           </DropdownMenuItem>
                         </>
                       )}
                       {item.status === "released" && (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => onArchive(item.id)}>
+                          <DropdownMenuItem
+                            onClick={() => onArchive(item.id)}
+                            disabled={isReadOnly}
+                          >
                             <Archive className="mr-2 h-4 w-4" />
                             Archive
+                            {isReadOnly ? <span className="ml-auto text-xs text-muted-foreground">Read-only</span> : null}
                           </DropdownMenuItem>
                         </>
                       )}

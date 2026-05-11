@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
-import { Plus, Sparkles, AlertTriangle } from "lucide-react"
+import { Plus, AlertTriangle } from "lucide-react"
+
+import { AskAiButton } from "@/components/ai/ask-ai-button"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -110,10 +112,7 @@ export default function DailyLogsPage() {
           <p className="text-gray-500 mt-1">Create and manage daily log entries.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            Ask AI
-          </Button>
+          <AskAiButton onClick={() => setIsAiOpen(true)} />
           <Button className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Create Log

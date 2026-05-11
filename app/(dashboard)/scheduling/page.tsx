@@ -14,6 +14,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -429,14 +430,14 @@ function CalendarTab() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button
+            <MutationButton
               className="bg-red-600 hover:bg-red-700 text-white rounded-lg"
               disabled={deleteMutation.isPending}
               onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
             >
               {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -705,10 +706,10 @@ function EventFormDialog({
 
         <DialogFooter>
           <Button variant="outline" className="rounded-lg" onClick={onClose}>Cancel</Button>
-          <Button className="rounded-lg" disabled={isPending} onClick={handleSubmit}>
+          <MutationButton className="rounded-lg" disabled={isPending} onClick={handleSubmit}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === "create" ? "Create" : "Save Changes"}
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -954,14 +955,14 @@ function RotasTab() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button
+            <MutationButton
               className="bg-red-600 hover:bg-red-700 text-white rounded-lg"
               disabled={deleteMutation.isPending}
               onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
             >
               {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1150,10 +1151,10 @@ function RotaFormDialog({ open, onClose }: { open: boolean; onClose: () => void 
 
         <DialogFooter>
           <Button variant="outline" className="rounded-lg" onClick={onClose}>Cancel</Button>
-          <Button className="rounded-lg" disabled={createMutation.isPending} onClick={handleSubmit}>
+          <MutationButton className="rounded-lg" disabled={createMutation.isPending} onClick={handleSubmit}>
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Rota
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

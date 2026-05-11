@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
-import { Plus, Sparkles, AlertTriangle } from "lucide-react"
+import { Plus, AlertTriangle } from "lucide-react"
+
+import { AskAiButton } from "@/components/ai/ask-ai-button"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -196,10 +198,7 @@ export default function TasksPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <PageHeader title="Task Explorer" subtitle="Browse, create, and manage tasks." showNewTask={false} showAskAI={false} />
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setIsAiOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            Ask AI
-          </Button>
+          <AskAiButton onClick={() => setIsAiOpen(true)} />
           <Button
             className="gap-2"
             onClick={() => store.setCreateModalOpen(true)}

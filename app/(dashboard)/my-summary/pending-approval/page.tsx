@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -501,9 +502,9 @@ export default function PendingApprovalPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleApprove(confirmDialog.taskIds)}>
+            <MutationButton className="bg-green-600 hover:bg-green-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleApprove(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -519,9 +520,9 @@ export default function PendingApprovalPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => setConfirmDialog(null)}>Cancel</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleReject(confirmDialog.taskIds)}>
+            <MutationButton className="bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isPending} onClick={() => confirmDialog && handleReject(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reject
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -541,9 +542,9 @@ export default function PendingApprovalPage() {
           </Select>
           <DialogFooter>
             <Button variant="outline" className="rounded-lg" onClick={() => { setConfirmDialog(null); setReassigneeId("") }}>Cancel</Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending || !reassigneeId} onClick={() => confirmDialog && handleReassign(confirmDialog.taskIds)}>
+            <MutationButton className="bg-primary hover:bg-primary/90 text-white rounded-lg" disabled={isPending || !reassigneeId} onClick={() => confirmDialog && handleReassign(confirmDialog.taskIds)}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reassign
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

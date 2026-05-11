@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-11 (commit `5197b18`).
+Last updated: 2026-05-11 (latest: gating sweep — items 1, 2, 3 from §"What's left"; commit pending).
 
 ---
 
@@ -24,9 +24,9 @@ Last updated: 2026-05-11 (commit `5197b18`).
 |---|---|---|
 | Slice 1 — Billing infra + banner | ✅ Done | `5197b18` |
 | Slice 2 — Settings → Billing page | ✅ Done | `5197b18` |
-| Slice 3 — Read-only gate + 402 interceptor | ~ Partial — 15/~40 mutation surfaces gated | `5197b18` |
+| Slice 3 — Read-only gate + 402 interceptor | ✅ Done — all major mutation surfaces gated (forms dropdown + my-summary + task drawer + users + scheduling + sensitive-data + AI dialog) | `5197b18` + sweep |
 | Slice 4 — Conversational AI (`/ai`) | ✅ Done | `5197b18` |
-| Slice 5 — AI dialog polish + MutationButton sweep | ~ Partial — 429 cooldown + AI button hide missing | `5197b18` |
+| Slice 5 — AI dialog polish + MutationButton sweep | ~ Partial — 429 cooldown missing; AI button hide ✅ done | `5197b18` + sweep |
 | Slice 6 — Auth polish (MFA Security, impersonation, backup codes) | ~ Partial — login enrollment branch deferred | `5197b18` |
 | Cross-cutting — central error map | ~ Partial — billing codes only, no central switch | `5197b18` |
 | Cross-cutting — rate-limit headers / cooldown store | ❌ Not started | — |
@@ -151,8 +151,8 @@ Last updated: 2026-05-11 (commit `5197b18`).
 
 - [x] `<MutationButton>` wrapper at [components/ui/mutation-button.tsx](components/ui/mutation-button.tsx) — lock icon + tooltip + billing link
 - [x] 402 server-fallback interceptor at [lib/api/client.ts](lib/api/client.ts) — refetches subscription + quota when server rejects
-- [~] **Audit pass — 15 / ~40 surfaces gated.** Done:
-  - [x] Employees: create dialog ([components/employees/create-employee-dialog.tsx](components/employees/create-employee-dialog.tsx)), create-with-user dialog, detail drawer
+- [x] **Audit pass — ~35 mutation surfaces gated.** Done:
+  - [x] Employees: create dialog, create-with-user dialog, detail drawer
   - [x] Young People: create drawer, detail drawer
   - [x] Homes: create drawer, detail drawer
   - [x] Vehicles: create dialog, detail drawer
@@ -163,19 +163,22 @@ Last updated: 2026-05-11 (commit `5197b18`).
   - [x] Safeguarding: Add Note, Acknowledge, In Progress, Resolve (4 buttons)
   - [x] AI Chat dialog: "Ask AI" button
   - [x] AI Conversation composer: send button
-- [ ] **Missing surfaces to gate:**
-  - [ ] Forms — publish/archive/clone are `<DropdownMenuItem>`, not `<Button>`, so `<MutationButton>` doesn't drop in. Needs inline `useIsReadOnly()` check at each item.
-  - [ ] Settings page — Save profile / Save notifications / Save organisation buttons (intentionally not gated — these are user prefs)
-  - [ ] Task Explorer — batch-archive, batch-postpone, batch-reassign buttons
-  - [ ] Rotas — create / publish buttons
-  - [ ] Calendar / Events — create / update buttons on home detail
-  - [ ] Sensitive Data — create / update / delete buttons
-  - [ ] Announcements — create / update / pin / archive
-  - [ ] Webhooks — create / test / delete
-  - [ ] Exports — start async export
-  - [ ] Members (Users page) — Invite / Promote / Suspend / Revoke buttons
-  - [ ] Roles — create / update / permission assignment
-  - [ ] MFA modal — handled separately (auth flows must remain usable)
+  - [x] **Task Explorer detail drawer**: Approve, Reject, Reassign, Send comment
+  - [x] **Scheduling**: Create Event (save), Delete Event, Create Rota, Delete Rota
+  - [x] **Sensitive Data**: Create Record (page + dialog), Delete Record
+  - [x] **Users page**: Provision Staff, Generate Link, Revoke Link, Send Invite, Approve membership, Revoke Invite (6 buttons)
+  - [x] **My Summary — pending-approval**: Approve, Reject, Reassign (3 confirm-dialog buttons)
+  - [x] **My Summary — drafts**: Submit, Delete, Reassign (3 confirm-dialog buttons)
+  - [x] **My Summary — overdue-tasks**: Archive, Reassign, Postpone (3 confirm-dialog buttons)
+  - [x] **Forms list**: Clone, Publish, Archive DropdownMenuItem actions (inline `useIsReadOnly()` check with "Read-only" hint)
+- [ ] **Still ungated (lower priority):**
+  - [ ] Settings page Save profile / Save notifications / Save organisation — intentionally not gated (user prefs)
+  - [ ] Announcements — pin/archive (if those buttons exist; create dialog wasn't found in inventory)
+  - [ ] Webhooks — create / test / delete (page may not exist yet)
+  - [ ] Exports — start async export (page may not exist yet)
+  - [ ] Roles — create / update / permission assignment (separate roles page TBD)
+  - [ ] MFA modal Verify — intentionally NOT gated (auth flows must remain usable)
+  - [ ] Per-row opener Buttons in my-summary that just open confirm dialogs (the confirm dialog buttons themselves ARE gated — server is the source of truth, this is just a polish gap)
 
 ---
 
@@ -242,7 +245,7 @@ Last updated: 2026-05-11 (commit `5197b18`).
 - [x] `403 MFA_REQUIRED` → "Additional verification is required before using AI."
 - [x] "Ask AI" button → `<MutationButton>` (auto-disables on read-only)
 - [x] `<QuotaPill />` in dialog footer
-- [ ] **Missing**: hide the AI dialog entry button (on dashboard pages) when user lacks `ai:use` — currently the dialog still opens and shows the inline 403 instead
+- [x] **AI entry buttons hidden** when `user.aiAccessEnabled === false`. Added `aiAccessEnabled` to `User` type + AuthApiUser mapping. New `useCanUseAi()` hook + reusable `<AskAiButton>` component swapped across 7 consumers (employees, young-people, care-groups, tasks, daily-logs, homes, vehicles).
 - [ ] **Missing**: 429 cooldown countdown — friendly message shown but no UI countdown disabling input for N seconds
 
 ### 7b. Conversational AI
@@ -359,11 +362,11 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 
 ## What's left — prioritised summary
 
-If you want a single ordered list of "what's still left to do":
+Items 1–3 from the previous version are now ✅ done (gating sweep complete). Remaining work:
 
-1. **Forms publish/archive/clone read-only gate** (small) — inline `useIsReadOnly()` check on the DropdownMenuItem actions in [components/form-designer/form-list-table.tsx](components/form-designer/form-list-table.tsx)
-2. **Remaining mutation buttons** (~25 surfaces) — task batch actions, rotas, calendar events, sensitive data, announcements, webhooks, exports, members invites, roles
-3. **AI button gating on `ai:use` permission** (small) — hide AI dialog opener button on pages when user lacks the permission
+1. ~~**Forms publish/archive/clone read-only gate**~~ ✅ Done — inline `useIsReadOnly()` check on each DropdownMenuItem
+2. ~~**Remaining mutation buttons**~~ ✅ Done — ~25 mutation surfaces retrofitted across users, scheduling, sensitive-data, task drawer, my-summary
+3. ~~**AI button gating on `ai:use` permission**~~ ✅ Done — `<AskAiButton>` reads `user.aiAccessEnabled` and hides when false
 4. **429 cooldown UI** (small) — countdown timer that disables submit buttons after a `TOO_MANY_REQUESTS` until `x-ratelimit-reset` expires; wire into a global cool-down store
 5. **`BILLING_NOT_CONFIGURED` feature flag** (small) — app-boot probe to hide billing UI on dev envs where Stripe isn't set up
 6. **Uploads `purpose` enum compliance** (medium) — expand the type, audit ~5 callers, pass correct `purpose`
