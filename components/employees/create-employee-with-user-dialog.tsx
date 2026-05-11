@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -305,14 +306,14 @@ export function CreateEmployeeWithUserDialog({
           <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending} className="rounded-lg px-6">
             Cancel
           </Button>
-          <Button
+          <MutationButton
             onClick={handleSubmit}
             disabled={createMutation.isPending}
             className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg px-6"
           >
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Employee
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

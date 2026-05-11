@@ -487,6 +487,69 @@ export const authService = {
     }
   },
 
+  async verifyMfaBackup(code: string): Promise<AccessTokenPayload> {
+    const response = await apiRequest<AccessTokenEnvelope>({
+      path: "/auth/mfa/backup/verify",
+      method: "POST",
+      auth: true,
+      body: { code },
+    })
+
+    const accessToken = response.data.accessToken ?? response.data.tokens?.accessToken
+    if (!accessToken) {
+      throw new Error("Invalid MFA backup verify response from server.")
+    }
+
+    return {
+      accessToken,
+      accessTokenExpiresAt: response.data.tokens?.accessTokenExpiresAt ?? null,
+      refreshTokenExpiresAt: response.data.tokens?.refreshTokenExpiresAt ?? null,
+      serverTime: response.data.serverTime,
+      session: response.data.session,
+    }
+  },
+
+  async getMfaStatus(): Promise<{ enabled: boolean; backupCodesRemaining: number }> {
+    const response = await apiRequest<{ enabled: boolean; backupCodesRemaining: number }>({
+      path: "/auth/mfa/status",
+      auth: true,
+    })
+    return response.data
+  },
+
+  async setupMfaTotp(): Promise<{ qrCodeDataUri: string; otpAuthUri: string; backupCodes: string[] }> {
+    const response = await apiRequest<{
+      qrCodeDataUri: string
+      otpAuthUri: string
+      backupCodes: string[]
+    }>({
+      path: "/auth/mfa/totp/setup",
+      method: "POST",
+      auth: true,
+    })
+    return response.data
+  },
+
+  async verifySetupMfaTotp(code: string): Promise<{ enrolled: boolean }> {
+    const response = await apiRequest<{ enrolled: boolean }>({
+      path: "/auth/mfa/totp/verify-setup",
+      method: "POST",
+      auth: true,
+      body: { code },
+    })
+    return response.data
+  },
+
+  async disableMfaTotp(currentPassword: string): Promise<{ disabled: true }> {
+    const response = await apiRequest<{ disabled: true }>({
+      path: "/auth/mfa/totp",
+      method: "DELETE",
+      auth: true,
+      body: { currentPassword },
+    })
+    return response.data
+  },
+
   async switchTenant(tenantId: string): Promise<AccessTokenPayload> {
     const response = await apiRequest<AccessTokenEnvelope>({
       path: "/auth/switch-tenant",

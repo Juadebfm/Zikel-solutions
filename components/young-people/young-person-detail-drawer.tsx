@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Loader2, Save, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -249,10 +250,10 @@ export function YoungPersonDetailDrawer({ youngPersonId, open, onClose }: YoungP
               <Button variant="outline" onClick={handleCancel} disabled={updateMutation.isPending}>
                 <X className="h-4 w-4 mr-1.5" /> Cancel
               </Button>
-              <Button onClick={handleSave} disabled={updateMutation.isPending}>
+              <MutationButton onClick={handleSave} disabled={updateMutation.isPending}>
                 {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
                 Save Changes
-              </Button>
+              </MutationButton>
             </>
           ) : (
             <>

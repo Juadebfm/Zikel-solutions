@@ -10,6 +10,7 @@ import { StepUserDetails } from "@/components/employees/create/step-user-details
 import { StepAssociations } from "@/components/employees/create/step-associations"
 import { StepPermissions } from "@/components/employees/create/step-permissions"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -129,13 +130,13 @@ export function CreateEmployeeDialog({ open, onOpenChange }: CreateEmployeeDialo
                 <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button
+              <MutationButton
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 gap-1.5"
                 onClick={handleSave}
               >
                 Save
-              </Button>
+              </MutationButton>
             )}
           </div>
         </DialogContent>

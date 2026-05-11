@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Loader2, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -161,10 +162,10 @@ export function CreateYoungPersonDrawer({ open, onOpenChange }: CreateYoungPerso
         <Separator />
         <div className="px-6 py-4 flex items-center justify-end gap-2 bg-gray-50/50">
           <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+          <MutationButton onClick={handleSubmit} disabled={createMutation.isPending}>
             {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
             Add Young Person
-          </Button>
+          </MutationButton>
         </div>
       </SheetContent>
     </Sheet>

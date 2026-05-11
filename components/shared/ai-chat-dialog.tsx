@@ -3,7 +3,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { Loader2, Maximize2, MessageCircleDashed, Minimize2, Sparkles, User2 } from "lucide-react"
 
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -17,11 +20,14 @@ import { isApiClientError, getApiErrorMessage } from "@/lib/api/error"
 import { useAskAi } from "@/hooks/api/use-ai"
 import { useErrorModalStore } from "@/components/shared/error-modal"
 import { AiResponseSections } from "@/components/shared/ai-analysis-sections"
-import type { AskAiAction, AskAiContext, AskAiHighlight, AskAiPage, AskAiResponse } from "@/services/ai.service"
+import { QuotaPill } from "@/components/ai/quota-pill"
+import type { AskAiAction, AskAiContext, AskAiHighlight, AskAiPage } from "@/services/ai.service"
 
 // ─── Types ───────────────────────────────────────────────────────
 
 type AiChatRole = "user" | "assistant" | "system"
+
+type AiSystemCta = "billing" | null
 
 interface AiChatMessage {
   id: string
@@ -31,6 +37,8 @@ interface AiChatMessage {
   highlights?: AskAiHighlight[]
   tip?: string | null
   actions?: AskAiAction[]
+  /** For system messages: which CTA to render alongside the message body. */
+  systemCta?: AiSystemCta
 }
 
 export interface AiChatDialogProps {
@@ -77,27 +85,71 @@ function buildAskAiQuery(query: string, conversation: AiChatMessage[]): string {
   ].join("\n")
 }
 
-function getAskAiErrorMessage(error: unknown): string {
+interface AskAiErrorResult {
+  message: string
+  cta: AiSystemCta
+}
+
+function getAskAiErrorMessage(error: unknown): AskAiErrorResult {
   if (isApiClientError(error)) {
+    if (error.status === 402 && error.code === "SUBSCRIPTION_PAST_DUE") {
+      return {
+        message: "Out of AI calls or subscription past due. Top up or update billing to keep using AI.",
+        cta: "billing",
+      }
+    }
+    if (error.status === 402 && error.code === "SUBSCRIPTION_INCOMPLETE") {
+      return {
+        message: "Finish setting up your subscription to use AI.",
+        cta: "billing",
+      }
+    }
+    if (error.status === 403 && error.code === "AI_DISABLED_FOR_TENANT") {
+      return {
+        message: "AI is disabled for this organization. Contact your Owner.",
+        cta: null,
+      }
+    }
     if (error.status === 403 && error.code === "AI_ACCESS_DISABLED") {
-      return "AI access is disabled for your account. Contact your administrator."
+      return {
+        message: "AI access is disabled for your account. Contact your administrator.",
+        cta: null,
+      }
+    }
+    if (error.status === 403 && error.code === "PERMISSION_DENIED") {
+      return {
+        message: "You do not have permission to use AI. Contact your administrator.",
+        cta: null,
+      }
     }
     if (error.status === 403 && error.code === "MFA_REQUIRED") {
-      return "Additional verification is required before using AI."
+      return {
+        message: "Additional verification is required before using AI.",
+        cta: null,
+      }
     }
     if (error.status === 400 || error.status === 422) {
-      return "Your prompt was invalid. Please enter a clearer question."
+      return {
+        message: "Your prompt was invalid. Please enter a clearer question.",
+        cta: null,
+      }
     }
     if (error.status === 429) {
-      return getApiErrorMessage(error, "Too many AI requests. Please wait a moment and try again.")
+      return {
+        message: getApiErrorMessage(error, "Too many AI requests. Please wait a moment and try again."),
+        cta: null,
+      }
     }
     if (error.status >= 500) {
-      return "AI is temporarily unavailable. Please try again shortly."
+      return {
+        message: "AI is temporarily unavailable. Please try again shortly.",
+        cta: null,
+      }
     }
-    return error.message
+    return { message: error.message, cta: null }
   }
-  if (error instanceof Error) return error.message
-  return "Unable to get AI response right now."
+  if (error instanceof Error) return { message: error.message, cta: null }
+  return { message: "Unable to get AI response right now.", cta: null }
 }
 
 // ─── Markdown parsing ────────────────────────────────────────────
@@ -313,8 +365,12 @@ export function AiChatDialog({
           },
         ])
       } catch (err) {
-        const message = getAskAiErrorMessage(err)
-        setError(message)
+        const { message, cta } = getAskAiErrorMessage(err)
+        // Suppress the loud modal for billing-gated errors — the inline bubble
+        // already shows the CTA, so the modal would be a duplicate annoyance.
+        if (cta !== "billing") {
+          setError(message)
+        }
         setChatMessages((prev) => [
           ...prev,
           {
@@ -322,6 +378,7 @@ export function AiChatDialog({
             role: "system",
             content: message,
             createdAt: new Date().toISOString(),
+            systemCta: cta,
           },
         ])
       }
@@ -433,7 +490,15 @@ export function AiChatDialog({
                     </div>
                   ) : (
                     <div className="max-w-[92%] rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
-                      {message.content}
+                      <p>{message.content}</p>
+                      {message.systemCta === "billing" ? (
+                        <Link
+                          href="/settings/billing"
+                          className="mt-1 inline-block text-xs font-medium text-amber-900 underline-offset-2 hover:underline"
+                        >
+                          Open billing settings →
+                        </Link>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -471,31 +536,40 @@ export function AiChatDialog({
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-gray-50/70">
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={handleReset}
-            disabled={askAiMutation.isPending || chatMessages.length === 0}
-          >
-            New Chat
-          </Button>
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => onOpenChange(false)}
-            disabled={askAiMutation.isPending}
-          >
-            Close
-          </Button>
-          <Button type="button" onClick={handleSubmit} disabled={askAiMutation.isPending}>
-            {askAiMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Ask AI
-          </Button>
+        <DialogFooter className="px-6 py-4 border-t bg-gray-50/70 sm:items-center sm:justify-between">
+          <div className="hidden sm:block">
+            <QuotaPill />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={handleReset}
+              disabled={askAiMutation.isPending || chatMessages.length === 0}
+            >
+              New Chat
+            </Button>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => onOpenChange(false)}
+              disabled={askAiMutation.isPending}
+            >
+              Close
+            </Button>
+            <MutationButton
+              type="button"
+              onClick={handleSubmit}
+              disabled={askAiMutation.isPending}
+            >
+              {askAiMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Ask AI
+            </MutationButton>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -15,6 +15,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -406,14 +407,14 @@ function LibraryTab({ guard }: { guard: (action: () => void) => void }) {
             <Button variant="outline" className="rounded-lg" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button
+            <MutationButton
               className="bg-red-600 hover:bg-red-700 text-white rounded-lg"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
               {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
-            </Button>
+            </MutationButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

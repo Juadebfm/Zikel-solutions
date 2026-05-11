@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -647,10 +648,10 @@ export function CreateDailyLogDialog({
           <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+          <MutationButton onClick={handleSubmit} disabled={createMutation.isPending}>
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Log
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

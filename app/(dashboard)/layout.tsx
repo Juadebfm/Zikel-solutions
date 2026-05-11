@@ -10,7 +10,9 @@ import { PageLoading } from "@/components/shared/page-loading"
 import { Toast } from "@/components/shared/toast"
 import { ErrorModal } from "@/components/shared/error-modal"
 import { MfaModal } from "@/components/mfa/mfa-modal"
+import { ImpersonationBanner } from "@/components/auth/impersonation-banner"
 import { SessionExpiryBanner } from "@/components/auth/session-expiry-banner"
+import { SubscriptionBanner } from "@/components/billing/subscription-banner"
 import { useAuth } from "@/contexts/auth-context"
 import { queryKeys } from "@/lib/query-keys"
 
@@ -57,6 +59,8 @@ export default function DashboardLayout({
   if (useAcknowledgementsGateLayout) {
     return (
       <div className="min-h-screen bg-background">
+        <ImpersonationBanner />
+        <SubscriptionBanner />
         <main className="min-h-screen p-4 lg:p-8">
           <div className="mx-auto w-full max-w-[1500px] space-y-4">
             <SessionExpiryBanner />
@@ -88,6 +92,8 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="lg:pl-64">
+        <ImpersonationBanner />
+        <SubscriptionBanner />
         <Header onMenuClick={() => setMobileNavOpen(true)} />
         <SessionExpiryBanner />
         <main className="p-4 lg:p-6">

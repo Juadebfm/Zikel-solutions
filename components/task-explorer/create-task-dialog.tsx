@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -471,14 +472,14 @@ export function CreateTaskDialog({
           >
             Cancel
           </Button>
-          <Button
+          <MutationButton
             onClick={handleSubmit}
             disabled={createMutation.isPending}
             className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg px-6"
           >
             {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Task
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

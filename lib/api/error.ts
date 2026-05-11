@@ -33,6 +33,12 @@ const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   INVITE_LINK_REVOKED: "This invite link has been revoked.",
   INVITE_LINK_EXPIRED: "This invite link has expired.",
   TENANT_INACTIVE: "This organization is not active.",
+  SUBSCRIPTION_PAST_DUE: "Subscription is past due. Update your billing details to continue.",
+  SUBSCRIPTION_INCOMPLETE: "Finish setting up your subscription to continue.",
+  SUBSCRIPTION_REQUIRED: "Subscribe to a plan before purchasing a top-up.",
+  BILLING_NOT_CONFIGURED: "Billing is not available in this environment.",
+  AI_DISABLED_FOR_TENANT: "AI is disabled for this organization. Contact your administrator.",
+  CONVERSATION_ARCHIVED: "This conversation is archived. Start a new chat to continue.",
 }
 
 export class ApiClientError extends Error {

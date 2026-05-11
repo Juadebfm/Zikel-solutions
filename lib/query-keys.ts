@@ -217,4 +217,19 @@ export const queryKeys = {
     categories: ["sensitive-data", "categories"] as const,
     accessLog: (id: string) => ["sensitive-data", "access-log", id] as const,
   },
+  billing: {
+    subscription: ["billing", "subscription"] as const,
+    plans: ["billing", "plans"] as const,
+    quota: ["billing", "quota"] as const,
+    invoices: (params: { page: number; pageSize: number }) =>
+      ["billing", "invoices", params] as const,
+    invoicesBase: ["billing", "invoices"] as const,
+    aiRestrictions: ["billing", "ai-restrictions"] as const,
+  },
+  ai: {
+    conversations: (params: { page: number; pageSize: number; includeArchived: boolean }) =>
+      ["ai", "conversations", params] as const,
+    conversationsBase: ["ai", "conversations"] as const,
+    conversation: (id: string) => ["ai", "conversations", "detail", id] as const,
+  },
 } as const

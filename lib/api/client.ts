@@ -33,8 +33,30 @@ interface RefreshPayload {
 
 let refreshPromise: Promise<string | null> | null = null
 let pendingMfaRequest: ApiRequestOptions | null = null
+let billingGateListener: (() => void) | null = null
 
 const MFA_RETURN_PATH_STORAGE_KEY = "nexus-mfa-return-path"
+
+const BILLING_GATE_ERROR_CODES = new Set([
+  "SUBSCRIPTION_PAST_DUE",
+  "SUBSCRIPTION_INCOMPLETE",
+  "SUBSCRIPTION_REQUIRED",
+])
+
+/**
+ * Register a listener invoked whenever the API client observes a response
+ * that indicates the billing gate has fired (402 SUBSCRIPTION_*). React
+ * components can use this to refetch subscription state so the banner and
+ * read-only flag reflect server reality. Returns a disposer.
+ */
+export function registerBillingGateListener(listener: () => void): () => void {
+  billingGateListener = listener
+  return () => {
+    if (billingGateListener === listener) {
+      billingGateListener = null
+    }
+  }
+}
 
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 const MFA_GATE_BYPASS_PATHS = new Set([
@@ -73,6 +95,15 @@ export async function apiRequest<T, M = unknown>(
     const errorPayload = await parseJsonSafely(response)
     if (options.auth) {
       syncMfaRequirementFromError(errorPayload)
+    }
+
+    if (
+      response.status === 402 &&
+      isApiFailurePayload(errorPayload) &&
+      BILLING_GATE_ERROR_CODES.has(errorPayload.error.code) &&
+      billingGateListener
+    ) {
+      billingGateListener()
     }
 
     // Intercept 403 MFA_REQUIRED on write methods: open MFA modal,

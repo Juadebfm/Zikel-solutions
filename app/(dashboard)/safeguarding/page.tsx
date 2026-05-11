@@ -17,6 +17,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -579,21 +580,21 @@ function RiskAlertDrawer({
                     placeholder="What observations or actions should be recorded?"
                     rows={3}
                   />
-                  <Button
+                  <MutationButton
                     size="sm"
                     onClick={handleAddNote}
                     disabled={!noteText.trim() || addNoteMutation.isPending}
                   >
                     {addNoteMutation.isPending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : null}
                     Add Note
-                  </Button>
+                  </MutationButton>
                 </div>
               </div>
             </ScrollArea>
 
             <div className="border-t px-6 py-3 flex flex-wrap items-center gap-2">
               {alert.status === "open" && (
-                <Button
+                <MutationButton
                   size="sm"
                   variant="outline"
                   onClick={() => acknowledgeMutation.mutate(alert.id)}
@@ -601,10 +602,10 @@ function RiskAlertDrawer({
                 >
                   <CheckCircle2 className="mr-2 h-3 w-3" />
                   Acknowledge
-                </Button>
+                </MutationButton>
               )}
               {(alert.status === "open" || alert.status === "acknowledged") && (
-                <Button
+                <MutationButton
                   size="sm"
                   variant="outline"
                   onClick={() => inProgressMutation.mutate(alert.id)}
@@ -612,17 +613,17 @@ function RiskAlertDrawer({
                 >
                   <Play className="mr-2 h-3 w-3" />
                   In Progress
-                </Button>
+                </MutationButton>
               )}
               {alert.status !== "resolved" && (
-                <Button
+                <MutationButton
                   size="sm"
                   onClick={() => resolveMutation.mutate(alert.id)}
                   disabled={resolveMutation.isPending}
                 >
                   <CheckCircle2 className="mr-2 h-3 w-3" />
                   Resolve
-                </Button>
+                </MutationButton>
               )}
             </div>
           </>

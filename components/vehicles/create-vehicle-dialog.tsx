@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -268,14 +269,14 @@ export function CreateVehicleDialog({ open, onOpenChange }: CreateVehicleDialogP
           >
             Cancel
           </Button>
-          <Button
+          <MutationButton
             size="sm"
             className="bg-green-600 hover:bg-green-700"
             onClick={handleSave}
             disabled={createVehicleMutation.isPending}
           >
             {createVehicleMutation.isPending ? "Saving..." : "Save Vehicle"}
-          </Button>
+          </MutationButton>
         </div>
       </DialogContent>
     </Dialog>

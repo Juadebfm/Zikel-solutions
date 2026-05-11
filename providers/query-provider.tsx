@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+
+import { registerBillingGateListener } from "@/lib/api/client"
+import { queryKeys } from "@/lib/query-keys"
 
 interface QueryProviderProps {
   children: React.ReactNode
@@ -23,6 +26,13 @@ export function QueryProvider({ children }: QueryProviderProps) {
         },
       })
   )
+
+  useEffect(() => {
+    return registerBillingGateListener(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.billing.subscription })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.billing.quota })
+    })
+  }, [queryClient])
 
   return (
     <QueryClientProvider client={queryClient}>

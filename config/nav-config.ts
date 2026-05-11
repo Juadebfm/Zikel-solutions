@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   BarChart3,
+  Bot,
   Search,
   Users,
   Home,
@@ -50,6 +51,7 @@ export interface NavItemConfig {
 export const navItems: NavItemConfig[] = [
   { label: "My Summary", href: "/my-summary", icon: LayoutDashboard },
   // { label: "My Dashboard", href: "/my-dashboard", icon: BarChart3 },
+  { label: "AI Chat", href: "/ai", icon: Bot },
   { label: "Task Explorer", href: "/tasks", icon: Search },
   { label: "Daily Logs", href: "/daily-logs", icon: FileText },
   { label: "Care Groups", href: "/care-groups", icon: Users },

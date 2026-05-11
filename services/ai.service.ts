@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api/client"
+import type { ApiMeta } from "@/lib/api/types"
 
 // ─── Response Types ─────────────────────────────────────────────
 
@@ -106,6 +107,45 @@ export interface AskAiPayload {
   context?: AskAiContext
 }
 
+// ─── Conversational AI types ────────────────────────────────────
+
+export type AiMessageRole = "user" | "assistant"
+
+export interface AiMessage {
+  id: string
+  role: AiMessageRole
+  content: string
+  fallbackUsed?: boolean
+  createdAt: string
+}
+
+export interface AiConversationSummary {
+  id: string
+  title: string | null
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AiConversation extends AiConversationSummary {
+  messages: AiMessage[]
+}
+
+export interface SendMessageResponse {
+  assistantMessage: AiMessage
+}
+
+export interface ListConversationsParams {
+  page?: number
+  pageSize?: number
+  includeArchived?: boolean
+}
+
+export interface ListConversationsResult {
+  data: AiConversationSummary[]
+  meta: ApiMeta
+}
+
 // ─── Service ────────────────────────────────────────────────────
 
 export const aiService = {
@@ -118,5 +158,75 @@ export const aiService = {
     })
 
     return response.data
+  },
+
+  async createConversation(): Promise<AiConversation> {
+    const response = await apiRequest<AiConversation>({
+      path: "/ai/conversations",
+      method: "POST",
+      auth: true,
+    })
+    return response.data
+  },
+
+  async listConversations(params: ListConversationsParams = {}): Promise<ListConversationsResult> {
+    const response = await apiRequest<AiConversationSummary[]>({
+      path: "/ai/conversations",
+      auth: true,
+      query: {
+        page: params.page,
+        pageSize: params.pageSize,
+        includeArchived: params.includeArchived ? "true" : undefined,
+      },
+    })
+    return {
+      data: response.data,
+      meta:
+        (response.meta as ApiMeta) ?? {
+          total: response.data.length,
+          page: 1,
+          pageSize: response.data.length,
+          totalPages: 1,
+        },
+    }
+  },
+
+  async getConversation(id: string): Promise<AiConversation> {
+    const response = await apiRequest<AiConversation>({
+      path: `/ai/conversations/${id}`,
+      auth: true,
+    })
+    return response.data
+  },
+
+  async sendMessage(id: string, content: string): Promise<SendMessageResponse> {
+    const response = await apiRequest<SendMessageResponse>({
+      path: `/ai/conversations/${id}/messages`,
+      method: "POST",
+      auth: true,
+      body: { content },
+    })
+    return response.data
+  },
+
+  async patchConversation(
+    id: string,
+    payload: { title?: string | null; archived?: boolean },
+  ): Promise<AiConversationSummary> {
+    const response = await apiRequest<AiConversationSummary>({
+      path: `/ai/conversations/${id}`,
+      method: "PATCH",
+      auth: true,
+      body: payload,
+    })
+    return response.data
+  },
+
+  async deleteConversation(id: string): Promise<void> {
+    await apiRequest<{ deleted: true }>({
+      path: `/ai/conversations/${id}`,
+      method: "DELETE",
+      auth: true,
+    })
   },
 }

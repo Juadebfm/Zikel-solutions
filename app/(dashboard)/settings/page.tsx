@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Settings } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, CreditCard, Loader2, Settings } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { useAuth } from "@/contexts/auth-context"
+import { MfaSecurityCard } from "@/components/mfa/mfa-security-card"
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
@@ -53,6 +55,28 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex items-start gap-3 sm:items-center">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-base font-semibold">Billing &amp; Subscription</p>
+              <p className="text-sm text-muted-foreground">
+                Manage your plan, AI usage, invoices, and payment method.
+              </p>
+            </div>
+          </div>
+          <Button asChild>
+            <Link href="/settings/billing">
+              Open billing
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="personal">Personal</TabsTrigger>
@@ -81,6 +105,7 @@ function PersonalTab() {
   return (
     <div className="space-y-6">
       <ProfileSection />
+      <MfaSecurityCard />
       <NotificationSection />
     </div>
   )
