@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-12 (latest: per-user AI restrictions — item 8 from §"What's left"; commit pending).
+Last updated: 2026-05-12 (latest: friendly messages + AI page permission gate — item 14 + tail items; commit pending).
 
 ---
 
@@ -50,8 +50,14 @@ Last updated: 2026-05-12 (latest: per-user AI restrictions — item 8 from §"Wh
 
 ### 2a. Error code map
 
-- [~] Friendly messages added — [lib/api/error.ts](lib/api/error.ts) has the billing codes (`SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_INCOMPLETE`, `SUBSCRIPTION_REQUIRED`, `BILLING_NOT_CONFIGURED`, `AI_DISABLED_FOR_TENANT`, `CONVERSATION_ARCHIVED`).
-- [ ] **Missing friendly messages** for: `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY`, `ACCOUNT_LOCKED`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE`, `IMPERSONATION_*`, `TENANT_NOT_FOUND`, `USER_NOT_FOUND`. (Low priority — these still surface via `error.message` from server.)
+- [x] Friendly messages added for the full spec error catalogue — see [lib/api/error.ts](lib/api/error.ts). Coverage:
+  - Auth/token: `TENANT_TOKEN_REJECTED`, `PLATFORM_TOKEN_REJECTED`, `PLATFORM_ONLY`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `FORBIDDEN`, `PERMISSION_DENIED`
+  - Sessions: `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN`, `REFRESH_TOKEN_INVALID`, `REFRESH_TOKEN_REUSED`, `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED`, `SESSION_ABSOLUTE_EXPIRED`
+  - Tenant: `TENANT_CONTEXT_REQUIRED`, `TENANT_ACCESS_DENIED`, `TENANT_INACTIVE`, `TENANT_NOT_FOUND`, `USER_NOT_FOUND`
+  - MFA: `MFA_REQUIRED`, `MFA_NOT_FOUND`, `MFA_ALREADY_CONFIRMED`, `MFA_CODE_INVALID`, `MFA_BACKUP_INVALID`, `MFA_CHALLENGE_INVALID`, `MFA_CHALLENGE_AUDIENCE`
+  - Billing: `SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_INCOMPLETE`, `SUBSCRIPTION_REQUIRED`, `BILLING_NOT_CONFIGURED`
+  - AI: `AI_ACCESS_DISABLED`, `AI_DISABLED_FOR_TENANT`, `CONVERSATION_ARCHIVED`
+  - Impersonation: `IMPERSONATION_ACTIVE`, `IMPERSONATION_REVOKED`, `INVALID_DURATION`
 - [x] **Central side-effect switch** — `dispatchErrorSideEffects()` in [lib/api/client.ts](lib/api/client.ts) is the single place where MFA-sync / billing-gate / rate-limit cooldown side-effects fire. Each family has one handler, no scattering across consumers.
 
 ### 2b. Rate-limit headers & cooldown store
@@ -267,7 +273,7 @@ Last updated: 2026-05-12 (latest: per-user AI restrictions — item 8 from §"Wh
 - [x] Two-click confirm on hard delete
 - [x] Sidebar nav item ("AI Chat") between My Summary and Task Explorer
 - [x] **Top-bar icon** — Bot icon in [components/layout/header.tsx](components/layout/header.tsx) next to the Notifications bell. Visible only when `useCanUseAi()` is true. FAB intentionally skipped — three discovery paths (sidebar nav, header icon, inline `<AskAiButton>` on each list page) is sufficient.
-- [ ] **Missing**: composer hide when user lacks `ai:use` permission (currently only `isReadOnly` and quota are checked; opener buttons are hidden though)
+- [x] **Page-level permission gate** — [app/(dashboard)/ai/page.tsx](app/(dashboard)/ai/page.tsx) checks `useCanUseAi()` at the top and renders a friendly "AI is not available for your account" card with a back-to-dashboard CTA when false. Sidebar, thread, and composer are skipped entirely.
 
 ---
 
@@ -312,7 +318,7 @@ Last updated: 2026-05-12 (latest: per-user AI restrictions — item 8 from §"Wh
 - [x] Mounted above `<SubscriptionBanner />` in both dashboard layouts
 - [x] **`useIsImpersonating()` hook** at [hooks/use-impersonation.ts](hooks/use-impersonation.ts) — read JWT for `impersonatorId`
 - [x] **Self-mutating account flows gated** — MFA Security Card disables Set up / Regenerate backup codes / Disable 2FA when impersonating, with an explanatory yellow notice. Server still enforces `IMPERSONATION_ACTIVE` 409.
-- [ ] **Missing**: handle `401 IMPERSONATION_REVOKED` specifically (currently falls through to the generic logout path, which is fine but no custom messaging)
+- [x] **`IMPERSONATION_REVOKED` friendly message** — "Your support session was ended. Please sign in again." surfaces wherever `getApiErrorMessage` is used. The existing logout path handles cleanup.
 - [ ] **Missing**: Change-password UI doesn't exist yet — when added, gate it the same way (no diff today)
 
 ---
@@ -385,4 +391,4 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
 12. ~~**Self-mutating account flow gates during impersonation**~~ ✅ — `useIsImpersonating()` hook + MFA Security Card buttons disabled during support sessions
 13. ~~**Opt-in rate-limit cooldown on more surfaces**~~ ✅ — billing buttons now opt in via `cooldownFamily="billing"`; login/OTP keep their existing patterns
-14. **Friendly messages for tail error codes** (small) — `TENANT_TOKEN_REJECTED`, `IMPERSONATION_*`, etc. — server `error.message` is shown today; replacements only needed where server copy is poor.
+14. ~~**Friendly messages for tail error codes**~~ ✅ — full spec catalogue mapped in lib/api/error.ts

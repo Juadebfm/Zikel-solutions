@@ -1,14 +1,23 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot } from "lucide-react"
+import Link from "next/link"
+import { Bot, ShieldOff } from "lucide-react"
 
 import { ConversationSidebar } from "@/components/ai/conversation-sidebar"
 import { ConversationThread } from "@/components/ai/conversation-thread"
 import { MessageComposer } from "@/components/ai/message-composer"
 import { useToastStore } from "@/components/shared/toast"
-import { useConversation, useSendMessage } from "@/hooks/api/use-ai"
+import { useCanUseAi, useConversation, useSendMessage } from "@/hooks/api/use-ai"
 import { useIsReadOnly } from "@/hooks/api/use-billing"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/error"
 
 export default function AiChatPage() {
@@ -16,6 +25,7 @@ export default function AiChatPage() {
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null)
   const showToast = useToastStore((s) => s.show)
 
+  const canUseAi = useCanUseAi()
   const { data: conversation, isLoading: isLoadingConversation } = useConversation(activeId)
   const sendMessage = useSendMessage(activeId ?? "")
   const isReadOnly = useIsReadOnly()
@@ -48,6 +58,30 @@ export default function AiChatPage() {
     } finally {
       setPendingUserMessage(null)
     }
+  }
+
+  if (!canUseAi) {
+    return (
+      <div className="mx-auto max-w-xl py-12">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <ShieldOff className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <CardTitle>AI is not available for your account</CardTitle>
+            <CardDescription>
+              Contact your organization Owner to enable AI access. They can adjust per-role and
+              per-user limits in Settings → Billing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild variant="outline">
+              <Link href="/my-summary">Back to dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

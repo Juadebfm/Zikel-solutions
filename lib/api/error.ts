@@ -39,6 +39,31 @@ const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "Billing is not available in this environment.",
   AI_DISABLED_FOR_TENANT: "AI is disabled for this organization. Contact your administrator.",
   CONVERSATION_ARCHIVED: "This conversation is archived. Start a new chat to continue.",
+  // Token / audience
+  TENANT_TOKEN_REJECTED: "Your sign-in token isn't valid for this area. Please sign in again.",
+  PLATFORM_TOKEN_REJECTED: "Your sign-in token isn't valid for this area. Please sign in again.",
+  PLATFORM_ONLY: "This page is only available to Zikel staff.",
+  // Sessions
+  NO_REFRESH_TOKEN: "Your session has ended. Please sign in again.",
+  INVALID_REFRESH_TOKEN: "Your session has ended. Please sign in again.",
+  SESSION_REVOKED: "Your session was ended. Please sign in again.",
+  // Generic capability
+  FORBIDDEN: "You do not have permission to perform this action.",
+  PERMISSION_DENIED: "You do not have permission to perform this action.",
+  // MFA
+  MFA_NOT_FOUND: "Two-factor authentication isn't set up on this account yet.",
+  MFA_ALREADY_CONFIRMED: "Two-factor authentication is already enabled.",
+  MFA_CODE_INVALID: "That verification code is incorrect or expired. Try again.",
+  MFA_BACKUP_INVALID: "That backup code is invalid or has already been used.",
+  MFA_CHALLENGE_INVALID: "Your verification request expired. Please sign in again.",
+  MFA_CHALLENGE_AUDIENCE: "Your verification request is for a different area. Please sign in again.",
+  // Tenant / user lookups
+  TENANT_NOT_FOUND: "This organization could not be found.",
+  USER_NOT_FOUND: "This user could not be found.",
+  // Impersonation (support sessions)
+  IMPERSONATION_ACTIVE: "This action is unavailable during a support session. End the session and try again.",
+  IMPERSONATION_REVOKED: "Your support session was ended. Please sign in again.",
+  INVALID_DURATION: "Choose a duration between 5 and 240 minutes.",
 }
 
 export class ApiClientError extends Error {
