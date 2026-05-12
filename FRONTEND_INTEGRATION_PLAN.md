@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-12 (latest: small wins bundle — items 9, 12, 13 from §"What's left"; commit pending).
+Last updated: 2026-05-12 (latest: per-user AI restrictions — item 8 from §"What's left"; commit pending).
 
 ---
 
@@ -222,8 +222,8 @@ Last updated: 2026-05-12 (latest: small wins bundle — items 9, 12, 13 from §"
 
 - [x] Per-role rows — Uncapped / Capped / Disabled radio + numeric cap input
 - [x] Save bound to `useUpdateAiRestrictions` (invalidates restrictions + quota queries)
-- [x] Dirty-state tracking
-- [⏸] Per-user overrides table
+- [x] Dirty-state tracking (includes per-user diff)
+- [x] **Per-user overrides table** — new `<PerUserCapsTable />` at [components/billing/per-user-caps-table.tsx](components/billing/per-user-caps-table.tsx). User picker driven by `useTenantMemberships`. Per-row mode (Uncapped/Capped/Disabled) + numeric cap + remove. Sends both `perRoleCaps` and `perUserCaps` on save.
 
 ### 6e. Return pages
 
@@ -379,7 +379,7 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 5. ~~**`BILLING_NOT_CONFIGURED` feature flag**~~ ✅ — `useIsBillingEnabled` probe, banner + settings link + billing page all gated
 6. ~~**Uploads `purpose` enum compliance**~~ ✅ — full union exposed; existing caller correct; future callers documented
 7. ~~**Central error map switch**~~ ✅ — `dispatchErrorSideEffects()` in client.ts is the single dispatch for MFA-sync / billing-gate / rate-limit reactions
-8. **Per-user AI restrictions table** (medium) — needs a user picker; bind to `perUserCaps` on `PUT /billing/ai-restrictions`
+8. ~~**Per-user AI restrictions table**~~ ✅ — user picker + table wired; saves `perRoleCaps` + `perUserCaps` together
 9. ~~**AI chat entry points**~~ ✅ — top-bar Bot icon in header (FAB skipped as redundant)
 10. **Endpoint-drift audit** (large, rolling) — verify each of the ~18 module shapes against the spec; one PR per module
 11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model

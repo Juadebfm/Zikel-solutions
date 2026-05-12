@@ -14,11 +14,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAiRestrictions, useUpdateAiRestrictions } from "@/hooks/api/use-billing"
 import type { AiRestrictions } from "@/services/billing.service"
 import { useToastStore } from "@/components/shared/toast"
 import { getApiErrorMessage } from "@/lib/api/error"
+import { PerUserCapsTable } from "@/components/billing/per-user-caps-table"
 
 type CapMode = "uncapped" | "disabled" | "capped"
 
@@ -91,13 +93,26 @@ function AiRestrictionsFormInner({ restrictions }: { restrictions: AiRestriction
     [restrictions],
   )
   const [rows, setRows] = useState<RoleFormRow[]>(initialRows)
+  const initialPerUserCaps = useMemo<Record<string, number | null>>(
+    () => ({ ...(restrictions.perUserCaps ?? {}) }),
+    [restrictions],
+  )
+  const [perUserCaps, setPerUserCaps] = useState<Record<string, number | null>>(initialPerUserCaps)
+
+  const isPerUserDirty = useMemo(() => {
+    const currentKeys = Object.keys(perUserCaps)
+    const originalKeys = Object.keys(initialPerUserCaps)
+    if (currentKeys.length !== originalKeys.length) return true
+    return currentKeys.some((k) => perUserCaps[k] !== initialPerUserCaps[k])
+  }, [perUserCaps, initialPerUserCaps])
 
   const isDirty = useMemo(() => {
+    if (isPerUserDirty) return true
     return rows.some((row, i) => {
       const original = initialRows[i]
       return row.mode !== original.mode || (row.mode === "capped" && row.cap !== original.cap)
     })
-  }, [rows, initialRows])
+  }, [rows, initialRows, isPerUserDirty])
 
   const handleSave = async () => {
     const perRoleCaps: Record<string, number | null> = {}
@@ -106,7 +121,7 @@ function AiRestrictionsFormInner({ restrictions }: { restrictions: AiRestriction
     }
 
     try {
-      await updateMutation.mutateAsync({ perRoleCaps })
+      await updateMutation.mutateAsync({ perRoleCaps, perUserCaps })
       showToast("AI access rules saved.")
     } catch (error) {
       showToast(getApiErrorMessage(error))
@@ -180,6 +195,10 @@ function AiRestrictionsFormInner({ restrictions }: { restrictions: AiRestriction
           )
         })}
 
+        <Separator />
+
+        <PerUserCapsTable value={perUserCaps} onChange={setPerUserCaps} />
+
         <div className="flex justify-end">
           <Button
             type="button"
@@ -191,9 +210,6 @@ function AiRestrictionsFormInner({ restrictions }: { restrictions: AiRestriction
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Per-user overrides can be set from the Users page once a user is selected.
-        </p>
       </CardContent>
     </Card>
   )
