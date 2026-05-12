@@ -331,8 +331,12 @@ export interface BatchReassignResult {
   failed: Array<{ id: string; reason: string }>
 }
 
+/**
+ * Spec §M35 only allows these three actions. Older FE code permitted
+ * `"review" | "acknowledge"` which the server rejects with 422.
+ */
 export interface ReviewEventPayload {
-  action: "view_detail" | "open_document" | "open_task" | "review" | "acknowledge"
+  action: "view_detail" | "open_document" | "open_task"
 }
 
 export interface ReviewEventResult {
@@ -347,6 +351,9 @@ export interface BatchProcessPayload {
   taskIds: string[]
   action: "approve" | "reject"
   signatureFileId?: string
+  /** Spec §M35 uses `comment` for both approval notes and rejection reasons. */
+  comment?: string
+  /** @deprecated use `comment` — older FE field name */
   rejectionReason?: string
   gateScope?: "global" | "task"
 }

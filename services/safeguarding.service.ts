@@ -263,11 +263,17 @@ export const safeguardingService = {
     return response.data
   },
 
-  async evaluateRiskAlerts(): Promise<{ evaluated: number }> {
+  async evaluateRiskAlerts(
+    options: { mode?: "event" | "manual" | "scheduled"; lookbackHours?: number } = {},
+  ): Promise<{ evaluated: number }> {
     const response = await apiRequest<{ evaluated: number }>({
       path: "/safeguarding/risk-alerts/evaluate",
       auth: true,
       method: "POST",
+      body: {
+        mode: options.mode,
+        lookbackHours: options.lookbackHours,
+      },
     })
 
     return response.data
@@ -311,7 +317,7 @@ export const safeguardingService = {
       path: `/safeguarding/risk-alerts/${id}/notes`,
       auth: true,
       method: "POST",
-      body: { note: content },
+      body: { content },
     })
 
     return response.data

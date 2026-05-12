@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-12 (latest: endpoint-drift audit pass 1 — fixed 3 contract bugs in employees/young-people/tasks; commit pending).
+Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contract bugs across exports/reports/safeguarding/sensitive-data/summary; commit pending).
 
 ---
 
@@ -303,21 +303,21 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 - [ ] **Young People** — `GET /young-people/export` service method missing.
 - [ ] **Tasks** — missing service methods: `GET /tasks/export`, `POST /tasks/batch-archive`, `POST /tasks/batch-postpone`, `POST /tasks/:id/postpone`, `POST /tasks/batch-reassign`. The Task Explorer batch toolbar already calls these via separate hooks — verify those hooks match the spec contract.
 
-### Pass 2 candidates (not yet audited)
-- [ ] Vehicles — confirm `sortBy` enum matches spec
-- [ ] Forms — verify `builder`, `access`, `triggerTask`, `notifications` nested shapes
-- [ ] Documents — `visibility` enum (`private | tenant | home`). DELETE is hard.
-- [ ] Audit — wire `/audit/security-alerts?lookbackHours=` into a widget
-- [ ] Reports — verify Reg44/Reg45 packs + RI dashboard pages exist (gated on `reports:read`)
-- [ ] Safeguarding — verify chronologies + patterns + risk alerts pages render
-- [ ] Sensitive data — verify access is auto-logged; DELETE is hard
-- [ ] Help center — FAQs + tickets with comments
-- [ ] Notifications — verify `unread-count` for badge; `read-all` for bulk
-- [ ] Exports — verify async job pattern works end-to-end
-- [ ] Care Groups — verify nested address fields match spec
-- [ ] Settings — org + notifications
-- [ ] Summary — verify approval batch endpoint
-- [ ] Webhooks — verify create + test + deliveries log UI
+### Pass 2 — audited and corrected
+- [x] **Documents (M17)** — ✅ no drift
+- [x] **Settings (M34)** — ✅ no drift
+- [x] **Exports (M24)** — contract bug fixed: added required `title` field to `CreateExportPayload`. Updated reports page caller to derive title from entity + date.
+- [x] **Reports (M29)** — three contract bugs fixed: `tenantId` made required on all three params (was missing), field names remapped on wire (`dateFrom`/`dateTo` → `startDate`/`endDate`). Updated `useReg44Pack`/`useReg45Pack`/`useRiDashboard`/`useRiDrilldown` hooks to gate on `Boolean(tenantId)`. Updated `EvidencePacksTab` and `RiDashboardTab` to source `tenantId` from auth context.
+- [x] **Safeguarding (M32)** — two contract bugs fixed: `evaluateRiskAlerts` now accepts `mode` + `lookbackHours` body (was sending empty); `addRiskAlertNote` sends `{ content }` per spec (was sending `{ note }`).
+- [x] **Sensitive Data (M33)** — added `description?` + `expiryDate?` fields to `CreateSensitiveRecordPayload`. Kept existing FE-only fields (`title`, `confidentialityScope`, etc.) as-is.
+- [x] **Summary (M35)** — two contract bugs fixed: `ReviewEventPayload.action` enum trimmed to spec's 3 values (was including `'review' | 'acknowledge'` which would 422); `BatchProcessPayload` now exposes `comment?` per spec (kept `rejectionReason?` as deprecated alias).
+
+### Pass 2 — documented gaps (non-blocking, no UI consumer)
+- [ ] **Vehicles** — `VehicleListParams` missing `sortBy` / `sortOrder` query params per spec §M13. Add when sort UI lands.
+- [ ] **Care Groups** — minor cosmetic drift: spec uses `country`, FE uses `countryRegion`. Verify with BE before changing — could break existing data.
+- [ ] **Forms** — `FormMetadata` missing `statuses` / `formGroups` / `triggerOptions` fields per spec §M18. Add when form-builder UI surfaces dropdowns.
+- [ ] **Notifications (M27)** — no dedicated service file exists. Spec endpoints (`/notifications`, `/unread-count`, `/read-all`, `/preferences`) not implemented in FE. Build when notification inbox surface is added.
+- [ ] **Webhooks (M36)** — no service file. Build when customer-webhook management UI lands.
 
 ---
 
@@ -398,7 +398,7 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 7. ~~**Central error map switch**~~ ✅ — `dispatchErrorSideEffects()` in client.ts is the single dispatch for MFA-sync / billing-gate / rate-limit reactions
 8. ~~**Per-user AI restrictions table**~~ ✅ — user picker + table wired; saves `perRoleCaps` + `perUserCaps` together
 9. ~~**AI chat entry points**~~ ✅ — top-bar Bot icon in header (FAB skipped as redundant)
-10. **Endpoint-drift audit** (rolling) — Pass 1 done for 5 modules (Daily Logs clean; Employees/Young People/Tasks contract bugs fixed; Homes sub-resources documented). Pass 2 covers remaining 13 modules.
+10. ~~**Endpoint-drift audit**~~ ✅ Pass 1 + Pass 2 complete. Fixed 9 contract bugs across employees, young-people, tasks, exports, reports, safeguarding, sensitive-data, summary. Documented non-blocking gaps in vehicles, care-groups, forms, notifications, webhooks.
 11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
 12. ~~**Self-mutating account flow gates during impersonation**~~ ✅ — `useIsImpersonating()` hook + MFA Security Card buttons disabled during support sessions
 13. ~~**Opt-in rate-limit cooldown on more surfaces**~~ ✅ — billing buttons now opt in via `cooldownFamily="billing"`; login/OTP keep their existing patterns

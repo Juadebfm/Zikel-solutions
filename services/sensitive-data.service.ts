@@ -40,9 +40,14 @@ export interface CreateSensitiveRecordPayload {
   title: string
   category: string
   content: string
+  /** Optional human-readable summary per spec §M33. */
+  description?: string
+  /** ISO date when the record should auto-expire (spec §M33). */
+  expiryDate?: string
   youngPersonId?: string
   homeId?: string
   confidentialityScope: ConfidentialityScope
+  /** @deprecated alias of `expiryDate` — older BE field name */
   retentionDate?: string
   attachmentFileIds?: string[]
 }

@@ -39,6 +39,7 @@ import { NoPermissionModal } from "@/components/permission/no-permission-modal"
 import { usePermissionGuard } from "@/components/permission/use-permission-guard"
 import { cn } from "@/lib/utils"
 
+import { useAuth } from "@/contexts/auth-context"
 import { useHomesDropdown } from "@/hooks/api/use-dropdown-data"
 import { useReg44Pack, useReg45Pack, useRiDashboard, useRiDrilldown } from "@/hooks/api/use-reports"
 import {
@@ -119,6 +120,8 @@ export default function ReportsPage() {
 // ─── Evidence Packs Tab ─────────────────────────────────────────
 
 function EvidencePacksTab() {
+  const { session } = useAuth()
+  const tenantId = session?.activeTenantId ?? ""
   const [homeId, setHomeId] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -128,13 +131,14 @@ function EvidencePacksTab() {
   const homesQuery = useHomesDropdown()
 
   const packParams = {
+    tenantId,
     homeId: homeId || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   }
 
-  const reg44Query = useReg44Pack(packParams, Boolean(homeId))
-  const reg45Query = useReg45Pack(packParams, Boolean(homeId))
+  const reg44Query = useReg44Pack(packParams, Boolean(homeId && tenantId))
+  const reg45Query = useReg45Pack(packParams, Boolean(homeId && tenantId))
 
   const handleDownload = useCallback(
     async (type: "reg44" | "reg45", downloadFormat: EvidencePackFormat) => {
@@ -307,6 +311,8 @@ function EvidencePackCard({
 // ─── RI Dashboard Tab ───────────────────────────────────────────
 
 function RiDashboardTab() {
+  const { session } = useAuth()
+  const tenantId = session?.activeTenantId ?? ""
   const [homeId, setHomeId] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -316,15 +322,17 @@ function RiDashboardTab() {
   const homesQuery = useHomesDropdown()
 
   const dashboardParams = {
+    tenantId,
     homeId: homeId || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   }
 
-  const dashboardQuery = useRiDashboard(dashboardParams)
+  const dashboardQuery = useRiDashboard(dashboardParams, Boolean(tenantId))
 
   const drilldownQuery = useRiDrilldown(
     {
+      tenantId,
       metric: drilldownMetric!,
       homeId: homeId || undefined,
       dateFrom: dateFrom || undefined,
@@ -565,7 +573,8 @@ function BulkExportsTab() {
   const handleCreate = useCallback(async () => {
     if (!entity || !exportFormat) return
     try {
-      await createExport.mutateAsync({ entity, format: exportFormat })
+      const title = `${entity.replace(/_/g, " ")} export · ${new Date().toLocaleDateString()}`
+      await createExport.mutateAsync({ title, entity, format: exportFormat })
       showToast("Export job created successfully.")
       setEntity("")
       setExportFormat("")

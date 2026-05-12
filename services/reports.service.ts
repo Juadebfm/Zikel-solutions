@@ -6,11 +6,29 @@ import type { ApiMeta } from "@/lib/api/types"
 export type EvidencePackFormat = "json" | "pdf" | "excel" | "zip"
 
 export interface EvidencePackParams {
+  /**
+   * Tenant id is required by the BE per spec §M29. Pass `session.activeTenantId`
+   * from the auth context at the call site. Wire-level remaps `dateFrom` →
+   * `startDate` and `dateTo` → `endDate` so callers can keep the FE-native field
+   * names while the request stays spec-compliant.
+   */
+  tenantId: string
   homeId?: string
   dateFrom?: string
   dateTo?: string
   maxEvidenceItems?: number
   format?: EvidencePackFormat
+}
+
+function buildEvidencePackQuery(params: EvidencePackParams) {
+  return {
+    tenantId: params.tenantId,
+    startDate: params.dateFrom,
+    endDate: params.dateTo,
+    homeId: params.homeId,
+    maxEvidenceItems: params.maxEvidenceItems,
+    format: params.format ?? "json",
+  }
 }
 
 export interface EvidencePackItem {
@@ -43,6 +61,8 @@ export type RiMetric =
   | "action_completion"
 
 export interface RiDashboardParams {
+  /** Required per spec §M29. */
+  tenantId: string
   homeId?: string
   careGroupId?: string
   dateFrom?: string
@@ -72,6 +92,8 @@ export interface RiDashboardResult {
 }
 
 export interface RiDrilldownParams {
+  /** Required per spec §M29. */
+  tenantId: string
   metric: RiMetric
   homeId?: string
   careGroupId?: string
@@ -112,34 +134,25 @@ const DEFAULT_META: ApiMeta = {
 export const reportsService = {
   // ── Reg 44 ──────────────────────────────────────────────────
 
-  async getReg44Pack(params?: EvidencePackParams): Promise<EvidencePackResult> {
+  async getReg44Pack(params: EvidencePackParams): Promise<EvidencePackResult> {
     const response = await apiRequest<EvidencePackResult>({
       path: "/reports/reg44-pack",
       auth: true,
-      query: {
-        homeId: params?.homeId,
-        dateFrom: params?.dateFrom,
-        dateTo: params?.dateTo,
-        maxEvidenceItems: params?.maxEvidenceItems,
-        format: params?.format ?? "json",
-      },
+      query: buildEvidencePackQuery(params),
     })
 
     return response.data
   },
 
-  async downloadReg44Pack(params?: EvidencePackParams): Promise<Blob> {
-    const format = params?.format ?? "pdf"
-    const response = await fetch(
-      `/api/v1/reports/reg44-pack?${new URLSearchParams({
-        ...(params?.homeId ? { homeId: params.homeId } : {}),
-        ...(params?.dateFrom ? { dateFrom: params.dateFrom } : {}),
-        ...(params?.dateTo ? { dateTo: params.dateTo } : {}),
-        ...(params?.maxEvidenceItems ? { maxEvidenceItems: String(params.maxEvidenceItems) } : {}),
-        format,
-      }).toString()}`,
-      { credentials: "include" }
-    )
+  async downloadReg44Pack(params: EvidencePackParams): Promise<Blob> {
+    const search = new URLSearchParams()
+    const query = buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" })
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== "") search.set(k, String(v))
+    }
+    const response = await fetch(`/api/v1/reports/reg44-pack?${search.toString()}`, {
+      credentials: "include",
+    })
 
     if (!response.ok) {
       throw new Error(`Failed to download Reg 44 pack: ${response.statusText}`)
@@ -150,34 +163,25 @@ export const reportsService = {
 
   // ── Reg 45 ──────────────────────────────────────────────────
 
-  async getReg45Pack(params?: EvidencePackParams): Promise<EvidencePackResult> {
+  async getReg45Pack(params: EvidencePackParams): Promise<EvidencePackResult> {
     const response = await apiRequest<EvidencePackResult>({
       path: "/reports/reg45-pack",
       auth: true,
-      query: {
-        homeId: params?.homeId,
-        dateFrom: params?.dateFrom,
-        dateTo: params?.dateTo,
-        maxEvidenceItems: params?.maxEvidenceItems,
-        format: params?.format ?? "json",
-      },
+      query: buildEvidencePackQuery(params),
     })
 
     return response.data
   },
 
-  async downloadReg45Pack(params?: EvidencePackParams): Promise<Blob> {
-    const format = params?.format ?? "pdf"
-    const response = await fetch(
-      `/api/v1/reports/reg45-pack?${new URLSearchParams({
-        ...(params?.homeId ? { homeId: params.homeId } : {}),
-        ...(params?.dateFrom ? { dateFrom: params.dateFrom } : {}),
-        ...(params?.dateTo ? { dateTo: params.dateTo } : {}),
-        ...(params?.maxEvidenceItems ? { maxEvidenceItems: String(params.maxEvidenceItems) } : {}),
-        format,
-      }).toString()}`,
-      { credentials: "include" }
-    )
+  async downloadReg45Pack(params: EvidencePackParams): Promise<Blob> {
+    const search = new URLSearchParams()
+    const query = buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" })
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== "") search.set(k, String(v))
+    }
+    const response = await fetch(`/api/v1/reports/reg45-pack?${search.toString()}`, {
+      credentials: "include",
+    })
 
     if (!response.ok) {
       throw new Error(`Failed to download Reg 45 pack: ${response.statusText}`)
@@ -188,16 +192,17 @@ export const reportsService = {
 
   // ── RI Dashboard ────────────────────────────────────────────
 
-  async getRiDashboard(params?: RiDashboardParams): Promise<RiDashboardResult> {
+  async getRiDashboard(params: RiDashboardParams): Promise<RiDashboardResult> {
     const response = await apiRequest<RiDashboardResult>({
       path: "/reports/ri-dashboard",
       auth: true,
       query: {
-        homeId: params?.homeId,
-        careGroupId: params?.careGroupId,
-        dateFrom: params?.dateFrom,
-        dateTo: params?.dateTo,
-        format: params?.format ?? "json",
+        tenantId: params.tenantId,
+        homeId: params.homeId,
+        careGroupId: params.careGroupId,
+        startDate: params.dateFrom,
+        endDate: params.dateTo,
+        format: params.format ?? "json",
       },
     })
 
@@ -209,14 +214,15 @@ export const reportsService = {
       path: "/reports/ri-dashboard/drilldown",
       auth: true,
       query: {
+        tenantId: params.tenantId,
         metric: params.metric,
-        homeId: params?.homeId,
-        careGroupId: params?.careGroupId,
-        dateFrom: params?.dateFrom,
-        dateTo: params?.dateTo,
-        page: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
-        format: params?.format ?? "json",
+        homeId: params.homeId,
+        careGroupId: params.careGroupId,
+        startDate: params.dateFrom,
+        endDate: params.dateTo,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        format: params.format ?? "json",
       },
     })
 

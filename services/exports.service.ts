@@ -30,6 +30,8 @@ export interface ExportJob {
 }
 
 export interface CreateExportPayload {
+  /** Human-readable title for the export job. Required per spec §M24. */
+  title: string
   entity: ExportEntity
   filters?: Record<string, unknown>
   format: ExportFormat

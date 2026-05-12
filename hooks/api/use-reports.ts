@@ -10,34 +10,35 @@ import {
 
 // ─── Reg 44/45 Evidence Packs ───────────────────────────────────
 
-export function useReg44Pack(params?: EvidencePackParams, enabled = true) {
+export function useReg44Pack(params: EvidencePackParams, enabled = true) {
   return useQuery({
     queryKey: queryKeys.reports.reg44Pack({ ...params, format: "json" }),
     queryFn: () => reportsService.getReg44Pack({ ...params, format: "json" }),
-    enabled,
+    enabled: enabled && Boolean(params.tenantId),
   })
 }
 
-export function useReg45Pack(params?: EvidencePackParams, enabled = true) {
+export function useReg45Pack(params: EvidencePackParams, enabled = true) {
   return useQuery({
     queryKey: queryKeys.reports.reg45Pack({ ...params, format: "json" }),
     queryFn: () => reportsService.getReg45Pack({ ...params, format: "json" }),
-    enabled,
+    enabled: enabled && Boolean(params.tenantId),
   })
 }
 
 // ─── RI Dashboard ───────────────────────────────────────────────
 
-export function useRiDashboard(params?: RiDashboardParams, enabled = true) {
+export function useRiDashboard(params: RiDashboardParams, enabled = true) {
   return useQuery({
     queryKey: queryKeys.reports.riDashboard({ ...params }),
     queryFn: () => reportsService.getRiDashboard(params),
-    enabled,
+    enabled: enabled && Boolean(params.tenantId),
   })
 }
 
 export function useRiDrilldown(params: RiDrilldownParams, enabled = true) {
-  const resolvedParams = {
+  const resolvedParams: RiDrilldownParams = {
+    tenantId: params.tenantId,
     metric: params.metric,
     homeId: params.homeId,
     careGroupId: params.careGroupId,
@@ -48,9 +49,9 @@ export function useRiDrilldown(params: RiDrilldownParams, enabled = true) {
   }
 
   return useQuery({
-    queryKey: queryKeys.reports.riDrilldown(resolvedParams),
+    queryKey: queryKeys.reports.riDrilldown({ ...resolvedParams } as Record<string, unknown>),
     queryFn: () => reportsService.getRiDrilldown(resolvedParams),
-    enabled: enabled && Boolean(params.metric),
+    enabled: enabled && Boolean(params.metric) && Boolean(params.tenantId),
     placeholderData: keepPreviousData,
   })
 }
