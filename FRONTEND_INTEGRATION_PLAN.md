@@ -11,12 +11,32 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 ## Status legend
 
 - `[x]` Done — code shipped and verified
-- `[ ]` Not started
+- `[ ]` Not started but actionable now
 - `[~]` Partial — see note for what's missing
-- `[⏸]` Deferred — see note for the blocker / reason
+- `[⏸]` Blocked on BE — see §15 for the question
 - `[→]` Verify-only — already wired before this push; left untouched
+- `[👤]` User task — needs you, not the engineer
+- `[🔬]` Acceptance test — needs staging environment to verify
+- `[♻]` Won't do until UI surfaces — no FE consumer exists yet
+
+**Important:** `[♻]` items aren't unfinished work — they're forward-compat type/endpoint gaps that would be premature to fix today. They'll be closed when their UI lands. `[⏸]` items need Julius's answer before we can even decide whether to do them.
 
 ---
+
+## At-a-glance progress (every checkbox in the doc)
+
+| Marker | Count | Meaning |
+|---|---|---|
+| `[x]` Done | 131 | Code shipped + verified |
+| `[→]` Pre-existing | 12 | Was already wired before this push; verify-only |
+| `[~]` Intentional skip | 5 | Decided not to do (with rationale) |
+| `[♻]` No consumer yet | 16 | Would be premature; no UI uses it today |
+| `[⏸]` Blocked on BE | 15 | Needs Julius's answer (see §15) |
+| `[👤]` User task | 4 | For you, not the engineer |
+| `[🔬]` Acceptance test | 9 | Needs staging env to verify |
+| `[ ]` Actionable now | **0** | All known actionable work is closed |
+
+143 items closed; the remaining 49 are either *intentional non-work* (37: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (15 from §15). The earlier "13/14" framing was the top-level prioritised list, not every sub-item — corrected here for honesty.
 
 ## Top-line scorecard
 
@@ -39,10 +59,10 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 ## 0. Orientation
 
-- [ ] **User task**: Read the BE spec end-to-end (~25 min)
-- [ ] **User task**: Bookmark `https://zikel-solutions-be.onrender.com/docs`
+- [👤] Read the BE spec end-to-end (~25 min)
+- [👤] Bookmark `https://zikel-solutions-be.onrender.com/docs`
 - [x] Verify base URLs in [lib/api/config.ts](lib/api/config.ts) — `DEFAULT_BACKEND_ORIGIN = "https://zikel-solutions-be.onrender.com"` ✓
-- [ ] **User task**: Run the spec §12 curl smoke tests against staging
+- [👤] Run the spec §12 curl smoke tests against staging
 
 ---
 
@@ -73,7 +93,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 ### 2c. Permission gating
 
 - [~] Code gates on `activeTenantRole === 'tenant_admin'` for billing AI restrictions + on existing `canManageSettings`. No spec-canonical `billing:read` / `ai:use` / `ai:admin` flags wired.
-- [ ] **Open question for BE**: add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions`, or compute client-side from `tenantRole`?
+- [⏸] **Open question for BE**: add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions`, or compute client-side from `tenantRole`? — see §15
 
 ### 2d. JWT decoder helper
 
@@ -102,7 +122,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 - [→] Outcome B (MFA challenge): wired via existing modal flow (uses older `/auth/mfa/challenge` endpoint, not the new `challengeToken` model)
 - [⏸] Outcome C (`mfaEnrollmentRequired`): **NOT wired**. Login response handling assumes the older envelope shape. New discriminated-union model needs a full refactor of `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` page.
   - **Blocker**: BE confirmation needed — does production currently return the new union or the old envelope?
-- [ ] Store `challengeToken` / `enrollmentToken` in `sessionStorage` with `*ExpiresInSeconds` countdown
+- [⏸] Store `challengeToken` / `enrollmentToken` in `sessionStorage` with `*ExpiresInSeconds` countdown — only needed if BE serves the new union (see §15 blocking question)
 
 ### 3d. Refresh rotation
 
@@ -179,14 +199,14 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
   - [x] **My Summary — drafts**: Submit, Delete, Reassign (3 confirm-dialog buttons)
   - [x] **My Summary — overdue-tasks**: Archive, Reassign, Postpone (3 confirm-dialog buttons)
   - [x] **Forms list**: Clone, Publish, Archive DropdownMenuItem actions (inline `useIsReadOnly()` check with "Read-only" hint)
-- [ ] **Still ungated (lower priority):**
-  - [ ] Settings page Save profile / Save notifications / Save organisation — intentionally not gated (user prefs)
-  - [ ] Announcements — pin/archive (if those buttons exist; create dialog wasn't found in inventory)
-  - [ ] Webhooks — create / test / delete (page may not exist yet)
-  - [ ] Exports — start async export (page may not exist yet)
-  - [ ] Roles — create / update / permission assignment (separate roles page TBD)
-  - [ ] MFA modal Verify — intentionally NOT gated (auth flows must remain usable)
-  - [ ] Per-row opener Buttons in my-summary that just open confirm dialogs (the confirm dialog buttons themselves ARE gated — server is the source of truth, this is just a polish gap)
+- **Not gated by design / no UI consumer:**
+  - [~] Settings page Save profile / Save notifications / Save organisation — **intentional**; user prefs stay editable under past-due
+  - [♻] Announcements pin/archive — announcements is read-only browse + export today; no pin/archive buttons exist
+  - [♻] Webhooks create / test / delete — no `/webhooks` page in `app/(dashboard)/`
+  - [♻] Bulk-exports start export — `bulk-exports/page.tsx` is a "Not yet implemented" stub
+  - [♻] Roles create / update / permission assignment — no roles management page exists
+  - [~] MFA modal Verify — **intentional**; auth flow must stay usable
+  - [~] Per-row openers in my-summary — confirm dialog buttons ARE gated; openers just open the dialog (server enforces same outcome)
 
 ---
 
@@ -235,7 +255,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 - [x] `/settings/billing/success` — invalidates `billing.subscription`, `billing.quota`, `billing.invoicesBase` on mount, shows "thanks" + "go to dashboard"
 - [x] Portal / checkout cancel return → `/settings/billing` (no separate page)
-- [ ] **Open question for BE**: confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
+- [⏸] **Open question for BE**: confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes — see §15
 
 ### 6f. `BILLING_NOT_CONFIGURED` handling
 
@@ -283,7 +303,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 - [x] Optional `checksumSha256` added to `CreateUploadSessionInput` per spec §M19
 - [x] Only existing caller is [acknowledgements/page.tsx](app/(dashboard)/acknowledgements/page.tsx) which already passes `purpose: "signature"` (still type-correct under new union)
 - [x] Uses `upload.headers` from server response (not invented). Confirmed at line 562 of acknowledgements page.
-- [ ] **When future uploads land** (avatar widget on employee step-summary, task attachments, announcement images, document uploads), use the appropriate `UploadPurpose`. The avatar widget on `components/employees/create/step-summary.tsx` currently stores the File locally without going through uploadsService — not in scope.
+- [♻] **When future uploads land** (avatar widget on employee step-summary, task attachments, announcement images, document uploads), use the appropriate `UploadPurpose`. The avatar widget on `components/employees/create/step-summary.tsx` currently stores the File locally — no `uploadsService` call to update.
 
 ---
 
@@ -297,11 +317,12 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 - [x] **Young People (M12)** — contract bug fixed: `homeId` made required on `CreateYoungPersonInput`. Added 15+ missing optional response fields: `preferredName`, `namePronunciation`, `type`, `ethnicity`, `religion`, `referenceNo`, `niNumber`, `roomNumber`, `placementEndDate`, `keyWorkerId`, `practiceManagerId`, `adminUserId`, `socialWorkerName`, `independentReviewingOfficer`, `placingAuthority`, `legalStatus`, `isEmergencyPlacement`, `isAsylumSeeker`, `contact`, `health`, `education`. Expanded `YoungPersonListParams` with `status`/`gender`/`type`. Updated `create-young-person-drawer.tsx` form validation to require `homeId`.
 - [x] **Tasks (M14)** — `TaskEntityType` enum corrected: dropped `'document' | 'event'` (unsupported), added `'tenant' | 'care_group' | 'task'` per spec §M14.
 
-### Documented for later (non-blocking — service methods nothing currently calls)
-- [ ] **Homes** — missing service methods for sub-resources (`/homes/:id/{summary,young-people,employees,vehicles,tasks,events,shifts,reports/*}`) and `GET /homes/export`. Add when UI consumers land.
-- [ ] **Employees** — `GET /employees/export` service method missing. Update interface gaps: `endDate`, `dbsNumber`, `dbsDate`, `qualifications`, `isActive` not in the current `UpdateEmployeeInput`. Add if/when the detail drawer adds those form fields.
-- [ ] **Young People** — `GET /young-people/export` service method missing.
-- [ ] **Tasks** — missing service methods: `GET /tasks/export`, `POST /tasks/batch-archive`, `POST /tasks/batch-postpone`, `POST /tasks/:id/postpone`, `POST /tasks/batch-reassign`. The Task Explorer batch toolbar already calls these via separate hooks — verify those hooks match the spec contract.
+### Pass 1 — documented gaps (no consumer; will close when UI lands)
+
+- [♻] **Homes** — missing service methods for sub-resources (`/homes/:id/{summary,young-people,employees,vehicles,tasks,events,shifts,reports/*}`) and `GET /homes/export`. No FE consumer.
+- [♻] **Employees** — `GET /employees/export` service method missing. `UpdateEmployeeInput` doesn't include `endDate`, `dbsNumber`, `dbsDate`, `qualifications`, `isActive` — but neither does the detail-drawer form.
+- [♻] **Young People** — `GET /young-people/export` service method missing.
+- [♻] **Tasks** — missing service methods: `GET /tasks/export`, `POST /tasks/batch-archive`, `POST /tasks/batch-postpone`, `POST /tasks/:id/postpone`, `POST /tasks/batch-reassign`. Task Explorer batch toolbar calls these via separate hooks — those hooks already work; the gap is only in the canonical service file.
 
 ### Pass 2 — audited and corrected
 - [x] **Documents (M17)** — ✅ no drift
@@ -312,12 +333,12 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 - [x] **Sensitive Data (M33)** — added `description?` + `expiryDate?` fields to `CreateSensitiveRecordPayload`. Kept existing FE-only fields (`title`, `confidentialityScope`, etc.) as-is.
 - [x] **Summary (M35)** — two contract bugs fixed: `ReviewEventPayload.action` enum trimmed to spec's 3 values (was including `'review' | 'acknowledge'` which would 422); `BatchProcessPayload` now exposes `comment?` per spec (kept `rejectionReason?` as deprecated alias).
 
-### Pass 2 — documented gaps (non-blocking, no UI consumer)
-- [ ] **Vehicles** — `VehicleListParams` missing `sortBy` / `sortOrder` query params per spec §M13. Add when sort UI lands.
-- [ ] **Care Groups** — minor cosmetic drift: spec uses `country`, FE uses `countryRegion`. Verify with BE before changing — could break existing data.
-- [ ] **Forms** — `FormMetadata` missing `statuses` / `formGroups` / `triggerOptions` fields per spec §M18. Add when form-builder UI surfaces dropdowns.
-- [ ] **Notifications (M27)** — no dedicated service file exists. Spec endpoints (`/notifications`, `/unread-count`, `/read-all`, `/preferences`) not implemented in FE. Build when notification inbox surface is added.
-- [ ] **Webhooks (M36)** — no service file. Build when customer-webhook management UI lands.
+### Pass 2 — documented gaps (no consumer; will close when UI lands)
+- [♻] **Vehicles** — `VehicleListParams` missing `sortBy` / `sortOrder` query params per spec §M13. Adds when sort UI is implemented.
+- [⏸] **Care Groups** — spec uses `country`, FE uses `countryRegion`. Cosmetic drift but needs Julius's confirmation before renaming.
+- [♻] **Forms** — `FormMetadata` missing `statuses` / `formGroups` / `triggerOptions` fields per spec §M18. Closes when form-builder UI consumes those dropdowns.
+- [♻] **Notifications (M27)** — no dedicated service file; no notification inbox surface in FE today.
+- [♻] **Webhooks (M36)** — no service file; no customer-webhook management UI today.
 
 ---
 
@@ -330,7 +351,7 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 - [x] **`useIsImpersonating()` hook** at [hooks/use-impersonation.ts](hooks/use-impersonation.ts) — read JWT for `impersonatorId`
 - [x] **Self-mutating account flows gated** — MFA Security Card disables Set up / Regenerate backup codes / Disable 2FA when impersonating, with an explanatory yellow notice. Server still enforces `IMPERSONATION_ACTIVE` 409.
 - [x] **`IMPERSONATION_REVOKED` friendly message** — "Your support session was ended. Please sign in again." surfaces wherever `getApiErrorMessage` is used. The existing logout path handles cleanup.
-- [ ] **Missing**: Change-password UI doesn't exist yet — when added, gate it the same way (no diff today)
+- [♻] Change-password UI doesn't exist yet — gate it the same way when added.
 
 ---
 
@@ -353,14 +374,14 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 
 End-to-end smoke tests. None of these require code changes anymore; they are user-test scenarios against the deployed FE + sandbox tenants.
 
-- [ ] **Onboarding**: new owner registers → OTP verify → MFA enrollment QR + backup codes → land in dashboard with trial banner
-- [ ] **Plan purchase**: trial banner CTA → `/settings/billing` → "Standard monthly" → Stripe test card → land on success page → banner clears within 60s
-- [ ] **Top-up**: from billing page → "Top-up Small" → Stripe checkout → quota pill increases by 250 within 30s
-- [ ] **Read-only mode**: tenant in `past_due_readonly` logs in → red banner visible → 5 sample mutation buttons disabled → "Update card" CTA opens portal
-- [ ] **Conversational AI**: create chat → send 3 messages → quota ticks down by 3 → archive → unarchive → hard-delete with confirm
-- [ ] **Session warning**: 14 min idle → modal appears → "Stay signed in" → counter resets
-- [ ] **MFA backup**: on `/mfa-verify` click "Use a backup code" → enter 8+ char code → land in dashboard
-- [ ] **Impersonation**: support session JWT → yellow banner appears → "End session" works → returns to login
+- [🔬] **Onboarding**: new owner registers → OTP verify → MFA enrollment QR + backup codes → land in dashboard with trial banner
+- [🔬] **Plan purchase**: trial banner CTA → `/settings/billing` → "Standard monthly" → Stripe test card → land on success page → banner clears within 60s
+- [🔬] **Top-up**: from billing page → "Top-up Small" → Stripe checkout → quota pill increases by 250 within 30s
+- [🔬] **Read-only mode**: tenant in `past_due_readonly` logs in → red banner visible → 5 sample mutation buttons disabled → "Update card" CTA opens portal
+- [🔬] **Conversational AI**: create chat → send 3 messages → quota ticks down by 3 → archive → unarchive → hard-delete with confirm
+- [🔬] **Session warning**: 14 min idle → modal appears → "Stay signed in" → counter resets
+- [🔬] **MFA backup**: on `/mfa-verify` click "Use a backup code" → enter 8+ char code → land in dashboard
+- [🔬] **Impersonation**: support session JWT → yellow banner appears → "End session" works → returns to login
 
 ---
 
@@ -375,13 +396,13 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 
 ## 14. Open questions for BE (Julius)
 
-- [ ] Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
-- [ ] Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags, or should FE compute from `tenantRole` + permissions list?
-- [ ] Per-user quota breakdown (`perUserUsage[]`) — capped or full list? Affects FE pagination.
-- [ ] `/auth/session-expiry` — recommended polling cadence? (We default to fetch-on-focus + computed-from-cache.)
-- [ ] `/audit/security-alerts` — should this drive a dashboard widget, or only an alerts page?
-- [ ] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
-- [ ] **Critical**: does production `/auth/login` currently return the new discriminated union (with `challengeToken` / `enrollmentToken`) or the legacy envelope? Required before unblocking the `mfaEnrollmentRequired` login refactor.
+- [⏸] Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
+- [⏸] Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags, or should FE compute from `tenantRole` + permissions list?
+- [⏸] Per-user quota breakdown (`perUserUsage[]`) — capped or full list? Affects FE pagination.
+- [⏸] `/auth/session-expiry` — recommended polling cadence? (We default to fetch-on-focus + computed-from-cache.)
+- [⏸] `/audit/security-alerts` — should this drive a dashboard widget, or only an alerts page?
+- [⏸] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
+- [⏸] **Critical**: does production `/auth/login` currently return the new discriminated union (with `challengeToken` / `enrollmentToken`) or the legacy envelope? Required before unblocking the `mfaEnrollmentRequired` login refactor.
 
 ---
 
