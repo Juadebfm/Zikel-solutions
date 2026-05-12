@@ -399,7 +399,59 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 8. ~~**Per-user AI restrictions table**~~ ✅ — user picker + table wired; saves `perRoleCaps` + `perUserCaps` together
 9. ~~**AI chat entry points**~~ ✅ — top-bar Bot icon in header (FAB skipped as redundant)
 10. ~~**Endpoint-drift audit**~~ ✅ Pass 1 + Pass 2 complete. Fixed 9 contract bugs across employees, young-people, tasks, exports, reports, safeguarding, sensitive-data, summary. Documented non-blocking gaps in vehicles, care-groups, forms, notifications, webhooks.
-11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
+11. **`mfaEnrollmentRequired` login branch** (large, BLOCKED on BE) — see §15 brief below for the question Julius needs to answer first
 12. ~~**Self-mutating account flow gates during impersonation**~~ ✅ — `useIsImpersonating()` hook + MFA Security Card buttons disabled during support sessions
 13. ~~**Opt-in rate-limit cooldown on more surfaces**~~ ✅ — billing buttons now opt in via `cooldownFamily="billing"`; login/OTP keep their existing patterns
 14. ~~**Friendly messages for tail error codes**~~ ✅ — full spec catalogue mapped in lib/api/error.ts
+
+---
+
+## 15. Backend follow-up brief (for Julius)
+
+Copy/paste this into Slack / a GitHub issue. The first question is blocking; the rest are informational.
+
+### 🚧 BLOCKING — login response shape
+
+The FE's current `/auth/login` handler assumes the legacy envelope
+(`{ user, session, tokens, serverTime }` plus a `session.mfaRequired` flag).
+The spec at `frontend-integration.md` §M2 describes a discriminated union:
+
+```ts
+type LoginResponse =
+  | { user, session, tokens, serverTime }                                                // A: direct success
+  | { mfaRequired: true; challengeToken; challengeExpiresInSeconds }                      // B: TOTP challenge
+  | { mfaEnrollmentRequired: true; enrollmentToken; enrollmentExpiresInSeconds }          // C: enrollment
+```
+
+**Question:** does production `/auth/login` currently return the new union, or the legacy envelope?
+
+- If **legacy** — the FE is fine. We won't refactor. (Will the spec become reality, or stay aspirational?)
+- If **new** — the FE has been missing branches B and C entirely. New owners may be unable to enroll MFA via login. We need to refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to consume `challengeToken` / `enrollmentToken` and call `/auth/mfa/totp/verify`, `/auth/mfa/backup/verify`, `/auth/mfa/totp/enroll/setup`, `/auth/mfa/totp/enroll/confirm` with those tokens.
+
+A one-line response with a sample login response payload (one from each branch) would unblock the refactor immediately.
+
+### 💡 Informational
+
+These don't block anything; just useful for planning the next sprint:
+
+1. **Stripe redirect URLs** — confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes. We assume `/settings/billing/success` is the SUCCESS target.
+2. **Permission flags** — should `/me/permissions` return `canManageBilling`, `canUseAi`, `canAdminAi` derived flags? Today the FE computes from `tenantRole === 'tenant_admin'` and `user.aiAccessEnabled`. If you add the flags BE-side we'll switch over.
+3. **`/billing/quota.perUserUsage[]`** — is this capped or returns all members? Affects FE pagination on the per-user usage table.
+4. **`/auth/session-expiry`** — recommended polling cadence? We default to fetch-on-focus + computed-from-cache + 60s server-time-offset.
+5. **`/audit/security-alerts`** — should this drive a dashboard widget, or live behind an audit-only page? Currently no FE consumer.
+6. **Reg44/Reg45 packs** — confirm `format=pdf|excel|zip` returns a file stream the FE handles via `.blob()`; `format=json` returns inline JSON.
+7. **Care Groups country field** — spec says `country`, FE uses `countryRegion`. Is the FE wrong (we'll rename) or is `country` aspirational?
+8. **Notifications + Webhooks endpoints** — confirmed not yet built FE-side. Are the spec endpoints (M27, M36) live today, or aspirational? If live, we can scaffold those services next.
+
+### 🧯 Risk flags (from drift audit)
+
+These are FE-side bugs already fixed in commits `3d7cd1d` + `5b63b19` but worth surfacing as past-tense context:
+
+- `POST /api/v1/employees`: FE was treating `userId` as optional → 422 risk
+- `POST /api/v1/young-people`: FE was treating `homeId` as optional → 422 risk
+- `POST /api/v1/exports`: FE wasn't sending `title` → 422 risk
+- `POST /api/v1/reports/*`: FE wasn't sending `tenantId` → 422 risk
+- `POST /api/v1/safeguarding/risk-alerts/:id/notes`: FE was sending `{ note }` instead of `{ content }` → 422 risk
+- `POST /api/v1/summary/tasks-to-approve/:id/review-events`: FE allowed `'review' | 'acknowledge'` action values not in the spec → 422 risk
+
+If your endpoint logs in staging show any of these recently, that's why.
