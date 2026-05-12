@@ -36,11 +36,13 @@ import {
   useSetupMfaTotp,
   useVerifySetupMfaTotp,
 } from "@/hooks/api/use-mfa"
+import { useIsImpersonating } from "@/hooks/use-impersonation"
 import { getApiErrorMessage } from "@/lib/api/error"
 
 export function MfaSecurityCard() {
   const { data: status, isLoading } = useMfaStatus()
   const showToast = useToastStore((s) => s.show)
+  const isImpersonating = useIsImpersonating()
 
   const [regenerateOpen, setRegenerateOpen] = useState(false)
   const [disableOpen, setDisableOpen] = useState(false)
@@ -103,10 +105,25 @@ export function MfaSecurityCard() {
           </div>
         ) : null}
 
+        {isImpersonating ? (
+          <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Two-factor settings are read-only during a support session. End the session to make
+              changes.
+            </p>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           {enabled ? (
             <>
-              <Button type="button" variant="outline" onClick={() => setRegenerateOpen(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRegenerateOpen(true)}
+                disabled={isImpersonating}
+              >
                 Regenerate backup codes
               </Button>
               <Button
@@ -114,12 +131,17 @@ export function MfaSecurityCard() {
                 variant="ghost"
                 className="text-red-600 hover:bg-red-50 hover:text-red-700"
                 onClick={() => setDisableOpen(true)}
+                disabled={isImpersonating}
               >
                 Disable 2FA
               </Button>
             </>
           ) : (
-            <Button type="button" onClick={() => setRegenerateOpen(true)}>
+            <Button
+              type="button"
+              onClick={() => setRegenerateOpen(true)}
+              disabled={isImpersonating}
+            >
               Set up 2FA
             </Button>
           )}

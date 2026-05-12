@@ -4,7 +4,7 @@ Source spec: `zikel-solutions-BE/frontend-integration.md` (BE-authored, 2026-05-
 Schema source of truth: Swagger UI at `/docs`.
 Scope: tenant FE (`/api/v1/*`). Platform admin (`/admin/*`) is out of scope.
 
-Last updated: 2026-05-11 (latest: uploads purpose enum expansion — item 6 from §"What's left"; commit pending).
+Last updated: 2026-05-12 (latest: small wins bundle — items 9, 12, 13 from §"What's left"; commit pending).
 
 ---
 
@@ -61,7 +61,8 @@ Last updated: 2026-05-11 (latest: uploads purpose enum expansion — item 6 from
 - [x] `useCooldown(family)` hook ticks every second via `useSyncExternalStore`; auto-clears stale entries
 - [x] `<MutationButton cooldownFamily="ai">` reads cooldown, disables + shows "Try in Ns" countdown + tooltip
 - [x] Applied to AI surfaces: `<MessageComposer>` send button + AI chat dialog Ask AI button
-- [ ] **Still to opt in**: login, OTP resend, billing checkout/portal/topup — uncomment cooldownFamily when needed
+- [x] Applied to billing buttons: plan-switcher "Switch to this plan", top-up "Buy", current-plan "Manage card" (with `ignoreReadOnly`), cancel-subscription "Yes, cancel"
+- [→] Login + OTP resend already have their own internal cooldown patterns (using `resendAvailableAt`); migrating to the global store would be a no-value rewrite
 
 ### 2c. Permission gating
 
@@ -265,8 +266,8 @@ Last updated: 2026-05-11 (latest: uploads purpose enum expansion — item 6 from
 - [x] `409 CONVERSATION_ARCHIVED` → toast + composer locked via `disabledReason`
 - [x] Two-click confirm on hard delete
 - [x] Sidebar nav item ("AI Chat") between My Summary and Task Explorer
-- [ ] **Missing**: top-bar / floating-action-button entry points on dashboard / my-summary pages
-- [ ] **Missing**: composer hide when user lacks `ai:use` permission (currently only `isReadOnly` and quota are checked)
+- [x] **Top-bar icon** — Bot icon in [components/layout/header.tsx](components/layout/header.tsx) next to the Notifications bell. Visible only when `useCanUseAi()` is true. FAB intentionally skipped — three discovery paths (sidebar nav, header icon, inline `<AskAiButton>` on each list page) is sufficient.
+- [ ] **Missing**: composer hide when user lacks `ai:use` permission (currently only `isReadOnly` and quota are checked; opener buttons are hidden though)
 
 ---
 
@@ -309,8 +310,10 @@ Last updated: 2026-05-11 (latest: uploads purpose enum expansion — item 6 from
 - [x] Decodes JWT via `decodeAccessToken()` from [lib/auth/jwt.ts](lib/auth/jwt.ts)
 - [x] Shows "Support session active · acting as <name>" + "End session" button (calls `logout()`)
 - [x] Mounted above `<SubscriptionBanner />` in both dashboard layouts
+- [x] **`useIsImpersonating()` hook** at [hooks/use-impersonation.ts](hooks/use-impersonation.ts) — read JWT for `impersonatorId`
+- [x] **Self-mutating account flows gated** — MFA Security Card disables Set up / Regenerate backup codes / Disable 2FA when impersonating, with an explanatory yellow notice. Server still enforces `IMPERSONATION_ACTIVE` 409.
 - [ ] **Missing**: handle `401 IMPERSONATION_REVOKED` specifically (currently falls through to the generic logout path, which is fine but no custom messaging)
-- [ ] **Missing**: hide self-mutating account flows (change password, MFA disable) while impersonating — server returns `IMPERSONATION_ACTIVE` 409 but FE could preempt
+- [ ] **Missing**: Change-password UI doesn't exist yet — when added, gate it the same way (no diff today)
 
 ---
 
@@ -377,9 +380,9 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 6. ~~**Uploads `purpose` enum compliance**~~ ✅ — full union exposed; existing caller correct; future callers documented
 7. ~~**Central error map switch**~~ ✅ — `dispatchErrorSideEffects()` in client.ts is the single dispatch for MFA-sync / billing-gate / rate-limit reactions
 8. **Per-user AI restrictions table** (medium) — needs a user picker; bind to `perUserCaps` on `PUT /billing/ai-restrictions`
-9. **AI chat entry points** (small) — top-bar icon + floating action button on dashboard / my-summary linking to `/ai`
+9. ~~**AI chat entry points**~~ ✅ — top-bar Bot icon in header (FAB skipped as redundant)
 10. **Endpoint-drift audit** (large, rolling) — verify each of the ~18 module shapes against the spec; one PR per module
 11. **`mfaEnrollmentRequired` login branch** (large) — needs BE confirmation first, then refactor `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` to the new discriminated-union model
-12. **Self-mutating account flow gates during impersonation** (small) — preempt 409 `IMPERSONATION_ACTIVE` on change-password and MFA-disable
-13. **Opt-in rate-limit cooldown on more surfaces** (small, rolling) — currently AI only; add `cooldownFamily="auth"` to login + OTP-resend, `cooldownFamily="billing"` to checkout/portal/topup buttons.
+12. ~~**Self-mutating account flow gates during impersonation**~~ ✅ — `useIsImpersonating()` hook + MFA Security Card buttons disabled during support sessions
+13. ~~**Opt-in rate-limit cooldown on more surfaces**~~ ✅ — billing buttons now opt in via `cooldownFamily="billing"`; login/OTP keep their existing patterns
 14. **Friendly messages for tail error codes** (small) — `TENANT_TOKEN_REJECTED`, `IMPERSONATION_*`, etc. — server `error.message` is shown today; replacements only needed where server copy is poor.

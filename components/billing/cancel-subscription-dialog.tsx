@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Loader2, ShieldAlert } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Dialog,
   DialogContent,
@@ -84,15 +85,16 @@ export function CancelSubscriptionDialog() {
           >
             Keep subscription
           </Button>
-          <Button
+          <MutationButton
             type="button"
             className="bg-red-600 text-white hover:bg-red-700"
             onClick={handleConfirm}
             disabled={cancelMutation.isPending}
+            cooldownFamily="billing"
           >
             {cancelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Yes, cancel
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -3,7 +3,7 @@
 import { CalendarClock, CreditCard, Loader2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Card,
   CardContent,
@@ -130,17 +130,19 @@ export function CurrentPlanCard() {
         ) : null}
 
         <div className="flex flex-wrap gap-2">
-          <Button
+          <MutationButton
             type="button"
             variant="outline"
             onClick={() => startPortalSession.mutate()}
             disabled={startPortalSession.isPending}
+            ignoreReadOnly
+            cooldownFamily="billing"
           >
             {startPortalSession.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : null}
             Manage card &amp; invoices
-          </Button>
+          </MutationButton>
         </div>
       </CardContent>
     </Card>

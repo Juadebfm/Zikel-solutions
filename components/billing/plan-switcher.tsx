@@ -3,6 +3,7 @@
 import { Check, Loader2, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Card,
   CardContent,
@@ -111,15 +112,16 @@ export function PlanSwitcher() {
                       Current plan
                     </Button>
                   ) : (
-                    <Button
+                    <MutationButton
                       type="button"
                       className="w-full"
                       onClick={() => startCheckout.mutate(plan.code)}
                       disabled={startCheckout.isPending}
+                      cooldownFamily="billing"
                     >
                       {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       {currentPlanCode ? "Switch to this plan" : "Choose this plan"}
-                    </Button>
+                    </MutationButton>
                   )}
                 </div>
               </div>

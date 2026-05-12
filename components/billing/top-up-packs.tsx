@@ -2,7 +2,7 @@
 
 import { Loader2, Zap } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { MutationButton } from "@/components/ui/mutation-button"
 import {
   Card,
   CardContent,
@@ -70,17 +70,18 @@ export function TopUpPacks() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {pack.calls.toLocaleString()} AI calls
                 </p>
-                <Button
+                <MutationButton
                   type="button"
                   size="sm"
                   className="mt-4"
                   variant="outline"
                   onClick={() => startTopUp.mutate(pack.code)}
                   disabled={!hasActiveSub || startTopUp.isPending}
+                  cooldownFamily="billing"
                 >
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Buy
-                </Button>
+                </MutationButton>
               </div>
             )
           })}

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Search, Menu, Plus, Sparkles, Megaphone } from "lucide-react"
+import { Bell, Bot, Search, Menu, Plus, Sparkles, Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
+import { useCanUseAi } from "@/hooks/api/use-ai"
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -21,6 +22,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, getRoleDisplay } = useAuth()
+  const canUseAi = useCanUseAi()
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
@@ -91,6 +93,15 @@ export function Header({ onMenuClick }: HeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* AI Chat */}
+          {canUseAi ? (
+            <Link href="/ai" aria-label="Open AI chat">
+              <Button variant="ghost" size="icon-lg" className="relative">
+                <Bot className="size-6 text-gray-700" />
+              </Button>
+            </Link>
+          ) : null}
 
           {/* Announcements */}
           <Link href="/announcements">
