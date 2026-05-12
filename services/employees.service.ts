@@ -41,12 +41,19 @@ export interface EmployeeListResult {
 }
 
 export interface CreateEmployeeInput {
-  userId?: string
+  /** Required per spec §M11 — server returns 422 without it. */
+  userId: string
   homeId?: string
   roleId?: string
   jobTitle?: string
   startDate?: string
+  endDate?: string | null
+  status?: "current" | "past" | "planned"
   contractType?: string
+  dbsNumber?: string
+  dbsDate?: string | null
+  qualifications?: Record<string, unknown>
+  isActive?: boolean
 }
 
 export interface CreateEmployeeWithUserInput {

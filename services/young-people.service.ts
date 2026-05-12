@@ -5,16 +5,42 @@ export interface YoungPersonRecord {
   id: string
   firstName: string
   lastName: string
+  /** Per spec §M12 — preferred/used name. */
+  preferredName?: string | null
+  /** Phonetic guidance for staff. */
+  namePronunciation?: string | null
   dateOfBirth: string
   homeId?: string
   homeName?: string
   status: string
+  /** Per spec §M12 — primary type, e.g. `placement` / `respite`. */
+  type?: string
+  /** @deprecated alias of `type`; some older list responses used this name. */
   youngPersonType?: string
   gender?: string
+  ethnicity?: string | null
+  religion?: string | null
+  referenceNo?: string | null
+  niNumber?: string | null
+  roomNumber?: string | null
   category?: string
   avatar?: string
+  avatarUrl?: string | null
   admissionDate?: string
+  placementEndDate?: string | null
+  keyWorkerId?: string | null
   keyWorker?: string | { id: string; name: string } | null
+  practiceManagerId?: string | null
+  adminUserId?: string | null
+  socialWorkerName?: string | null
+  independentReviewingOfficer?: string | null
+  placingAuthority?: string | null
+  legalStatus?: string | null
+  isEmergencyPlacement?: boolean
+  isAsylumSeeker?: boolean
+  contact?: Record<string, unknown> | null
+  health?: Record<string, unknown> | null
+  education?: Record<string, unknown> | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -26,28 +52,37 @@ export interface YoungPersonListResult {
 }
 
 export interface CreateYoungPersonInput {
+  /** Required per spec §M12 — server returns 422 without it. */
+  homeId: string
   firstName: string
   lastName: string
   /** Must be YYYY-MM-DD format */
-  dateOfBirth: string
-  homeId?: string
+  dateOfBirth?: string
+  preferredName?: string
+  type?: string
+  /** @deprecated use `type` */
   youngPersonType?: string
   gender?: string
   category?: string
   admissionDate?: string
+  keyWorkerId?: string
   keyWorker?: string
 }
 
 export interface UpdateYoungPersonInput {
   firstName?: string
   lastName?: string
+  preferredName?: string
   /** Must be YYYY-MM-DD format */
   dateOfBirth?: string
   homeId?: string
+  type?: string
+  /** @deprecated use `type` */
   youngPersonType?: string
   gender?: string
   category?: string
   admissionDate?: string
+  keyWorkerId?: string
   keyWorker?: string
 }
 
@@ -56,6 +91,9 @@ export interface YoungPersonListParams {
   pageSize?: number
   search?: string
   homeId?: string
+  status?: string
+  gender?: string
+  type?: string
   isActive?: boolean
 }
 

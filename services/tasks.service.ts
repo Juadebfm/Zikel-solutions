@@ -23,13 +23,19 @@ export type TaskApprovalStatus =
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent"
 
+/**
+ * `relatedEntityType` values accepted by the BE per spec §M14. Older FE code
+ * used `"document"` and `"event"` which the BE doesn't recognise — those were
+ * dropped in favour of the spec set.
+ */
 export type TaskEntityType =
+  | "tenant"
+  | "care_group"
   | "home"
   | "young_person"
   | "vehicle"
   | "employee"
-  | "document"
-  | "event"
+  | "task"
 
 export type TaskScope = "all" | "my_tasks" | "assigned_to_me" | "approvals" | "approved"
 

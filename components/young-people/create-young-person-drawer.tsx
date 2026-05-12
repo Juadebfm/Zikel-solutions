@@ -74,13 +74,14 @@ export function CreateYoungPersonDrawer({ open, onOpenChange }: CreateYoungPerso
     if (!form.firstName.trim()) { showError("First name is required."); return }
     if (!form.lastName.trim()) { showError("Last name is required."); return }
     if (!form.dateOfBirth) { showError("Date of birth is required."); return }
+    if (!form.homeId) { showError("Home is required."); return }
 
     try {
       await createMutation.mutateAsync({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth,
-        homeId: form.homeId || undefined,
+        homeId: form.homeId,
         gender: form.gender || undefined,
         youngPersonType: form.youngPersonType || undefined,
         category: form.category || undefined,
