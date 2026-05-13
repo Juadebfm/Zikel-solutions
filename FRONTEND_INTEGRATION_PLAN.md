@@ -27,16 +27,16 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 | Marker | Count | Meaning |
 |---|---|---|
-| `[x]` Done | 144 | Code shipped + verified |
+| `[x]` Done | 146 | Code shipped + verified |
 | `[→]` Pre-existing | 13 | Was already wired before this push; verify-only |
 | `[~]` Intentional skip | 6 | Decided not to do (with rationale) |
 | `[♻]` No consumer yet | 15 | Would be premature; no UI uses it today |
-| `[⏸]` Blocked on BE | 2 | Needs Julius's answer (see §15) |
+| `[⏸]` Blocked on BE | **0** | All resolved 2026-05-12 |
 | `[👤]` User task | 5 | For you, not the engineer |
 | `[🔬]` Acceptance test | 10 | Needs staging env to verify |
 | `[ ]` Actionable now | **0** | All known actionable work is closed |
 
-157 items closed; the remaining 38 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (just 2 now).
+159 items closed; the remaining 36 are entirely *intentional non-work*: skips / no-consumer (will close when UI lands) / user tasks / staging acceptance tests. **Zero BE-blocked, zero in-flight engineering work.**
 
 ## Top-line scorecard
 
@@ -234,7 +234,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 - [x] Invoice history — paginated, status badges, hosted-URL + PDF links
 - [x] Cancel subscription dialog — quotes `currentPeriodEnd` from response
 - [x] "Billing" link card added to main [Settings](app/(dashboard)/settings/page.tsx) page
-- [⏸] AI restrictions form — **per-user** overrides table. Note added pointing users to the Users page for now.
+- [x] **AI restrictions per-user overrides table** — built 2026-05-12 at [components/billing/per-user-caps-table.tsx](components/billing/per-user-caps-table.tsx). Sources users from `useTenantMemberships`. Per BE: `null` = inherit role (NOT uncapped), so the UI omits "uncapped" mode — adding a row = explicit override (Capped or Disabled), removing a row = inherit. The note clarifies that to grant one user unlimited within a capped role, set a high explicit number.
 
 ### 6c. Quota viz
 
@@ -399,7 +399,7 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 - [x] ~~Per-user quota breakdown (`perUserUsage[]`)~~ ✓ resolved 2026-05-12: full list. Existing `<QuotaCard />` scrollable table is correct; no pagination needed.
 - [x] ~~`/auth/session-expiry` polling cadence~~ ✓ resolved 2026-05-12: FE default accepted (fetch-on-focus + computed-from-cache via `<SessionExpiryBanner />`).
 - [x] ~~`/audit/security-alerts` UI placement~~ ✓ resolved 2026-05-12: dashboard widget on `/my-summary`. `<SecurityAlertsWidget />` built, gated on `canViewReports` (manager+).
-- [⏸] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
+- [x] ~~Reg44/Reg45 reports format~~ ✓ resolved 2026-05-12: hybrid response. `format=json` returns the standard envelope; `pdf|excel|zip` returns binary stream with `Content-Type` + `Content-Disposition`. FE handles via `.blob()`. Also fixed: `downloadBinaryReport()` helper now uses `API_CONFIG.baseUrl` (was hardcoded `/api/v1` — broken cross-origin) and forwards the `Authorization` header. Added `downloadRiDashboard` + `downloadRiDrilldown` for the same hybrid pattern.
 - [x] ~~production `/auth/login` shape~~ ✓ resolved 2026-05-12: legacy envelope. No refactor needed.
 
 ---

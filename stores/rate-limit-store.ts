@@ -1,13 +1,15 @@
 import { create } from "zustand"
 
 /**
- * Global cool-down store for 429 TOO_MANY_REQUESTS responses.
+ * Global cool-down store for 429 RATE_LIMIT_EXCEEDED responses.
  *
  * Keys are "route families" — typically the first path segment of an API
  * route (`/auth/login` → `auth`, `/billing/checkout-session` → `billing`,
  * `/ai/conversations/x/messages` → `ai`).
  *
- * The API client writes here when it observes a 429 with `x-ratelimit-reset`.
+ * The API client writes here when it observes a 429 with `x-ratelimit-reset`
+ * (primary) or `retry-after` (HTTP-standard fallback). Per BE confirmation
+ * 2026-05-12, both headers are always sent together with the same value.
  * Consumers (forms, AI composers) read via `useCooldown(family)` and disable
  * submit buttons until the timestamp passes.
  */

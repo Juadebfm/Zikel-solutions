@@ -38,6 +38,8 @@ const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   SUBSCRIPTION_REQUIRED: "Subscribe to a plan before purchasing a top-up.",
   BILLING_NOT_CONFIGURED: "Billing is not available in this environment.",
   AI_DISABLED_FOR_TENANT: "AI is disabled for this organization. Contact your administrator.",
+  AI_DISABLED_FOR_ROLE: "AI is disabled for your role. Contact your administrator.",
+  AI_DISABLED_FOR_USER: "AI is disabled for your account. Contact your administrator.",
   CONVERSATION_ARCHIVED: "This conversation is archived. Start a new chat to continue.",
   // Token / audience
   TENANT_TOKEN_REJECTED: "Your sign-in token isn't valid for this area. Please sign in again.",

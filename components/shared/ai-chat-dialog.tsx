@@ -110,6 +110,18 @@ function getAskAiErrorMessage(error: unknown): AskAiErrorResult {
         cta: null,
       }
     }
+    if (error.status === 403 && error.code === "AI_DISABLED_FOR_ROLE") {
+      return {
+        message: "AI is disabled for your role. Ask your Owner to adjust per-role AI access.",
+        cta: null,
+      }
+    }
+    if (error.status === 403 && error.code === "AI_DISABLED_FOR_USER") {
+      return {
+        message: "AI is disabled for your account. Ask your Owner to lift your per-user cap.",
+        cta: null,
+      }
+    }
     if (error.status === 403 && error.code === "AI_ACCESS_DISABLED") {
       return {
         message: "AI access is disabled for your account. Contact your administrator.",

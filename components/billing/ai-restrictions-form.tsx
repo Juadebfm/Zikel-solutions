@@ -138,7 +138,7 @@ function AiRestrictionsFormInner({ restrictions }: { restrictions: AiRestriction
         <CardDescription>
           Set per-role monthly AI call limits. <span className="font-medium">Uncapped</span> draws
           from the org pool freely. <span className="font-medium">Disabled</span> blocks AI entirely
-          for that role.
+          for that role. Per-user overrides below take precedence over role caps.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

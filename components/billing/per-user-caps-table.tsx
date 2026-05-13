@@ -27,7 +27,22 @@ import type { TenantMembershipRecord } from "@/services/tenants.service"
 
 const MAX_CAP = 100_000
 
-type CapMode = "uncapped" | "disabled" | "capped"
+/**
+ * Per-user cap modes — BE semantics confirmed 2026-05-12, spec §M7:
+ *
+ *   - `disabled` → 0       — AI off for the user (403 AI_DISABLED_FOR_USER)
+ *   - `capped`   → 1..100K — monthly call cap
+ *
+ * `null` is allowed on the wire and means "inherit from role cap" — but in
+ * this UI we represent that as the *absence* of a row. Adding a row implies
+ * the user wants an explicit override, so we omit an "Inherit" mode in
+ * favour of the Remove (×) action.
+ *
+ * There is no per-user "uncapped" because the wire can't express it; to
+ * give one user unlimited within a capped role, set a high explicit cap
+ * (e.g. 100,000).
+ */
+type CapMode = "disabled" | "capped"
 
 interface PerUserOverrideRow {
   userId: string
@@ -38,22 +53,23 @@ interface PerUserOverrideRow {
 }
 
 export interface PerUserCapsTableProps {
-  /** Current per-user caps map. `null` = uncapped, `0` = disabled, positive int = monthly cap. */
+  /** Current per-user caps map. `0` = disabled, positive int = monthly cap. */
   value: Record<string, number | null>
   onChange: (next: Record<string, number | null>) => void
 }
 
 function capToMode(value: number | null | undefined): CapMode {
-  if (value === null || value === undefined) return "uncapped"
+  // Treat null/undefined as "capped" placeholder so adding-then-undoing
+  // doesn't strand a row in an invalid mode. Real null entries shouldn't
+  // exist in our table (they'd be omitted).
   if (value === 0) return "disabled"
   return "capped"
 }
 
-function rowToCap(row: PerUserOverrideRow): number | null {
-  if (row.mode === "uncapped") return null
+function rowToCap(row: PerUserOverrideRow): number {
   if (row.mode === "disabled") return 0
   const parsed = Number.parseInt(row.cap, 10)
-  if (!Number.isFinite(parsed) || parsed < 0) return null
+  if (!Number.isFinite(parsed) || parsed < 1) return 1
   return Math.min(parsed, MAX_CAP)
 }
 
@@ -80,8 +96,11 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
     return map
   }, [memberships])
 
+  // Only show entries that are real overrides (non-null). Null entries from
+  // the server are ignored — they mean "inherit", which is the absence state.
   const rows: PerUserOverrideRow[] = useMemo(() => {
     return Object.entries(value)
+      .filter(([, cap]) => cap !== null && cap !== undefined)
       .map(([userId, cap]) => {
         const m = membershipByUserId.get(userId)
         return {
@@ -95,7 +114,7 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [value, membershipByUserId])
 
-  const overrideUserIds = new Set(Object.keys(value))
+  const overrideUserIds = new Set(rows.map((r) => r.userId))
   const availableMembers = memberships.filter(
     (m) => m.userId && !overrideUserIds.has(m.userId),
   )
@@ -117,7 +136,8 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
 
   const addRow = (userId: string) => {
     if (!userId) return
-    onChange({ ...value, [userId]: null })
+    // Default new overrides to a sensible cap (100/month). Owner can adjust.
+    onChange({ ...value, [userId]: 100 })
     setPickerValue("")
   }
 
@@ -126,8 +146,10 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
       <div>
         <p className="font-medium">Per-user overrides</p>
         <p className="text-xs text-muted-foreground">
-          Override the role default for specific users. Removing a row reverts them to the role
-          default.
+          Override the role default for specific users. Per BE: <span className="font-medium">Capped</span> sets a monthly limit, <span className="font-medium">Disabled</span> blocks AI for that user. Removing a row reverts them to their role&apos;s cap.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          There is no per-user &quot;uncapped&quot; mode — to grant one user unlimited within a capped role, set a high explicit number (e.g. 100,000).
         </p>
       </div>
 
@@ -159,7 +181,6 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="uncapped">Uncapped</SelectItem>
                       <SelectItem value="capped">Capped</SelectItem>
                       <SelectItem value="disabled">Disabled</SelectItem>
                     </SelectContent>
@@ -184,7 +205,7 @@ export function PerUserCapsTable({ value, onChange }: PerUserCapsTableProps) {
                       <span className="text-xs text-muted-foreground">/ mo</span>
                     </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-xs text-muted-foreground">0</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right">

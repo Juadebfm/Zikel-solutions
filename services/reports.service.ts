@@ -1,5 +1,44 @@
 import { apiRequest } from "@/lib/api/client"
+import { API_CONFIG } from "@/lib/api/config"
 import type { ApiMeta } from "@/lib/api/types"
+import { getAuthSessionState } from "@/stores/auth-session-store"
+
+/**
+ * Hybrid response pattern (confirmed by BE 2026-05-12):
+ * - `format=json` → standard envelope, parse via `apiRequest`
+ * - `format=pdf|excel|zip` → binary stream with `Content-Type` + `Content-Disposition`,
+ *   parse via `fetch().blob()` and trigger a download
+ *
+ * `downloadBinaryReport()` below handles the binary path correctly: prepends
+ * `API_CONFIG.baseUrl` so cross-origin deploys resolve, and forwards the
+ * access token from the auth session so private reports are accessible.
+ */
+async function downloadBinaryReport(path: string, query: Record<string, string | number | undefined>): Promise<Blob> {
+  const search = new URLSearchParams()
+  for (const [k, v] of Object.entries(query)) {
+    if (v === undefined || v === null || v === "") continue
+    search.set(k, String(v))
+  }
+  const baseUrl = API_CONFIG.baseUrl.endsWith("/")
+    ? API_CONFIG.baseUrl.slice(0, -1)
+    : API_CONFIG.baseUrl
+  const url = `${baseUrl}${path}?${search.toString()}`
+
+  const accessToken = getAuthSessionState().accessToken
+  const headers: Record<string, string> = {}
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+
+  const response = await fetch(url, {
+    credentials: "include",
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to download report: ${response.statusText}`)
+  }
+
+  return response.blob()
+}
 
 // ─── Reg 44/45 Evidence Packs ───────────────────────────────────
 
@@ -120,15 +159,6 @@ export interface RiDrilldownResult {
   meta: ApiMeta
 }
 
-// ─── Default meta ───────────────────────────────────────────────
-
-const DEFAULT_META: ApiMeta = {
-  total: 0,
-  page: 1,
-  pageSize: 20,
-  totalPages: 0,
-}
-
 // ─── Service ────────────────────────────────────────────────────
 
 export const reportsService = {
@@ -145,20 +175,10 @@ export const reportsService = {
   },
 
   async downloadReg44Pack(params: EvidencePackParams): Promise<Blob> {
-    const search = new URLSearchParams()
-    const query = buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" })
-    for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined && v !== null && v !== "") search.set(k, String(v))
-    }
-    const response = await fetch(`/api/v1/reports/reg44-pack?${search.toString()}`, {
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to download Reg 44 pack: ${response.statusText}`)
-    }
-
-    return response.blob()
+    return downloadBinaryReport(
+      "/reports/reg44-pack",
+      buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" }),
+    )
   },
 
   // ── Reg 45 ──────────────────────────────────────────────────
@@ -174,20 +194,10 @@ export const reportsService = {
   },
 
   async downloadReg45Pack(params: EvidencePackParams): Promise<Blob> {
-    const search = new URLSearchParams()
-    const query = buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" })
-    for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined && v !== null && v !== "") search.set(k, String(v))
-    }
-    const response = await fetch(`/api/v1/reports/reg45-pack?${search.toString()}`, {
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to download Reg 45 pack: ${response.statusText}`)
-    }
-
-    return response.blob()
+    return downloadBinaryReport(
+      "/reports/reg45-pack",
+      buildEvidencePackQuery({ ...params, format: params.format ?? "pdf" }),
+    )
   },
 
   // ── RI Dashboard ────────────────────────────────────────────
@@ -209,6 +219,17 @@ export const reportsService = {
     return response.data
   },
 
+  async downloadRiDashboard(params: RiDashboardParams): Promise<Blob> {
+    return downloadBinaryReport("/reports/ri-dashboard", {
+      tenantId: params.tenantId,
+      homeId: params.homeId,
+      careGroupId: params.careGroupId,
+      startDate: params.dateFrom,
+      endDate: params.dateTo,
+      format: params.format ?? "pdf",
+    })
+  },
+
   async getRiDrilldown(params: RiDrilldownParams): Promise<RiDrilldownResult> {
     const response = await apiRequest<RiDrilldownResult>({
       path: "/reports/ri-dashboard/drilldown",
@@ -227,5 +248,19 @@ export const reportsService = {
     })
 
     return response.data
+  },
+
+  async downloadRiDrilldown(params: RiDrilldownParams): Promise<Blob> {
+    return downloadBinaryReport("/reports/ri-dashboard/drilldown", {
+      tenantId: params.tenantId,
+      metric: params.metric,
+      homeId: params.homeId,
+      careGroupId: params.careGroupId,
+      startDate: params.dateFrom,
+      endDate: params.dateTo,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+      format: params.format ?? "pdf",
+    })
   },
 }
