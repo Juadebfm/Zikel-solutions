@@ -27,16 +27,16 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 | Marker | Count | Meaning |
 |---|---|---|
-| `[x]` Done | 142 | Code shipped + verified |
+| `[x]` Done | 144 | Code shipped + verified |
 | `[→]` Pre-existing | 13 | Was already wired before this push; verify-only |
 | `[~]` Intentional skip | 6 | Decided not to do (with rationale) |
 | `[♻]` No consumer yet | 15 | Would be premature; no UI uses it today |
-| `[⏸]` Blocked on BE | 7 | Needs Julius's answer (see §15) |
+| `[⏸]` Blocked on BE | 2 | Needs Julius's answer (see §15) |
 | `[👤]` User task | 5 | For you, not the engineer |
 | `[🔬]` Acceptance test | 10 | Needs staging env to verify |
 | `[ ]` Actionable now | **0** | All known actionable work is closed |
 
-155 items closed; the remaining 43 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (7).
+157 items closed; the remaining 38 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (just 2 now).
 
 ## Top-line scorecard
 
@@ -395,12 +395,12 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 ## 14. Open questions for BE (Julius)
 
 - [x] ~~Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes~~ ✓ confirmed 2026-05-12
-- [⏸] Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags, or should FE compute from `tenantRole` + permissions list?
+- [x] ~~Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions`~~ ✓ resolved 2026-05-12: FE uses client-side gating (`activeTenantRole` + `user.aiAccessEnabled`).
 - [x] ~~Per-user quota breakdown (`perUserUsage[]`)~~ ✓ resolved 2026-05-12: full list. Existing `<QuotaCard />` scrollable table is correct; no pagination needed.
 - [x] ~~`/auth/session-expiry` polling cadence~~ ✓ resolved 2026-05-12: FE default accepted (fetch-on-focus + computed-from-cache via `<SessionExpiryBanner />`).
 - [x] ~~`/audit/security-alerts` UI placement~~ ✓ resolved 2026-05-12: dashboard widget on `/my-summary`. `<SecurityAlertsWidget />` built, gated on `canViewReports` (manager+).
 - [⏸] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
-- [⏸] **Critical**: does production `/auth/login` currently return the new discriminated union (with `challengeToken` / `enrollmentToken`) or the legacy envelope? Required before unblocking the `mfaEnrollmentRequired` login refactor.
+- [x] ~~production `/auth/login` shape~~ ✓ resolved 2026-05-12: legacy envelope. No refactor needed.
 
 ---
 
