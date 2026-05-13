@@ -232,4 +232,17 @@ export const queryKeys = {
     conversationsBase: ["ai", "conversations"] as const,
     conversation: (id: string) => ["ai", "conversations", "detail", id] as const,
   },
+  notifications: {
+    list: (params: { page: number; pageSize: number; read?: boolean }) =>
+      ["notifications", "list", params] as const,
+    listBase: ["notifications", "list"] as const,
+    unreadCount: ["notifications", "unread-count"] as const,
+    preferences: ["notifications", "preferences"] as const,
+  },
+  webhooks: {
+    list: ["webhooks", "list"] as const,
+    detail: (id: string) => ["webhooks", "detail", id] as const,
+    deliveries: (id: string, params: { page: number; pageSize: number }) =>
+      ["webhooks", "deliveries", id, params] as const,
+  },
 } as const

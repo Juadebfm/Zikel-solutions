@@ -30,7 +30,7 @@ import { useToastStore } from "@/components/shared/toast"
 import { getApiErrorMessage } from "@/lib/api/error"
 import type { CreateCareGroupInput } from "@/services/care-groups.service"
 
-const CARE_GROUP_TYPES: Array<{ value: CreateCareGroupInput["type"]; label: string }> = [
+const CARE_GROUP_TYPES: Array<{ value: NonNullable<CreateCareGroupInput["type"]>; label: string }> = [
   { value: "private", label: "Private" },
   { value: "public", label: "Public" },
   { value: "charity", label: "Charity" },
@@ -56,7 +56,7 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
   const showToast = useToastStore((s) => s.show)
 
   const [name, setName] = useState("")
-  const [type, setType] = useState<CreateCareGroupInput["type"]>("private")
+  const [type, setType] = useState<NonNullable<CreateCareGroupInput["type"]>>("private")
   const [description, setDescription] = useState("")
   const [contact, setContact] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -66,7 +66,7 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
   const [addressLine1, setAddressLine1] = useState("")
   const [addressLine2, setAddressLine2] = useState("")
   const [city, setCity] = useState("")
-  const [countryRegion, setCountryRegion] = useState("")
+  const [country, setCountry] = useState("")
   const [postcode, setPostcode] = useState("")
   const [defaultUserIpRestriction, setDefaultUserIpRestriction] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +87,7 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
     setAddressLine1("")
     setAddressLine2("")
     setCity("")
-    setCountryRegion("")
+    setCountry("")
     setPostcode("")
     setDefaultUserIpRestriction(false)
     setError(null)
@@ -130,7 +130,7 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
     payload.addressLine1 = trimOrUndefined(addressLine1)
     payload.addressLine2 = trimOrUndefined(addressLine2)
     payload.city = trimOrUndefined(city)
-    payload.countryRegion = trimOrUndefined(countryRegion)
+    payload.country = trimOrUndefined(country)
     payload.postcode = trimOrUndefined(postcode)
 
     try {
@@ -175,7 +175,7 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
               <Label className="text-sm font-semibold text-gray-800">
                 Type <span className="text-red-500">*</span>
               </Label>
-              <Select value={type} onValueChange={(value) => setType(value as CreateCareGroupInput["type"])}>
+              <Select value={type} onValueChange={(value) => setType(value as NonNullable<CreateCareGroupInput["type"]>)}>
                 <SelectTrigger className={triggerClass}>
                   <SelectValue placeholder="Select type..." />
                 </SelectTrigger>
@@ -292,8 +292,8 @@ export function CreateCareGroupDialog({ open, onOpenChange }: CreateCareGroupDia
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-800">Country / Region</Label>
               <Input
-                value={countryRegion}
-                onChange={(e) => setCountryRegion(e.target.value)}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
                 placeholder="Country or region"
                 className={fieldClass}
               />

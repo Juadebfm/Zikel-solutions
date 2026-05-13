@@ -27,16 +27,16 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 | Marker | Count | Meaning |
 |---|---|---|
-| `[x]` Done | 131 | Code shipped + verified |
-| `[→]` Pre-existing | 12 | Was already wired before this push; verify-only |
-| `[~]` Intentional skip | 5 | Decided not to do (with rationale) |
-| `[♻]` No consumer yet | 16 | Would be premature; no UI uses it today |
-| `[⏸]` Blocked on BE | 15 | Needs Julius's answer (see §15) |
-| `[👤]` User task | 4 | For you, not the engineer |
-| `[🔬]` Acceptance test | 9 | Needs staging env to verify |
+| `[x]` Done | 137 | Code shipped + verified |
+| `[→]` Pre-existing | 13 | Was already wired before this push; verify-only |
+| `[~]` Intentional skip | 6 | Decided not to do (with rationale) |
+| `[♻]` No consumer yet | 15 | Would be premature; no UI uses it today |
+| `[⏸]` Blocked on BE | 12 | Needs Julius's answer (see §15) |
+| `[👤]` User task | 5 | For you, not the engineer |
+| `[🔬]` Acceptance test | 10 | Needs staging env to verify |
 | `[ ]` Actionable now | **0** | All known actionable work is closed |
 
-143 items closed; the remaining 49 are either *intentional non-work* (37: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (15 from §15). The earlier "13/14" framing was the top-level prioritised list, not every sub-item — corrected here for honesty.
+150 items closed; the remaining 48 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (12).
 
 ## Top-line scorecard
 
@@ -92,8 +92,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 ### 2c. Permission gating
 
-- [~] Code gates on `activeTenantRole === 'tenant_admin'` for billing AI restrictions + on existing `canManageSettings`. No spec-canonical `billing:read` / `ai:use` / `ai:admin` flags wired.
-- [⏸] **Open question for BE**: add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions`, or compute client-side from `tenantRole`? — see §15
+- [x] **Resolved 2026-05-12**: keep client-side gating. Billing uses `activeTenantRole === 'tenant_admin'`. AI uses `user.aiAccessEnabled` via `useCanUseAi()`. No BE changes requested; FE owns the derivation.
 
 ### 2d. JWT decoder helper
 
@@ -120,9 +119,8 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 - [→] Outcome A (direct success): wired (`session.mfaRequired === false`)
 - [→] Outcome B (MFA challenge): wired via existing modal flow (uses older `/auth/mfa/challenge` endpoint, not the new `challengeToken` model)
-- [⏸] Outcome C (`mfaEnrollmentRequired`): **NOT wired**. Login response handling assumes the older envelope shape. New discriminated-union model needs a full refactor of `authService.login` + `mfa-store` + `mfa-modal` + `/mfa-verify` page.
-  - **Blocker**: BE confirmation needed — does production currently return the new union or the old envelope?
-- [⏸] Store `challengeToken` / `enrollmentToken` in `sessionStorage` with `*ExpiresInSeconds` countdown — only needed if BE serves the new union (see §15 blocking question)
+- [x] **Outcome C (`mfaEnrollmentRequired`)** — resolved 2026-05-12: production `/auth/login` returns the **legacy envelope** with `session.mfaRequired`, not the new discriminated union. No refactor needed. Spec §M2 union is aspirational. If BE migrates later, item 11 reopens.
+- [~] `challengeToken` / `enrollmentToken` sessionStorage — not needed under legacy envelope; would be premature.
 
 ### 3d. Refresh rotation
 
@@ -335,10 +333,10 @@ Pass 1 covered 5 high-traffic modules (Employees, Homes, Young People, Tasks, Da
 
 ### Pass 2 — documented gaps (no consumer; will close when UI lands)
 - [♻] **Vehicles** — `VehicleListParams` missing `sortBy` / `sortOrder` query params per spec §M13. Adds when sort UI is implemented.
-- [⏸] **Care Groups** — spec uses `country`, FE uses `countryRegion`. Cosmetic drift but needs Julius's confirmation before renaming.
+- [x] **Care Groups** — resolved 2026-05-12: renamed FE `countryRegion` → `country` in `CreateCareGroupInput` and the create dialog; `type` made optional per spec; `country` and `fax` added (`countryRegion`/`faxNumber` kept as deprecated aliases).
 - [♻] **Forms** — `FormMetadata` missing `statuses` / `formGroups` / `triggerOptions` fields per spec §M18. Closes when form-builder UI consumes those dropdowns.
-- [♻] **Notifications (M27)** — no dedicated service file; no notification inbox surface in FE today.
-- [♻] **Webhooks (M36)** — no service file; no customer-webhook management UI today.
+- [x] **Notifications (M27)** — service + hooks scaffolded 2026-05-12 at [services/notifications.service.ts](services/notifications.service.ts) + [hooks/api/use-notifications.ts](hooks/api/use-notifications.ts). All 6 spec endpoints wired. UI consumers will follow.
+- [x] **Webhooks (M36)** — service + hooks scaffolded 2026-05-12 at [services/webhooks.service.ts](services/webhooks.service.ts) + [hooks/api/use-webhooks.ts](hooks/api/use-webhooks.ts). All 7 spec endpoints wired. UI consumers will follow.
 
 ---
 
@@ -420,7 +418,7 @@ Items 1–5 and 7 are now ✅ done. Remaining work:
 8. ~~**Per-user AI restrictions table**~~ ✅ — user picker + table wired; saves `perRoleCaps` + `perUserCaps` together
 9. ~~**AI chat entry points**~~ ✅ — top-bar Bot icon in header (FAB skipped as redundant)
 10. ~~**Endpoint-drift audit**~~ ✅ Pass 1 + Pass 2 complete. Fixed 9 contract bugs across employees, young-people, tasks, exports, reports, safeguarding, sensitive-data, summary. Documented non-blocking gaps in vehicles, care-groups, forms, notifications, webhooks.
-11. **`mfaEnrollmentRequired` login branch** (large, BLOCKED on BE) — see §15 brief below for the question Julius needs to answer first
+11. ~~**`mfaEnrollmentRequired` login branch**~~ ✅ resolved 2026-05-12: production serves legacy envelope. No refactor needed; current FE is correct. Spec §M2 union remains aspirational.
 12. ~~**Self-mutating account flow gates during impersonation**~~ ✅ — `useIsImpersonating()` hook + MFA Security Card buttons disabled during support sessions
 13. ~~**Opt-in rate-limit cooldown on more surfaces**~~ ✅ — billing buttons now opt in via `cooldownFamily="billing"`; login/OTP keep their existing patterns
 14. ~~**Friendly messages for tail error codes**~~ ✅ — full spec catalogue mapped in lib/api/error.ts

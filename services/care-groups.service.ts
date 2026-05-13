@@ -21,8 +21,9 @@ export interface CareGroupRecord {
   addressLine2?: string
   city?: string
   county?: string
-  countryRegion?: string
   country?: string
+  /** @deprecated Older BE responses used this name; new spec uses `country`. */
+  countryRegion?: string
   postcode?: string
   twilioSid?: string
   twilioToken?: string
@@ -39,9 +40,15 @@ export interface CareGroupListResult {
 
 export interface CreateCareGroupInput {
   name: string
-  type: "private" | "public" | "charity"
+  /** Optional per spec §M16 (FE used to require it). */
+  type?: "private" | "public" | "charity"
+  managerName?: string
+  contactName?: string
   phoneNumber?: string
   email?: string
+  /** Spec uses `fax`; older FE used `faxNumber`. */
+  fax?: string
+  /** @deprecated alias for `fax` */
   faxNumber?: string
   description?: string
   website?: string
@@ -50,6 +57,9 @@ export interface CreateCareGroupInput {
   addressLine1?: string
   addressLine2?: string
   city?: string
+  county?: string
+  country?: string
+  /** @deprecated use `country` */
   countryRegion?: string
   postcode?: string
 }
