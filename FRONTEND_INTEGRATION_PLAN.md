@@ -27,16 +27,16 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 | Marker | Count | Meaning |
 |---|---|---|
-| `[x]` Done | 137 | Code shipped + verified |
+| `[x]` Done | 142 | Code shipped + verified |
 | `[→]` Pre-existing | 13 | Was already wired before this push; verify-only |
 | `[~]` Intentional skip | 6 | Decided not to do (with rationale) |
 | `[♻]` No consumer yet | 15 | Would be premature; no UI uses it today |
-| `[⏸]` Blocked on BE | 12 | Needs Julius's answer (see §15) |
+| `[⏸]` Blocked on BE | 7 | Needs Julius's answer (see §15) |
 | `[👤]` User task | 5 | For you, not the engineer |
 | `[🔬]` Acceptance test | 10 | Needs staging env to verify |
 | `[ ]` Actionable now | **0** | All known actionable work is closed |
 
-150 items closed; the remaining 48 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (12).
+155 items closed; the remaining 43 are either *intentional non-work* (36: skips / no-consumer / user tasks / staging tests) or *waiting on BE* (7).
 
 ## Top-line scorecard
 
@@ -253,7 +253,7 @@ Last updated: 2026-05-12 (latest: endpoint-drift audit pass 2 — fixed 6 contra
 
 - [x] `/settings/billing/success` — invalidates `billing.subscription`, `billing.quota`, `billing.invoicesBase` on mount, shows "thanks" + "go to dashboard"
 - [x] Portal / checkout cancel return → `/settings/billing` (no separate page)
-- [⏸] **Open question for BE**: confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes — see §15
+- [x] **Confirmed 2026-05-12**: Stripe redirect URLs (`BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL`) are set BE-side to point at FE routes (`/settings/billing/success`, `/settings/billing`). End-to-end Stripe checkout works.
 
 ### 6f. `BILLING_NOT_CONFIGURED` handling
 
@@ -394,11 +394,11 @@ End-to-end smoke tests. None of these require code changes anymore; they are use
 
 ## 14. Open questions for BE (Julius)
 
-- [⏸] Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes
+- [x] ~~Confirm `BILLING_CHECKOUT_SUCCESS_URL` / `BILLING_CHECKOUT_CANCEL_URL` / `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes~~ ✓ confirmed 2026-05-12
 - [⏸] Add `canManageBilling`, `canUseAi`, `canAdminAi` to `/me/permissions` derived flags, or should FE compute from `tenantRole` + permissions list?
-- [⏸] Per-user quota breakdown (`perUserUsage[]`) — capped or full list? Affects FE pagination.
-- [⏸] `/auth/session-expiry` — recommended polling cadence? (We default to fetch-on-focus + computed-from-cache.)
-- [⏸] `/audit/security-alerts` — should this drive a dashboard widget, or only an alerts page?
+- [x] ~~Per-user quota breakdown (`perUserUsage[]`)~~ ✓ resolved 2026-05-12: full list. Existing `<QuotaCard />` scrollable table is correct; no pagination needed.
+- [x] ~~`/auth/session-expiry` polling cadence~~ ✓ resolved 2026-05-12: FE default accepted (fetch-on-focus + computed-from-cache via `<SessionExpiryBanner />`).
+- [x] ~~`/audit/security-alerts` UI placement~~ ✓ resolved 2026-05-12: dashboard widget on `/my-summary`. `<SecurityAlertsWidget />` built, gated on `canViewReports` (manager+).
 - [⏸] Reg44/Reg45 reports — confirm they return file streams for `format=pdf|excel|zip`; FE handles via `.blob()`
 - [⏸] **Critical**: does production `/auth/login` currently return the new discriminated union (with `challengeToken` / `enrollmentToken`) or the legacy envelope? Required before unblocking the `mfaEnrollmentRequired` login refactor.
 
@@ -453,11 +453,11 @@ A one-line response with a sample login response payload (one from each branch) 
 
 These don't block anything; just useful for planning the next sprint:
 
-1. **Stripe redirect URLs** — confirm `BILLING_CHECKOUT_SUCCESS_URL`, `BILLING_CHECKOUT_CANCEL_URL`, `BILLING_PORTAL_RETURN_URL` env values point to FE-controlled routes. We assume `/settings/billing/success` is the SUCCESS target.
+1. ~~Stripe redirect URLs~~ ✓ resolved 2026-05-12: confirmed configured to FE routes (`/settings/billing/success`, `/settings/billing`).
 2. **Permission flags** — should `/me/permissions` return `canManageBilling`, `canUseAi`, `canAdminAi` derived flags? Today the FE computes from `tenantRole === 'tenant_admin'` and `user.aiAccessEnabled`. If you add the flags BE-side we'll switch over.
-3. **`/billing/quota.perUserUsage[]`** — is this capped or returns all members? Affects FE pagination on the per-user usage table.
-4. **`/auth/session-expiry`** — recommended polling cadence? We default to fetch-on-focus + computed-from-cache + 60s server-time-offset.
-5. **`/audit/security-alerts`** — should this drive a dashboard widget, or live behind an audit-only page? Currently no FE consumer.
+3. ~~`/billing/quota.perUserUsage[]` capped or full?~~ ✓ resolved 2026-05-12: full list.
+4. ~~`/auth/session-expiry` polling cadence~~ ✓ resolved 2026-05-12: FE default accepted.
+5. ~~`/audit/security-alerts` placement~~ ✓ resolved 2026-05-12: dashboard widget on /my-summary.
 6. **Reg44/Reg45 packs** — confirm `format=pdf|excel|zip` returns a file stream the FE handles via `.blob()`; `format=json` returns inline JSON.
 7. **Care Groups country field** — spec says `country`, FE uses `countryRegion`. Is the FE wrong (we'll rename) or is `country` aspirational?
 8. **Notifications + Webhooks endpoints** — confirmed not yet built FE-side. Are the spec endpoints (M27, M36) live today, or aspirational? If live, we can scaffold those services next.

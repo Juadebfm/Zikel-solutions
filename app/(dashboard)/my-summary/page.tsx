@@ -11,6 +11,7 @@ import { StatsOverview, defaultStats, type StatItem } from "@/components/dashboa
 import { TodoList, type TodoItem } from "@/components/dashboard/todo-list"
 import { TasksToApprove, type ApprovalTask } from "@/components/dashboard/tasks-to-approve"
 import { Provisions, type HomeProvision } from "@/components/dashboard/provisions"
+import { SecurityAlertsWidget } from "@/components/dashboard/security-alerts-widget"
 import { AccessBanner } from "@/components/permission/access-banner"
 import { NoPermissionModal } from "@/components/permission/no-permission-modal"
 import { usePermissionGuard } from "@/components/permission/use-permission-guard"
@@ -84,7 +85,8 @@ const SUMMARY_PANEL_PAGE_SIZE = 10
 
 export default function MySummaryPage() {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
+  const canSeeSecurityAlerts = hasPermission("canViewReports")
   const { guard, allowed, showModal, setShowModal } = usePermissionGuard("canApproveIOILogs")
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [isAskAiOpen, setIsAskAiOpen] = useState(false)
@@ -806,6 +808,8 @@ export default function MySummaryPage() {
           approvingTaskIds={activeApprovingTaskIds}
         />
       </div>
+
+      {canSeeSecurityAlerts ? <SecurityAlertsWidget /> : null}
 
       <Provisions homes={homeProvisions} />
 
